@@ -1,10 +1,23 @@
+
+DROP DATABASE TrackIt;
 CREATE DATABASE TrackIt;
 USE TrackIt;
 
+CREATE TABLE TblSession (
+	sessionUUID CHAR(36) NOT NULL PRIMARY KEY,
+    clientId INT NOT NULL,
+    isCanceled BOOL NOT NULL,
+    expiresAt DATETIME NOT NULL
+);
+
 CREATE TABLE TblClient (
-	clientId INT NOT NULL,
+	clientId INT NOT NULL AUTO_INCREMENT,
     clientName CHAR(32) NOT NULL,
-    PRIMARY KEY (clientId)
+    userName CHAR(16) NOT NULL,
+    userIdentifier CHAR(16) NOT NULL,
+    hashPassword CHAR(100) NOT NULL,
+    PRIMARY KEY (clientId),
+	CONSTRAINT UC_itemCode UNIQUE (userIdentifier)
 );
 
 # Flesh this out more
@@ -42,19 +55,10 @@ CREATE TABLE TblCustomerContact (
 CREATE TABLE TblChargedService (
 	clientId INT NOT NULL,
 	serviceId INT NOT NULL AUTO_INCREMENT,
+    defaultPricePerUnit DECIMAL(5, 2),
     unitOfMeasure CHAR(48) NOT NULL, # Hours, Miles, etc
 	FOREIGN KEY (clientId) REFERENCES TblClient (clientId),
     PRIMARY KEY (serviceId, clientId)
-);
-
-# Many (TblChargedServicePricePoint) To One (TblChargedService)
-CREATE TABLE TblChargedServicePricePoint (
-	serviceId INT NOT NULL,
-    startDate DATE NOT NULL,
-    buyPrice INT NOT NULL,
-    sellPrice INT NOT NULL,
-    FOREIGN KEY (serviceId) REFERENCES TblChargedService (serviceId),
-    PRIMARY KEY (serviceId, startDate)
 );
 
 CREATE TABLE TblItemType (
@@ -62,19 +66,11 @@ CREATE TABLE TblItemType (
 	itemId INT NOT NULL AUTO_INCREMENT,
     itemCode CHAR (16) NOT NULL,
     itemName CHAR(48) NOT NULL,
+    defaultBuyPrice DECIMAL(5, 2) NOT NULL,
+    defaultSellPrice DECIMAL(5, 2) NOT NULL,
     FOREIGN KEY (clientId) REFERENCES TblClient (clientId),
     PRIMARY KEY (itemId),
     CONSTRAINT UC_itemCode UNIQUE (itemCode, clientId)
-);
-
-# Many (TblItemPricePoint) To One (TblItemType)
-CREATE TABLE TblItemPricePoint (
-	itemId INT NOT NULL,
-    startDate DATE NOT NULL,
-    buyPrice INT NOT NULL,
-    sellPrice INT NOT NULL,
-    FOREIGN KEY (itemId) REFERENCES TblItemType (itemId),
-    PRIMARY KEY (itemId, startDate)
 );
 
 # Many (TblItemInstance) To One (TblItemType)
@@ -83,6 +79,7 @@ CREATE TABLE TblItemInstance (
     datePurchased DATE NOT NULL,
     dateAdded DATE NOT NULL,
     quantity INT NOT NULL,
+    price DECIMAL(5, 2) NOT NULL,
     FOREIGN KEY (itemId) REFERENCES TblItemType (itemId),
     PRIMARY KEY (itemId, datePurchased)
 );
