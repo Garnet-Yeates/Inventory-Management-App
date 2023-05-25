@@ -3,20 +3,32 @@ import mysql from 'mysql2'
 import express, { json, urlencoded } from 'express'
 import dotenv from 'dotenv';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import configureRoutes from './api/routes/configureRoutes.js';
-import bcrypt from 'bcrypt';
-import { promisify } from 'util';
+import { currentTimeSeconds, minutesFromNow } from './utilities.js';
+import authCheck from './api/middleware/authCheck.js';
+import createDatabase from './api/tools/database/createDatabase.js';
+
+const port = process.env.PORT || 4000;
 
 dotenv.config();
 
 const app = express()
 
 // Set up cors (has to be first or HTTP req's get blocked)
-app.use(cors());
+app.use(cors({ 
+    credentials: true, 
+    origin: [
+        `http://localhost:${3000}`,
+        `https://localhost:${3000}`
+    ] }));
 
 // Set up JSON body parsing
 app.use(json())
 app.use(urlencoded({ extended: false }))
+app.use(cookieParser())
+
+app.use(authCheck);
 
 // Configure REST API routes
 configureRoutes(app);
@@ -25,23 +37,17 @@ configureRoutes(app);
 const con = mysql.createConnection({
   host: "localhost",
   user: "root",
-  password: "InventoryManagementApp#!",
+  password: process.env.DATABASE_PASSWORD,
   database: "trackit",
 });
 
-export const db = con.promise();
-
-con.connect(function(err) {
-  if (err) throw err;
-  console.log("Connected to SQL server");
-});
+export const db = createDatabase(con);
 
 // Start
-const port = process.env.PORT || 4000;
 app.listen(port, () => {
     console.log("Server is up and running")
-});
 
+});
 
 export default app;
 

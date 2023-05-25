@@ -7,9 +7,10 @@ CREATE TABLE TblSession (
 	sessionUUID CHAR(36) NOT NULL PRIMARY KEY,
     clientId INT NOT NULL,
     isCanceled BOOL NOT NULL,
-    expiresAt DATETIME NOT NULL
+    expiresAt BIGINT NOT NULL
 );
 
+# Add unclustered index on userIdentifier since we lookup with this a lot
 CREATE TABLE TblClient (
 	clientId INT NOT NULL AUTO_INCREMENT,
     clientName CHAR(32) NOT NULL,

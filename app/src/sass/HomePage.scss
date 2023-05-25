@@ -1,0 +1,10 @@
+@import "./App.scss";
+
+.home-page {
+
+    min-height: 100vh;
+    overflow: hidden;
+
+    display: flex;
+    flex-direction: column;
+}
