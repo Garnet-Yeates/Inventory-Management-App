@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt'
-import { SessionDurationMinutes, authCheckHelper } from '../middleware/authCheck.js';
+import { authCheckHelper } from '../middleware/authCheck.js';
 import { createClient, findClient } from '../tools/database/tblClientProcedures.js';
 import { createSession } from '../tools/database/tblSessionProcedures.js.js';
 
@@ -143,8 +143,14 @@ export async function createSessionAndSetCookies(client, res) {
     // Session returns [ token, decodedToken ]. We only destructure CSRF out of decodedToken here
     const [ token, { sessionCSRF } ] = session;
 
-    res.cookie("auth_jwt", token, { httpOnly: true, maxAge: 1000 * 60 * (SessionDurationMinutes) - 5000 });
-    res.cookie("auth_csrf", sessionCSRF, { httpOnly: false, maxAge: 1000 * 60 * (SessionDurationMinutes) - 5000 });
+    // Session cookie lasts 3 hours while session in database lasts 15 minutes
+    // If cookie exists but session expires they will get "Session Expired" modal
+    // If cookie no longer exists they will get "Not Authorized" modal4
+    // This means:
+    // If they come back after 15 mins of their last request, but also within 3 hours of their last request they get "Session Expired modal"
+    // If they come back after 3 hours it will simply tell them they aren't logged in
+    res.cookie("auth_jwt", token, { httpOnly: true, maxAge: 1000 * 60 * (180) });
+    res.cookie("auth_csrf", sessionCSRF, { httpOnly: false, maxAge: 1000 * 60 * (180) });
 
     return true;
 }

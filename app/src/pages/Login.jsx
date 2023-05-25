@@ -78,11 +78,7 @@ function SessionExpiredModal({ authError }) {
 
     const navigate = useNavigate();
 
-    let headingText;
-    let description;
-
-    // Only one of these will be set at once
-    console.log("errType", errorType)
+    let headingText, description;
 
     switch (errorType) {
         case "sessionExpired":
@@ -144,7 +140,6 @@ function SessionExpiredModal({ authError }) {
 }
 
 function redirectIfAlreadyLoggedIn(Component, redirectTo) {
-
 
     return function Hoc(props) {
 
