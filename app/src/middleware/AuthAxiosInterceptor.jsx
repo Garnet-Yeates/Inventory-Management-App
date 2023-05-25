@@ -31,7 +31,7 @@ export default function AuthAxiosInterceptor() {
             const auth_csrf_cookie = Cookies.get('auth_csrf');
 
             if (auth_csrf_cookie) {
-             //   config.headers["auth_csrf"] = auth_csrf_cookie;
+                config.headers["auth_csrf"] = auth_csrf_cookie;
             }
 
             return config;
