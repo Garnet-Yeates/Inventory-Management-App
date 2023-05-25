@@ -5,7 +5,7 @@ import { createSessionAndSetCookies } from "../controllers/authcontroller.js";
 import { findClient } from "../tools/database/tblClientProcedures.js";
 
 // FMI: Cookie lasts for 5 seconds less time than the session lasts for
-export const SessionDurationMinutes = 0.2;
+export const SessionDurationMinutes = 0.35;
 
 export default async function authCheck(req, res, next) {
 
@@ -33,18 +33,18 @@ export default async function authCheck(req, res, next) {
     res.clearCookie("auth_jwt")
 
     // Cookies already gone down here so authRejections do not need to remove them
-    console.log("authCheckResult", authCheckResult)
+
     const user = await findClient({ clientId });
     if (!user) {
-        return res.status(500).json({ authRejected: { databaseErrors: ["Could not find user associated with the clientId tied to the session being updated"] } })
+        return res.status(500).json({ authRejected: { errorType: "noUser", errorMessage: "Could not find user associated with the clientId tied to the session being updated" } })
     }
     else if (user.sqlError) {
-        return res.status(500).json({ authRejected: { databaseErrors: ["Error querying database for user associated with the clientId tied to the session being updated"] } })
+        return res.status(500).json({ authRejected: { errorType: "databse", errorMessage: "Error querying database for user associated with the clientId tied to the session being updated" } })
     }
 
     if (!await createSessionAndSetCookies(user, res)) {
         // Send authFailed here so that our interceptor brings them to the login page and displays error
-        return res.status(500).json({ authRejected: { databaseErrors: ["Error inserting new session into database upon session refresh"] } })
+        return res.status(500).json({ authRejected: { errorType: "database", errorMessage: "Error inserting new session into database upon session refresh" } })
     }
 
     // Next middleware if all is good 
@@ -66,7 +66,7 @@ export async function authCheckHelper(req, res) {
     if (!authJWTCookie && !authCSRFCookie && !authCSRFHeader) {
 
         // No need to clear cookies we know they're not set here
-        res?.status(400).json({ authRejected: { userErrors: ["You must be logged in to view this data"] } })
+        res?.status(400).json({ authRejected: { errorType: "notLoggedIn", errorMessage: "You must be logged in to view this data" } })
         return false;
     }
 
@@ -76,13 +76,12 @@ export async function authCheckHelper(req, res) {
 
         const errors = []
 
-        !authJWTCookie && (errors.push("Missing auth_jwt cookie"));
-        !authCSRFCookie && (errors.push("Missing auth_csrf cookie"));
-        !authCSRFHeader && (errors.push("Missing auth_csrf header"));
+        !authJWTCookie && (errors.push("AUTH_JWT cookie"));
+        !authCSRFCookie && (errors.push("AUTH_CSRF cookie"));
+        !authCSRFHeader && (errors.push("AUTH_CSRF header"));
 
-        errors.unshift(`Incomplete authentication. Missing ${errors.length} items:`)
-
-        clearAuthCookiesWithErrors(400, res, "userErrors", ...errors)
+        const s = errors.length == 1 ? "" : "s";
+        clearAuthCookiesWithErrors(400, res, "incompleteAuth", `Incomplete authentication. Missing ${errors.length} form${s} of authentication: ${errors.join(", ")}`);
         
         return false;
     }
@@ -92,51 +91,49 @@ export async function authCheckHelper(req, res) {
         decodedToken = jwt.verify(authJWTCookie, process.env.JWT_SECRET);
     }
     catch {
-        clearAuthCookiesWithErrors(401, res, "userError", "auth_jwt cookie could not be verified")
+        clearAuthCookiesWithErrors(401, res, "verification", "AUTH_JWT cookie could not be verified")
         return false;
     }
 
-    const { sessionUUID } = decodedToken;
+    const { sessionUUID, sessionCSRF } = decodedToken;
 
     if (authCSRFCookie !== authCSRFHeader) {
-        clearAuthCookiesWithErrors(401, res, "userError", "csrf_auth header is not equivalent to the value of auth_csrf cookie")
+        clearAuthCookiesWithErrors(401, res, "verification", "CSRF_AUTH header is not equivalent to the value of AUTH_CSRF cookie")
         return false;
     }
 
     // It is implied that csrfCookie is the same as csrfHeader here
-    if (decodedToken.sessionCSRF !== authCSRFCookie) {
-        console.log("authCsrfCookie", authCSRFCookie)
-        console.log("decoded sessionCSRF", decodedToken.sessionCSRF)
-        clearAuthCookiesWithErrors(401, res, "userErrors", "csrf cookie has been tampered with")
+    if (sessionCSRF !== authCSRFCookie) {
+        clearAuthCookiesWithErrors(401, res, "verification", "CSRF cookie has been tampered with")
         return false;
     }
 
     let session = await findSession(sessionUUID)
     if (!session) {
-        return clearAuthCookiesWithErrors(401, res, "sessionErrors", "Session no longer exists or is expired ")
+        return clearAuthCookiesWithErrors(401, res, "sessionNotFound", "Could not find session")
     }
     else if (session.sqlError) {
-        return clearAuthCookiesWithErrors(500, res, "databaseErrors", "Error querying database for session")
+        return clearAuthCookiesWithErrors(500, res, "database", "Error querying database for session")
     }
 
     const { clientId, isCanceled, expiresAt } = session;
 
     // Session has expired, technically should never happen since cookie expires before the session does
     if (currentTimeSeconds() >= expiresAt) {
-        return clearAuthCookiesWithErrors(401, res, "sessionErrors", "Session expired")
+        return clearAuthCookiesWithErrors(401, res, "sessionExpired", "Session expired")
     }
 
     if (isCanceled) {
-        return clearAuthCookiesWithErrors(401, res, "sessionErrors", "Session was manually canceled")
+        return clearAuthCookiesWithErrors(401, res, "sessionCanceled", "Session was manually canceled")
     }
 
     return { clientId, sessionUUID }
 }
 
-export function clearAuthCookiesWithErrors(status, res, errType, ...errs) {
+export function clearAuthCookiesWithErrors(status, res, errorType, errorMessage) {
 
     res?.clearCookie("auth_jwt")
     res?.clearCookie("auth_csrf")
-    res?.status(status).json({ authRejected: { [errType]: errs }, ...errObj })
+    res?.status(status).json({ authRejected: { errorType, errorMessage } })
     return false;
 }

@@ -8,3 +8,95 @@
     display: flex;
     flex-direction: column;
 }
+
+.fixed-info-overlay {
+
+    // fixed-info-overlay is declared in App.scss
+
+    .auth-rejected-popup-container {
+
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+
+        width: 85%;
+        max-width: 600px;
+
+        background-color: white;
+
+        user-select: none;
+
+        box-shadow: 0 0 8px 0 rgb(0 0 0 / 30%);
+        border-radius: 12px;
+        padding: 24px 32px;
+
+        .auth-rejected-image {
+            object-fit: contain;
+            width: calc(rfs-fluid-value(3.5rem) + 0.25rem);
+            height: calc(rfs-fluid-value(3.5rem) + 0.25rem);
+        }
+
+        .auth-rejected-heading {
+            margin: 0;
+            text-align: center;
+        }
+
+        .auth-rejected-quote {
+            @include rfs(1.25rem, font-size);
+            margin-bottom: 18px;
+            max-width: 75%;
+            text-align: center;
+        }
+
+        .exit-details-container {
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            .exit-details-button {
+                width: 75%;
+                border-radius: 6px;
+                font-size: 1.25rem;
+            }
+        }
+    }
+
+    .auth-rejected-button {
+
+        --button-bg-color: #3278d4;
+        --bg-pressed-color: rgb(43, 92, 156);
+        color: #FFFFFF;
+        @include padding(10px 16px);
+        @include font-size(1.25rem);
+        border: 0px;
+        transition: background-color 0.15s ease-in-out, box-shadow 0.25s ease-in-out, transform 0.25s ease-in-out;
+        cursor: pointer;
+        display: inline-block;
+        text-decoration: none;
+        font-weight: 600;
+        border-radius: 1.5rem;
+
+        color: white;
+        background-color: var(--button-bg-color);
+
+        // active state is while you have left mouse held down on the button
+        &:active {
+            background-color: var(--bg-pressed-color);
+        }
+
+        // only works for <button> elements because they can be focused
+
+
+        &:hover {
+            background-color: var(--bg-pressed-color);
+        }
+
+
+
+
+    }
+
+
+}

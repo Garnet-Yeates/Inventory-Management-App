@@ -1,9 +1,5 @@
 import bcrypt from 'bcrypt'
 import { SessionDurationMinutes, authCheckHelper } from '../middleware/authCheck.js';
-import jwt from "jsonwebtoken";
-import { v4 as uuidv4 } from 'uuid';
-import { currentTimeSeconds, minutesFromNow } from '../../utilities.js';
-import { db } from '../../server.js';
 import { createClient, findClient } from '../tools/database/tblClientProcedures.js';
 import { createSession } from '../tools/database/tblSessionProcedures.js.js';
 
@@ -83,28 +79,28 @@ export async function register(req, res) {
     return res.status(200).json({ message: "You did it!" });
 }
 
+// GET /auth/loggedInCheck
 // Should be requested upon the mounting of register and login pages
 // If badAuth property exists in the response, the client shoud clear the csrf header from axios
 // if loggedIn property exists in the response, the client should redirect to the user's dashboard
 // if notLoggedIn property exists in the response, do nothing
-export async function alreadyLoggedInCheck(req, res) {
+export async function loggedInCheck(req, res) {
 
     const authJWTCookie = req.cookies["auth_jwt"];
     const authCSRFCookie = req.cookies["auth_csrf"];
     const authCSRFHeader = req.headers["auth_csrf"];
 
-    let authCheckResult;
-    if (authJWTCookie || authCSRFCookie || authCSRFHeader) {
-        authCheckResult = authCheckHelper(req);
-    }
-    else {
-        return res.status(200).json({ notLoggedIn: "You are not logged in " })
+    // If they didn't supply ANY credentials at all we don't need to run the auth check - we know they aren't logged in
+    if (!authJWTCookie && !authCSRFCookie && !authCSRFHeader) {
+        return res.status(200).json({ notLoggedIn: "You are not logged in" })
     }
 
-    if (!authCheckResult) {
+    const authCheckSuccess = authCheckHelper(req);
+
+    if (!authCheckSuccess) {
         authJWTCookie && res.clearCookie("auth_jwt")
         authCSRFCookie && res.clearCookie("auth_csrf")
-        return res.status(200).json({ authRejected: "Login session / cookies cleared " })
+        return res.status(200).json({ badAuth: "Login session cleared due to auth rejection" })
     }
     else {
         return res.status(200).json({ loggedIn: "You are already logged in" })

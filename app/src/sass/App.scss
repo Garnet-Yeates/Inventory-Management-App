@@ -6,7 +6,7 @@ $h4-font-size: $font-size-base * 2;
 $h5-font-size: $font-size-base * 1.5;
 $h6-font-size: $font-size-base * 1.25;
 
-$rfs-base-value: 0.875rem;
+$rfs-base-value: 0.75rem;
 $rfs-breakpoint: 1400px;
 $rfs-factor: 15;
 
@@ -99,6 +99,30 @@ ul {
     flex-direction: column;
     justify-content: center;
     align-items: center;
+}
+
+.fixed-info-overlay {
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+
+    z-index: 100;
+    background-color: rgba(35, 35, 35, 0.7);
+
+    .fixed-info-container {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
 }
 
 .button {
