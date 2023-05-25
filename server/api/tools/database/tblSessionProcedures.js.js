@@ -2,7 +2,6 @@ import { v4 as uuidv4 } from 'uuid'
 
 import jwt from 'jsonwebtoken'
 import { minutesFromNow } from '../../../utilities.js';
-import { SessionDurationMinutes } from '../../middleware/authCheck.js';
 import { db } from '../../../server.js';
 
 export async function findSession(sessionUUID) {
@@ -26,7 +25,7 @@ export async function createSession(clientObj) {
     
     const token = jwt.sign(decoded, process.env.JWT_SECRET)
 
-    let sql = `INSERT INTO TblSession (sessionUUID, clientId, isCanceled, expiresAt) VALUES ('${decoded.sessionUUID}', ${clientObj.clientId}, ${false}, ${minutesFromNow(SessionDurationMinutes)})`
+    let sql = `INSERT INTO TblSession (sessionUUID, clientId, isCanceled, expiresAt) VALUES ('${decoded.sessionUUID}', ${clientObj.clientId}, ${false}, ${minutesFromNow(15)})`
     try {
         await db.query(sql);
         return [ token, decoded ];

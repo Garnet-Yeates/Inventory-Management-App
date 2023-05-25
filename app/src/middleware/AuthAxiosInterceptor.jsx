@@ -24,10 +24,7 @@ export default function AuthAxiosInterceptor() {
 
     useEffect(() => {
 
-        // Req
-        
-        const reqId = axios.interceptors.request.use(function addCsrfHeader(config) {
-            console.log("INT REQ")
+        const reqIntId = axios.interceptors.request.use(function addCsrfHeader(config) {
             const auth_csrf_cookie = Cookies.get('auth_csrf');
 
             if (auth_csrf_cookie) {
@@ -37,31 +34,28 @@ export default function AuthAxiosInterceptor() {
             return config;
         })
 
-        // Res
-
         // Interlope the linear atrocities
-        const resId = axios.interceptors.response.use(null, function checkAuthRejected(error) {
-            console.log("INT RES")
-            if (error?.response?.data) {
+        const resIntId = axios.interceptors.response.use(null, function checkAuthRejected(error) {
 
-                const data = error.response.data;
+            // authRejected can be sent for multiple reasons, see the server authCheck middleware 
+            if (error?.response?.data?.authRejected) {
 
-                // authRejected can be sent for multiple reasons, see the server authCheck middleware 
-                const { authRejected } = data;
-                if (authRejected) {
-                    console.log("AUTH REJECT, NAV")
-                    // Cookies are deleted by the server middleware automatically. It is up to the client to perform the redirect here
-                    error.canceled = true;
-                    navigate("/login", { replace: true, state: { authRejected } })
-                }
+                const { authRejected } = error.response.data;
+
+                // Error.canceled basically says 'we dealt with this error'. Read the JSDoc for this Component for details
+                error.canceled = true;
+
+                // Cookies are deleted by the server middleware automatically upon auth rejection
+                // it is up to the client to perform the redirect here after receiving an auth rejection
+                navigate("/login", { replace: true, state: { authRejected } })
             }
 
             return Promise.reject(error);
         })
 
         return function cleanup() {
-            axios.interceptors.request.eject(reqId)
-            axios.interceptors.response.eject(resId)
+            axios.interceptors.request.eject(reqIntId)
+            axios.interceptors.response.eject(resIntId)
         }
 
     }, [navigate])

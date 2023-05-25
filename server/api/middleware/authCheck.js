@@ -4,9 +4,6 @@ import { deleteSession, findSession } from "../tools/database/tblSessionProcedur
 import { createSessionAndSetCookies } from "../controllers/authcontroller.js";
 import { findClient } from "../tools/database/tblClientProcedures.js";
 
-// FMI: Cookie lasts for 5 seconds less time than the session lasts for
-export const SessionDurationMinutes = 0.35;
-
 export default async function authCheck(req, res, next) {
 
     // Home, register, loggedInCheck, and login are exempt from this
