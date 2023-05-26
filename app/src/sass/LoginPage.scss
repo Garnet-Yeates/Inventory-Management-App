@@ -1,17 +1,31 @@
 @import "./App.scss";
 
-.login-page {
+.login-page-container {
 
     min-height: 100vh;
     overflow: hidden;
 
     display: flex;
     flex-direction: column;
+
+    .login-page {
+
+        flex-grow: 1;
+
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+
+        width: 100%;
+     
+        @include rfs(24px, padding);
+    }
 }
 
 .fixed-info-overlay {
 
-    // fixed-info-overlay is declared in App.scss
+    // fixed-info-overlay is declared in App.scss, we just "extend" it here
 
     .auth-rejected-popup-container {
 
@@ -65,38 +79,9 @@
 
     .auth-rejected-button {
 
+        border-radius: 1.5rem;
         --button-bg-color: #3278d4;
         --bg-pressed-color: rgb(43, 92, 156);
-        color: #FFFFFF;
-        @include padding(10px 16px);
-        @include font-size(1.25rem);
-        border: 0px;
-        transition: background-color 0.15s ease-in-out, box-shadow 0.25s ease-in-out, transform 0.25s ease-in-out;
-        cursor: pointer;
-        display: inline-block;
-        text-decoration: none;
-        font-weight: 600;
-        border-radius: 1.5rem;
-
-        color: white;
-        background-color: var(--button-bg-color);
-
-        // active state is while you have left mouse held down on the button
-        &:active {
-            background-color: var(--bg-pressed-color);
-        }
-
-        // only works for <button> elements because they can be focused
-
-
-        &:hover {
-            background-color: var(--bg-pressed-color);
-        }
-
-
-
-
+        color: #FFFFFF
     }
-
-
 }

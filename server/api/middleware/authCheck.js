@@ -7,12 +7,12 @@ import { findClient } from "../tools/database/tblClientProcedures.js";
 export default async function authCheck(req, res, next) {
 
     // Home, register, loggedInCheck, and login are exempt from this
-    const exemptEndpoints = ['/', '/auth/register', '/auth/loggedInCheck', '/auth/login'];
+    const exemptEndpoints = ['/', '/auth/register', '/auth/loggedInCheck', '/auth/login', '/auth/logout'];
 
     if (exemptEndpoints.includes(req.path)) return next();
 
     // AuthCheck will automatically send error messages and clear cookies
-    let authCheckResult = await authCheckHelper(req, res);
+    let authCheckResult = await authCheckHelper(req, res, { sendResOnFail: true, deleteCookiesOnFail: true });
 
     if (!authCheckResult) {
         return;
@@ -20,11 +20,16 @@ export default async function authCheck(req, res, next) {
 
     const { clientId, sessionUUID } = authCheckResult;
 
-    // Refresh session
-
-    if (deleteSession(sessionUUID)?.sqlError) {
-        console.log("WARN: Could not delete old session from database upon session refresh")
-    }
+    // Wait 1 minute before deleting the session upon refresh. This is so that if a chain of auth requests occur all using the 
+    // same cookie (i.e, they all send before one of them resolves sets the new cookie in the browser), the other requests
+    // cookie isn't invalidated as a result of the deletion of the session that all the cookies were on
+    //
+    // Realized this concurrency error due to React's 'double-mount' in development mode, but it was a good catch :)
+    setTimeout(async () => {
+        if (await deleteSession(sessionUUID)?.sqlError) {
+            console.log("WARN: Could not delete old session from database upon session refresh")
+        }
+    }, 1000*60)
 
     res.clearCookie("auth_csrf")
     res.clearCookie("auth_jwt")
@@ -50,21 +55,33 @@ export default async function authCheck(req, res, next) {
 }
 
 
-// NOT an api endpoint, rather a helper method
-// The ONLY time res should be defined is when we are using this in our authentication middleware. We use this
-// in other places too (such as authController.alreadyLoggedInCheck), but with res undefined
-export async function authCheckHelper(req, res) {
-
+// Checks whether there should even be an attempt to authorize the user
+// If NONE of the 3 required auth pieces (jwt cookie, csrf cookie, csrf header) are supplied, do not bother
+export function shouldAttemptAuth(req) {
+ 
     const authJWTCookie = req.cookies["auth_jwt"];
     const authCSRFCookie = req.cookies["auth_csrf"];
     const authCSRFHeader = req.headers["auth_csrf"];
 
-    // If we're missing all 3, we're simply not logged in
-    if (!authJWTCookie && !authCSRFCookie && !authCSRFHeader) {
+    return authJWTCookie || authCSRFCookie || authCSRFHeader;
+}
 
-        // No need to clear cookies we know they're not set here
-        res?.status(400).json({ authRejected: { errorType: "notLoggedIn", errorMessage: "You must be logged in to view this data" } })
-        return false;
+// NOT an api endpoint, rather a helper method
+// The ONLY time res should be defined is when we are using this in our authentication middleware. We use this
+// in other places too (such as authController.alreadyLoggedInCheck), but with res undefined
+// Returns falsy if authCheck failed in any way shape form factor figure
+export async function authCheckHelper(req, res, options) {
+
+    const { sendResOnFail, deleteCookiesOnFail } = options;
+ 
+    const authJWTCookie = req.cookies["auth_jwt"];
+    const authCSRFCookie = req.cookies["auth_csrf"];
+    const authCSRFHeader = req.headers["auth_csrf"];
+
+    if (!shouldAttemptAuth(req)) {
+        console.log("cunty")
+        sendResOnFail && res.status(400).json({ authRejected: { errorType: "notLoggedIn", errorMessage: "You must be logged in to view this data" } })
+        return false; // No need to clear cookies we know they're not set here
     }
 
     // Down here implies that we have at least jwtCookie, csrfCookie, or csrfHeader supplied
@@ -78,9 +95,7 @@ export async function authCheckHelper(req, res) {
         !authCSRFHeader && (errors.push("AUTH_CSRF header"));
 
         const s = errors.length == 1 ? "" : "s";
-        clearAuthCookiesWithErrors(400, res, "incompleteAuth", `Incomplete authentication. Missing ${errors.length} form${s} of authentication: ${errors.join(", ")}`);
-        
-        return false;
+        return clearAuthCookiesWithErrors(400, res, options, "incompleteAuth", `Incomplete authentication. Missing ${errors.length} form${s} of authentication: ${errors.join(", ")}`);        
     }
 
     let decodedToken;
@@ -88,49 +103,47 @@ export async function authCheckHelper(req, res) {
         decodedToken = jwt.verify(authJWTCookie, process.env.JWT_SECRET);
     }
     catch {
-        clearAuthCookiesWithErrors(401, res, "verification", "AUTH_JWT cookie could not be verified")
-        return false;
+        return clearAuthCookiesWithErrors(401, res, options, "verification", "AUTH_JWT cookie could not be verified")
     }
 
     const { sessionUUID, sessionCSRF } = decodedToken;
 
     if (authCSRFCookie !== authCSRFHeader) {
-        clearAuthCookiesWithErrors(401, res, "verification", "CSRF_AUTH header is not equivalent to the value of AUTH_CSRF cookie")
-        return false;
+        return clearAuthCookiesWithErrors(401, res, options, "verification", "CSRF_AUTH header is not equivalent to the value of AUTH_CSRF cookie")
     }
 
     // It is implied that csrfCookie is the same as csrfHeader here
     if (sessionCSRF !== authCSRFCookie) {
-        clearAuthCookiesWithErrors(401, res, "verification", "CSRF cookie has been tampered with")
-        return false;
+        return clearAuthCookiesWithErrors(401, res, options, "verification", "CSRF cookie has been tampered with")
     }
 
     let session = await findSession(sessionUUID)
     if (!session) {
-        return clearAuthCookiesWithErrors(401, res, "sessionNotFound", "Could not find session")
+        return clearAuthCookiesWithErrors(401, res, options, "sessionNotFound", "Could not find session")
     }
     else if (session.sqlError) {
-        return clearAuthCookiesWithErrors(500, res, "database", "Error querying database for session")
+        return clearAuthCookiesWithErrors(500, res, options, "database", "Error querying database for session")
     }
 
     const { clientId, isCanceled, expiresAt } = session;
 
     // Session has expired, technically should never happen since cookie expires before the session does
     if (currentTimeSeconds() >= expiresAt) {
-        return clearAuthCookiesWithErrors(401, res, "sessionExpired", "Session expired")
+        return clearAuthCookiesWithErrors(401, res, options, "sessionExpired", "Session expired")
     }
 
     if (isCanceled) {
-        return clearAuthCookiesWithErrors(401, res, "sessionCanceled", "Session was manually canceled")
+        return clearAuthCookiesWithErrors(401, res, options, "sessionCanceled", "Session was manually canceled")
     }
 
     return { clientId, sessionUUID }
 }
 
-export function clearAuthCookiesWithErrors(status, res, errorType, errorMessage) {
+export function clearAuthCookiesWithErrors(status, res, options, errorType, errorMessage) {
 
-    res?.clearCookie("auth_jwt")
-    res?.clearCookie("auth_csrf")
-    res?.status(status).json({ authRejected: { errorType, errorMessage } })
+    const { sendResOnFail, deleteCookiesOnFail } = options;
+    deleteCookiesOnFail && res.clearCookie("auth_jwt")
+    deleteCookiesOnFail && res.clearCookie("auth_csrf")
+    sendResOnFail && res.status(status).json({ authRejected: { errorType, errorMessage } })
     return false;
 }

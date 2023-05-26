@@ -1,11 +1,13 @@
 import '../sass/App.scss'
 import { BrowserRouter as Router, Route, Routes, useNavigate } from 'react-router-dom';
 
-import RegisterPage from './Register';
-import LoginPage from './Login';
-import NotFoundPage from './NotFound';
+import RegisterPage from './RegisterPage';
+import LoginPage from './LoginPage';
+import NotFoundPage from './NotFoundPage';
 import HomePage from './HomePage';
-import AuthAxiosInterceptor from '../middleware/AuthAxiosInterceptor';
+import { AuthAxiosInterceptor } from '../middleware/AuthenticationMiddleware';
+import DashboardPage from './DashboardPage';
+import AuthTestPage from './AuthTestPage';
 
 export const SERVER_URL = "http://localhost:4000"
 
@@ -17,6 +19,8 @@ function App() {
                 <Routes>
                     <Route path='/' element={<HomePage />} />
                     <Route path='/register' element={<RegisterPage />} />
+                    <Route path='/dashboard' element={<DashboardPage />} />
+                    <Route path='/authTest' element={<AuthTestPage />} />
                     <Route path='/login' element={<LoginPage />} />
                     <Route path='*' element={<NotFoundPage />} />
                 </Routes>

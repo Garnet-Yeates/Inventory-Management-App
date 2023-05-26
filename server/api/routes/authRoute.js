@@ -1,4 +1,4 @@
-import { loggedInCheck, authRequiredTest, login, register } from "../controllers/authcontroller.js"
+import { loggedInCheck, authRequiredTest, login, register, logout } from "../controllers/authcontroller.js"
 
 export default function (app) {
     app.route('/auth/register')
@@ -7,6 +7,8 @@ export default function (app) {
         .post(login)
     app.route('/auth/loggedInCheck')
         .get(loggedInCheck)
+    app.route('/auth/logout')
+        .get(logout)
     app.route('/auth/test')
         .get(authRequiredTest)
 }

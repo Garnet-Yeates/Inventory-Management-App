@@ -1,14 +1,16 @@
 import axios from "axios"
 
-import Cookies from "js-cookie"
-import "../sass/Login.scss"
+import "../sass/LoginPage.scss"
 import { useEffect, useState } from "react"
 import { SERVER_URL, lockScroll, unlockScroll } from "./App"
 import StatefulInput from "../components/StatefulInput"
 import { useLocation, useNavigate } from "react-router-dom"
 import RedX from '../images/RedX.png'
+import { redirectIfAlreadyLoggedIn } from "../middleware/AuthenticationMiddleware"
 
 function LoginPage({ }) {
+
+    const navigate = useNavigate();
 
     const location = useLocation();
 
@@ -23,47 +25,22 @@ function LoginPage({ }) {
 
         try {
             const response = await axios.post(`${SERVER_URL}/auth/login`, loginData);
-            console.log("/auth/login response", response.data)
+            console.log("Login response", response.data)
+            navigate('/authTest')
         }
         catch (err) {
-            console.log("Error with POST to /auth/login", err?.response?.data)
-        }
-    }
-
-    function cookieCheck() {
-        console.log(Cookies.get("auth_csrf"))
-    }
-
-    async function authenticatedCheck() {
-        try {
-            const response = await axios.get(`${SERVER_URL}/auth/loggedInCheck`);
-            console.log("/auth/loggedInCheck response", response.data)
-        }
-        catch (err) {
-            console.log("Error with GET /auth/loggedInCheck", err?.response?.data)
-        }
-    }
-
-    async function authRequiredEndpoint() {
-        try {
-            const response = await axios.get(`${SERVER_URL}/auth/test`);
-            console.log("/auth/test response", response.data)
-        }
-        catch (err) {
-            console.log("Error with GET /auth/loggedInCheck", err?.response?.data)
-            console.log("err.dealtWith", err.dealtWith)
+            console.log("Login error", err?.response?.data)
         }
     }
 
     return (
-        <div className="login-page">
-            {state.authRejected && <SessionExpiredModal authError={state.authRejected} />}
-            <StatefulInput className="" type="text" state={userName} setState={setUserName} />
-            <StatefulInput className="" type="password" state={password} setState={setPassword} />
-            <button onClick={postLogin}>Log in</button>
-            <button onClick={cookieCheck}>Cookie check</button>
-            <button onClick={authenticatedCheck}>Logged in check</button>
-            <button onClick={authRequiredEndpoint}>Auth Required</button>
+        <div className="login-page-container">
+            <div className="login-page">
+                {state.authRejected && <SessionExpiredModal authError={state.authRejected} />}
+                <StatefulInput className="login-input" type="text" state={userName} setState={setUserName} />
+                <StatefulInput className="login-input" type="password" state={password} setState={setPassword} />
+                <button className="responsive-button btn-blue hover-dim" onClick={postLogin}>Log in</button>
+            </div>
         </div>
     )
 }
@@ -119,50 +96,26 @@ function SessionExpiredModal({ authError }) {
     // Clear state by navigating to same page with empty state. This is so subsequent refreshes (or history < then > (back then forth) wont cause)
     // The modal to open back up
     const onButtonClick = () => {
-        navigate("/login", { replace: true, state: { } })
+        navigate("/login", { replace: true, state: {} })
     }
 
     return (
         <div className="fixed-info-overlay">
-            <div className="container fixed-info-container">
-                <div className="auth-rejected-popup-container">
-                    <img className="auth-rejected-image" src={RedX} />
-                    <h4 className="auth-rejected-heading py-2">{headingText}</h4>
-                    <p className="auth-rejected-quote">
-                        {description}
-                    </p>
-                    <button className="auth-rejected-button" onClick={onButtonClick}><span>Back to Login</span></button>
+            <div className="container">
+                <div className="fixed-info-container">
+                    <div className="auth-rejected-popup-container">
+                        <img className="auth-rejected-image" src={RedX} />
+                        <h4 className="auth-rejected-heading py-2">{headingText}</h4>
+                        <p className="auth-rejected-quote">
+                            {description}
+                        </p>
+                        <button className="responsive-button hover-dim auth-rejected-button" onClick={onButtonClick}><span>Back to Login</span></button>
+                    </div>
                 </div>
-            </div>
 
+            </div>
         </div>
     )
 }
 
-function redirectIfAlreadyLoggedIn(Component, redirectTo) {
-
-    return function Hoc(props) {
-
-        const navigate = useNavigate();
-
-        useEffect(() => {
-
-            const fetchData = async () => {
-
-                const response = await axios.get(`${SERVER_URL}/auth/loggedInCheck`)
-
-                if (response.loggedIn) {
-                    navigate(redirectTo, { replace: true, state: { alreadyLoggedInNotice: "Already logged in" } })
-                }
-
-            }
-
-            fetchData();
-
-        }, [navigate])
-
-        return <Component {...props} />
-    }
-}
-
-export default LoginPage;
+export default redirectIfAlreadyLoggedIn(LoginPage, "/dashboard");

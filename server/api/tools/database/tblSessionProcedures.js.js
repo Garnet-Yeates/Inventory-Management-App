@@ -25,7 +25,7 @@ export async function createSession(clientObj) {
     
     const token = jwt.sign(decoded, process.env.JWT_SECRET)
 
-    let sql = `INSERT INTO TblSession (sessionUUID, clientId, isCanceled, expiresAt) VALUES ('${decoded.sessionUUID}', ${clientObj.clientId}, ${false}, ${minutesFromNow(15)})`
+    let sql = `INSERT INTO TblSession (sessionUUID, clientId, isCanceled, expiresAt) VALUES ('${decoded.sessionUUID}', ${clientObj.clientId}, ${false}, ${minutesFromNow(1)})`
     try {
         await db.query(sql);
         return [ token, decoded ];
@@ -36,6 +36,16 @@ export async function createSession(clientObj) {
     }
 }
 
+/**
+ * Attempts to delete the session from the database that has the same sessionUUID as the provided UUID
+ * 
+ * @param {number} sessionUUID 
+ * @returns `false` if the session was not found 
+ * 
+ * an object with the `sqlError` property set if there are an error finding or deleting the session
+ * 
+ * an object with the `success` property set upon success
+ */
 export async function deleteSession(sessionUUID) {
 
     let session = await findSession(sessionUUID);
@@ -50,7 +60,7 @@ export async function deleteSession(sessionUUID) {
 
     try {
         await db.query(sql);
-        return true;
+        return { success: true };
     } catch (err) {
         console.log("Err querying db in deleteSession()", err)
         return { sqlError: "Error querying database in deleteSession()" }
