@@ -109,7 +109,7 @@ export class DeleteQueryBuilder {
 
     async execute() {
 
-        let sql = `DELETE FROM  ${this.tableName} \nWHERE ${keyValueEquality(this.whereClause, " AND ")}`;
+        let sql = `DELETE FROM ${this.tableName} \nWHERE ${keyValueEquality(this.whereClause, " AND ")}`;
 
         this.lastQuery = sql;
         printSql(sql);
