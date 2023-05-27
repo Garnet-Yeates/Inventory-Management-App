@@ -92,7 +92,7 @@ function AuthTestPage({ }) {
                                     <AuthTestButton buttonText="CSRF Cookie Check" onClick={cookieCheck} />
                                 </div>
                                 <div className="col-xl-6">
-                                    <AuthTestButton buttonText={`${!tamperedCSRF ? "Tamper With" : "Fix"} CSRF Header`} onClick={toggleCSRFTamper} />
+                                    <AuthTestButton buttonText={`${!tamperedCSRF ? "Tamper" : "Fix"} CSRF Header`} onClick={toggleCSRFTamper} />
                                 </div>
                                 <div className="col-xl-6">
                                     <AuthTestButton buttonText={`${sendingCSRF ? "Remove" : "Restore"} CSRF Header`} onClick={toggleCSRFSending} />

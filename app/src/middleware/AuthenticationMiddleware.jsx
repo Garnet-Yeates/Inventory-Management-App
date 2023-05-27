@@ -4,11 +4,12 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SERVER_URL } from "../pages/App";
 
+console.log("middleware init")
+
 // Set when script is loaded (when imported from App.jsx)
 axios.defaults.withCredentials = true;
 
 // Used for my Auth testing page
-console.log("middleware init")
 export const authTamperingSettings = { tamperWithCSRFHeader: false, sendCSRFHeader: true }
 
 /**
