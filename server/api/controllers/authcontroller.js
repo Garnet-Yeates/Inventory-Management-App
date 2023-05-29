@@ -206,8 +206,8 @@ export async function logout(req, res) {
     }
 
     // With these options: authCheckHelper does not do much, besides returning existing session if it exists.
-    // Clearing cookies and responding is up to us.
-    // Note that sessions are always deleted on auth fail (if auth fail contained a JWT cookie with a sessionID)
+    // Clearing cookies and responding is up to us. 
+    // Note that sessions are ALWAYS deleted on auth fail (if auth fail contained a JWT cookie with a sessionID)
     const authCheckResult = await authCheckHelper(req, res, { sendResOnFail: false, deleteCookiesOnFail: false });
 
     res.clearCookie("auth_jwt")
@@ -262,8 +262,8 @@ export async function loggedInCheck(req, res) {
         return res.status(200).json({ notLoggedIn: "You are not logged in" })
     }
 
-    // With these options: cookies will be deleted on any form of failure (including db error) but we will deal with the response on our own
-    // Note that sessions are always deleted on auth fail (if auth fail contained a JWT cookie with a sessionID)
+    // With these options: cookies and sessions will be deleted on any form of failure, but we will deal with the response on our own
+    // Note that sessions are ALWAYS deleted on any form of auth fail (if valid JWT supplied), there is no option for it
     const authCheckSuccess = await authCheckHelper(req, res, { sendResOnFail: false, deleteCookiesOnFail: true });
 
     if (!authCheckSuccess) {

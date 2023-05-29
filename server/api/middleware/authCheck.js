@@ -12,8 +12,8 @@ export default async function authCheck(req, res, next) {
 
     if (exemptEndpoints.includes(req.path)) return next();
 
-    // AuthCheck will automatically send error messages and clear cookies with these options
-    // Note that sessions are always deleted on auth fail (if auth fail contained a JWT cookie with a sessionID)
+    // AuthCheck will automatically send error messages, clear cookies, and delete sessions on failure with these options
+    // Note that sessions are ALWAYS deleted on any form of auth fail (if valid JWT supplied), there is no option for it
     let authCheckResult = await authCheckHelper(req, res, { sendResOnFail: true, deleteCookiesOnFail: true });
 
     if (!authCheckResult) {
@@ -87,7 +87,10 @@ export function userSuppliedAnyAuth(req) {
  */
 export async function authCheckHelper(req, res, options) {
 
-    const { sendResOnFail } = options;
+    const { sendResOnFail, deleteCookiesOnFail } = options;
+
+    // Initialize these here so our helper function below can't crash when trying to access sessionUUID before it is initialized
+    let sessionUUID, sessionCSRF = null;
 
     const authJWTCookie = req.cookies["auth_jwt"];
     const authCSRFCookie = req.cookies["auth_csrf"];
@@ -105,15 +108,16 @@ export async function authCheckHelper(req, res, options) {
     let decodedToken;
     if (authJWTCookie) {
         try {
-            decodedToken = jwt.verify(authJWTCookie, process.env.JWT_SECRET);
+            decodedToken = jwt.verify(authJWTCookie + "DD", process.env.JWT_SECRET);
         }
         catch {
-            return clearAuthCookiesWithErrors(401, res, options, "verification", "AUTH_JWT cookie could not be verified")
+            return onAuthFailure(401, "verification", "AUTH_JWT cookie could not be verified")
         }
     }
 
-    // These will all be undefined if authJWTCookie is not set. Notice how I use ?? to make sure decodedToken isn't undefined which will cause destructure crash
-    const { sessionUUID: signedSessionUUID, sessionCSRF: signedSessionCSRF } = decodedToken ?? { }; 
+    // These will all be undefined if authJWTCookie is not set.
+    // We can trust the integrity of these values since they are signed in a JWT token by us
+    ({ sessionUUID, sessionCSRF } = decodedToken ?? { }); 
 
     // If we have some pieces of auth info but any are missing, auth fails
     if ((!authJWTCookie || !authCSRFCookie || !authCSRFHeader)) {
@@ -125,50 +129,59 @@ export async function authCheckHelper(req, res, options) {
         !authCSRFHeader && (errors.push("AUTH_CSRF header"));
 
         const s = errors.length == 1 ? "" : "s";
-        signedSessionUUID && deleteSessionSoon(signedSessionUUID);
-        return clearAuthCookiesWithErrors(400, res, options, "incompleteAuth", `Incomplete authentication. Missing ${errors.length} form${s} of authentication: ${errors.join(", ")}`);
+        sessionUUID && deleteSessionSoon(sessionUUID);
+        return onAuthFailure(400, "incompleteAuth", `Incomplete authentication. Missing ${errors.length} form${s} of authentication: ${errors.join(", ")}`);
     }
 
+    // Down here it is now implied that authJWTCookie, authCSRFCookie, authCSRFHeader are set
+    // Implied that sessionUUID and sessionCSRF are set here AND that we can trust their values since they come from the JWT
 
-    if (authCSRFCookie !== authCSRFHeader) {
-        deleteSessionSoon(signedSessionUUID)
-        return clearAuthCookiesWithErrors(401, res, options, "verification", "CSRF_AUTH header is not equivalent to the value of AUTH_CSRF cookie")
-    }
+    // This covers the case where they try to steal your authCSRF cookie but they cannot read its value (since it's cross-site), and 
+    // therefore they won't be able to set the right value for authCSRFHeader
+    if (authCSRFCookie !== authCSRFHeader) 
+        return onAuthFailure(401, "verification", "CSRF_AUTH header is not equivalent to the value of AUTH_CSRF cookie")
+    
+    // Implied that authCSRFCookie === authCSRFHeader here and below
 
-    // It is implied that csrfCookie is the same as csrfHeader here
-    if (signedSessionCSRF !== authCSRFCookie) {
-        deleteSessionSoon(signedSessionUUID)
-        return clearAuthCookiesWithErrors(401, res, options, "verification", "CSRF cookie and CSRF header have been tampered with")
-    }
+    // This covers they case where they try to send a random CSRF header and make their own CSRF cookie that matches it.
+    // However even though they match, they don't match with the trusted (signed) sessionCSRF stored in the HTTPOnly cookie
+    if (sessionCSRF !== authCSRFCookie) 
+        return onAuthFailure(401, "verification", "CSRF cookie and CSRF header have been tampered with")
 
+    // Find their session in the database
     let session;
-    try {
-        session = await findSession(signedSessionUUID)
+    try { 
+        session = await findSession(sessionUUID) 
     }
-    catch (err) {
-        deleteSessionSoon(signedSessionUUID)
-        return clearAuthCookiesWithErrors(500, res, options, "database", "Error querying database for session")
-    }
-
-    if (!session) {
-        deleteSessionSoon(signedSessionUUID)
-        return clearAuthCookiesWithErrors(401, res, options, "sessionNotFound", "Could not find session")
+    catch { 
+        return onAuthFailure(500, "database", "Error querying database for session") 
     }
 
+    // Session not found
+    if (!session) 
+        return onAuthFailure(401, "sessionNotFound", "Could not find session")
+
+    // It is implied that these exist here
     const { clientId, isCanceled, expiresAt } = session;
 
-    // Session has expired, technically should never happen since cookie expires before the session does
-    if (currentTimeSeconds() >= expiresAt) {
-        deleteSessionSoon(signedSessionUUID)
-        return clearAuthCookiesWithErrors(401, res, options, "sessionExpired", "Session expired")
-    }
+    // Session expired
+    if (currentTimeSeconds() >= expiresAt) 
+        return onAuthFailure(401, "sessionExpired", "Session expired")
 
-    if (isCanceled) {
-        deleteSessionSoon(signedSessionUUID)
-        return clearAuthCookiesWithErrors(401, res, options, "sessionCanceled", "Session was manually canceled")
-    }
+    // Session manually canceled. Probs remove this tbh and just delete it to cancel it
+    if (isCanceled) 
+        return onAuthFailure(401, "sessionCanceled", "Session was manually canceled")
 
-    return { clientId, sessionUUID: signedSessionUUID }
+    return { clientId, sessionUUID: sessionUUID }
+
+    // Helper function
+    function onAuthFailure(status, errorType, errorMessage) {
+        deleteCookiesOnFail && res.clearCookie("auth_jwt")
+        deleteCookiesOnFail && res.clearCookie("auth_csrf")
+        sessionUUID && deleteSessionSoon(sessionUUID)
+        sendResOnFail && res.status(status).json({ authRejected: { errorType, errorMessage } })
+        return false;
+    }
 }
 
 // Deletes session in 15 seconds
