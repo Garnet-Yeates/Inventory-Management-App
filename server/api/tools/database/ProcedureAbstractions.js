@@ -13,6 +13,10 @@ export function Table(tableName) {
             return new SelectQueryBuilder(tableName).where(whereClause);
         },
 
+        join(joinedTableName, columnMap, selectClause) {
+            return new SelectQueryBuilder(tableName).join(joinedTableName, columnMap, selectClause);
+        },
+
         removeWhere(whereClause) {
             return new DeleteQueryBuilder(tableName).where(whereClause)
         },
@@ -27,9 +31,10 @@ export function Table(tableName) {
 export class SelectQueryBuilder {
 
     tableName;
-    selectClause;
+    selectClause = [];
+    joinClauses = [];
     whereClause;
-    limit;
+    limit = 0;
 
     constructor(tableName) {
         this.limit = undefined;
@@ -44,6 +49,11 @@ export class SelectQueryBuilder {
 
     where(clause) {
         this.whereClause = clause;
+        return this;
+    }
+
+    join(tableName, columnMap, selectClause) {
+        this.joinClauses.push({ tableName, columnMap, additionalSelect: selectClause });
         return this;
     }
 
@@ -66,15 +76,17 @@ export class SelectQueryBuilder {
 
     async execute() {
 
-        if (this.limit === undefined) {
-            throw new Error("Limit must be defined")
-        }
+        let limitSQL = this.limit > 0 ? `\nLIMIT ${this.limit} ` : ""
 
-        let limit = this.limit > 0 ? `LIMIT ${this.limit} ` : ""
+        let selectSQL = `SELECT ${this.selectClause.length > 0 ? this.selectClause.join(", ") : "*"}`
 
-        let select = this.selectClause ? this.selectClause.join(", ") : "*";
+        let fromSQL = `\nFROM ${this.tableName}`;
 
-        let sql = `SELECT ${select} FROM ${this.tableName} \nWHERE ${keyValueEquality(this.whereClause, " AND ")} \n${limit}`;
+        let joinSQL = this.getJoinClauses()
+
+        let whereSQL = this.whereClause ? `\nWHERE ${keyValueEquality(this.whereClause, " AND ")}` : "";
+
+        let sql = `${selectSQL}${fromSQL}${joinSQL}${whereSQL}${limitSQL}`;
 
         this.lastQuery = sql;
         printSql(sql);
@@ -86,6 +98,57 @@ export class SelectQueryBuilder {
         }
 
         return results;
+    }
+
+    getJoinClauses() {
+
+        let joinClauses = this.joinClauses
+
+        if (joinClauses.length === 0) {
+            return [];
+        }
+
+        let prevTableName = this.tableName;
+        this.selectClause = this.selectClause.map(element => `${this.tableName}.${element}`); 
+        
+        const addToSelect = [];
+        const queryStrings = [];
+    
+        for (let joinClause of joinClauses) {
+
+            let { tableName: joinedTableName, columnMap, additionalSelect = [] } = joinClause;
+
+            columnMap = this.getExplicitColumnMap(columnMap, prevTableName, joinedTableName);
+
+            additionalSelect = additionalSelect.map(element => `${joinedTableName}.${element}`)
+            for (let column of additionalSelect) {
+                addToSelect.push(column);
+            }
+
+            let onString = `ON ${keyValueEquality(columnMap, " AND ", false)}`
+
+            queryStrings.push(`\nINNER JOIN ${joinedTableName}\n  ${onString}`)
+
+            prevTableName = joinedTableName;
+        }
+
+        this.selectClause = [ ...this.selectClause, ...addToSelect ]
+
+        return queryStrings;
+        // joinClauses: [ { tableName: "name", selectClause: { KVP } }, { ..... }]
+    }
+
+    getExplicitColumnMap(columnMap, table1Name, table2Name) {
+        let newMap = {};
+        for (let key in columnMap) {
+            let val = columnMap[key];
+            newMap[`${table1Name}.${key}`] = `${table2Name}.${val}`;
+        }
+        return newMap;
+    }
+
+    getExplicit(selectClause, alias) {
+        return 
     }
 }
 
@@ -138,7 +201,7 @@ export class InsertQueryBuilder {
 
     async execute() {
 
-        let [ columnNames, columnValues ] = keyValueSeparator(this.keyValuePairs)
+        let [ columnNames, columnValues ] = extractKeysAndValuesAsLists(this.keyValuePairs)
 
         let sql = `INSERT INTO ${this.tableName} (${columnNames}) \nVALUES (${columnValues})`;
 
@@ -167,23 +230,19 @@ function createSafeExecute(queryBuilder) {
     }
 }
 
-function keyValueSeparator(o) {
-    let keys = Object.keys(o);
-    let vals = Object.values(o).map(val => getValueAsSQLString(val));
-    return [ `${keys.join(', ')}`, `${vals.join(', ')}`]
-}
+const extractKeysAndValuesAsLists = (o, separator = ", ") => ([Object.keys(o).join(separator), Object.values(o).map(val => getValueAsSQLString(val)).join(separator)]);
 
-function keyValueEquality(whereClause, separator) {
+function keyValueEquality(whereClause, separator, convertValueToSQLString = true) {
     if (!whereClause) {
         return "";
     }
 
     let keys = Object.keys(whereClause);
-    let values = Object.values(whereClause);
-    values = values.map(value => getValueAsSQLString(value))
+    let values = Object.values(whereClause).map(value => convertValueToSQLString ? getValueAsSQLString(value) : value);
 
-    let zipped = keys.map((element, index) => {
-        return [element, values[index]].join(" = ");
+    let zipped = keys.map((key, index) => {
+        let val = values[index];
+        return [key, val].join(" = ");
     })
 
     return zipped.join(separator);

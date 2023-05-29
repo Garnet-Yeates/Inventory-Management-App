@@ -8,6 +8,7 @@ import configureRoutes from './api/routes/configureRoutes.js';
 import { currentTimeSeconds, minutesFromNow } from './utilities.js';
 import authCheck from './api/middleware/authCheck.js';
 import createDatabase from './api/tools/database/createDatabase.js';
+import { Table } from './api/tools/database/ProcedureAbstractions.js';
 
 const port = process.env.PORT || 4000;
 
@@ -16,12 +17,13 @@ dotenv.config();
 const app = express()
 
 // Set up cors (has to be first or HTTP req's get blocked)
-app.use(cors({ 
-    credentials: true, 
+app.use(cors({
+    credentials: true,
     origin: [
         `http://localhost:${3000}`,
         `https://localhost:${3000}`
-    ] }));
+    ]
+}));
 
 // Set up JSON body parsing
 app.use(json())
@@ -35,13 +37,20 @@ configureRoutes(app);
 
 // Connect to database
 const con = mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: process.env.DATABASE_PASSWORD,
-  database: "trackit",
+    host: "localhost",
+    user: "root",
+    password: process.env.DATABASE_PASSWORD,
+    database: "trackit",
 });
 
 export const db = createDatabase(con);
+
+/*let invoiceId = 2;
+Table("TblItemType")
+    .select(["itemName", "itemId"])
+    .join("TblMultiInvoiceItemType", { "itemId": "itemId" })
+    .where({ "TblMultiInvoiceItemType.InvoiceId": invoiceId })
+    .execute();*/
 
 // Start
 app.listen(port, () => {
