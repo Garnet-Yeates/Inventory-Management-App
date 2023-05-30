@@ -63,7 +63,7 @@ so the whole script runs. After this you can add the line of code that you remov
 
 ### Download Node Modules
 
-Open up a new terminal (or press the split terminal button within the previous terminal itself). The starting directory of this terminal should look like
+Open up a new terminal in VS code by clicking `Terminal` at the top and then pressing `New Terminal`. The starting directory of this terminal should look like
 
 ```
 Inventory-Management-App>
@@ -120,7 +120,7 @@ Inventory-Management-App/server> npm start
 
 ### Download Node Modules
 
-Open up a new terminal in VS code by clicking `Terminal` at the top and then pressing `New Terminal`. The starting directory of this terminal should look like
+Open up a new terminal (or press the split terminal button within the previous terminal itself). The starting directory of this terminal should look like
 
 ```
 Inventory-Management-App>
