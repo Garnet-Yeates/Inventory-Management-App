@@ -2,24 +2,29 @@ import { v4 as uuidv4 } from 'uuid'
 
 import jwt from 'jsonwebtoken'
 import { minutesFromNow } from '../../../utilities.js';
-import { db } from '../../../server.js';
-import { Table } from './ProcedureAbstractions.js';
+import { Table } from './procedureAbstractions.js';
 
+/**
+ * Finds the session with the specified `sessionUUID`
+ */
 export async function findSession(sessionUUID) {
 
-    return Table("TblSession").where({ sessionUUID: sessionUUID }).first().execute();
+    return Table("Session").where({ sessionUUID: sessionUUID }).first().execute();
 }
 
-// Always returns truthy
-// Returns { token, decoded } or { sqlError: "..." }
-export async function createSession(client) {
+/**
+ * 
+ * Returns `{ token, decoded }` where token is string representing the encoded JWT token and decoded the payload of the JWT token. The payload an object
+ * containing `{ sessionUUID, sessionCSRF }`. This function will throw an SQL error if a SQL error occurs
+ */
+export async function newSession(clientID) {
 
     const sessionUUID = uuidv4();
     const sessionCSRF = uuidv4();
 
     const newSession = {
         sessionUUID,
-        clientId: client.clientId,
+        clientId: clientID,
         isCanceled: false,
         expiresAt: minutesFromNow(1)
     }
@@ -27,23 +32,18 @@ export async function createSession(client) {
     const payload = { sessionUUID, sessionCSRF }
     const token = jwt.sign(payload, process.env.JWT_SECRET)
 
-    Table("TblSession").insert(newSession).execute()
+    Table("Session").insert(newSession).execute()
     
     return [token, payload];
 }
 
 /**
- * Attempts to delete the session from the database that has the same sessionUUID as the provided UUID
- * 
- * @param {number} sessionUUID 
- * @returns `false` if the session was not found 
- * 
- * an object with the `sqlError` property set if there are an error finding or deleting the session
- * 
- * an object with the `success` property set upon success
+ * Attempts to delete the session from the database that has the same `sessionUUID` as the provided one. If
+ * an SQL error occurs it will be thrown
+ *  
  */
 export async function deleteSession(sessionUUID) {
 
-    return Table("TblSession").removeWhere({ sessionUUID: sessionUUID }).executeSafe();
+    return Table("Session").removeWhere({ sessionUUID: sessionUUID }).executeSafe();
 }
 

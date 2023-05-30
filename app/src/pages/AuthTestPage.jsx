@@ -8,66 +8,11 @@ import { useState } from "react"
 
 function AuthTestPage({ }) {
 
-    function cookieCheck() {
-        console.log(Cookies.get("auth_csrf"))
-    }
-
-    async function authenticatedCheck() {
-        try {
-            const response = await axios.get(`${SERVER_URL}/auth/loggedInCheck`);
-            console.log("/auth/loggedInCheck response", response.data)
-            setCookieRemoved(!Cookies.get("auth_csrf")) //  auth check may notice we had a bad session and silently remove the cookie so we must update that info
-        }
-        catch (err) {
-            console.log("Error with GET /auth/loggedInCheck", err?.response?.data)
-        }
-    }
-
-    async function authRequiredEndpoint() {
-        try {
-            const response = await axios.get(`${SERVER_URL}/auth/test`);
-            console.log("/auth/test response", response.data)
-        }
-        catch (err) {
-            console.log(err);
-            console.log("Error with GET /auth/test", err?.response?.data)
-        }
-    }
-
-    async function logOut() {
-        try {
-            const response = await axios.get(`${SERVER_URL}/auth/logout`);
-            console.log("/auth/logout response", response.data)
-            setCookieRemoved(!Cookies.get("auth_csrf")) // logout will remove our cookie 
-        }
-        catch (err) {
-            console.log("Error with GET /auth/logout", err?.response?.data)
-        }
-    }
-
     const [tamperedCSRF, setTamperedCSRF] = useState(authTamperingSettings.tamperWithCSRFHeader);
-
-    function toggleCSRFTamper() {
-        setTamperedCSRF(oldValue => !oldValue);
-        authTamperingSettings.tamperWithCSRFHeader = !authTamperingSettings.tamperWithCSRFHeader
-        console.log("CSRF tampering set to", authTamperingSettings.tamperWithCSRFHeader)
-    }
 
     const [sendingCSRF, setSendingCSRF] = useState(authTamperingSettings.sendCSRFHeader)
 
-    function toggleCSRFSending() {
-        setSendingCSRF(oldValue => !oldValue);
-        authTamperingSettings.sendCSRFHeader = !authTamperingSettings.sendCSRFHeader
-        console.log("Set CSRF sending to", authTamperingSettings.sendCSRFHeader)
-    }
-
     const [cookieRemoved, setCookieRemoved] = useState(!Cookies.get("auth_csrf"));
-
-    function removeCSRFCookie() {
-        Cookies.remove("auth_csrf")
-        console.log("auth_csrf cookie removed")
-        setCookieRemoved(true)
-    }
 
     return (
         <div className="auth-test-page-container">
@@ -80,22 +25,22 @@ function AuthTestPage({ }) {
                         <div className="container-fluid button-container">
                             <div className="row gy-2 justify-content-center">
                                 <div className="col-sm-6">
-                                    <AuthTestButton buttonText="Auth Required" onClick={authRequiredEndpoint} />
+                                    <AuthTestButton buttonText="Auth Required" onClick={() => authRequiredEndpoint()} />
                                 </div>
                                 <div className="col-sm-6">
-                                    <AuthTestButton buttonText="Logged In Check" onClick={authenticatedCheck} />
+                                    <AuthTestButton buttonText="Logged In Check" onClick={() => authenticatedCheck(setCookieRemoved)} />
                                 </div>
                                 <div className="col-sm-6">
-                                    <AuthTestButton buttonText="Log Out" onClick={logOut} />
+                                    <AuthTestButton buttonText="Log Out" onClick={() => logOut(setCookieRemoved)} />
                                 </div>
                                 <div className="col-sm-6">
-                                    <AuthTestButton buttonText="CSRF Cookie Check" onClick={cookieCheck} />
+                                    <AuthTestButton buttonText="CSRF Cookie Check" onClick={() => cookieCheck()} />
                                 </div>
                                 <div className="col-xl-6">
-                                    <AuthTestButton buttonText={`${!tamperedCSRF ? "Tamper" : "Fix"} CSRF Header`} onClick={toggleCSRFTamper} />
+                                    <AuthTestButton buttonText={`${!tamperedCSRF ? "Tamper" : "Fix"} CSRF Header`} onClick={() => toggleCSRFTamper(setTamperedCSRF)} />
                                 </div>
                                 <div className="col-xl-6">
-                                    <AuthTestButton buttonText={`${sendingCSRF ? "Remove" : "Restore"} CSRF Header`} onClick={toggleCSRFSending} />
+                                    <AuthTestButton buttonText={`${sendingCSRF ? "Remove" : "Restore"} CSRF Header`} onClick={() => toggleCSRFSending(setSendingCSRF)} />
                                 </div>
                                 <div className="col-xl-6">
                                     <AuthTestButton buttonText="Remove CSRF Cookie" onClick={removeCSRFCookie} disabled={cookieRemoved}/>
@@ -107,6 +52,61 @@ function AuthTestPage({ }) {
             </div>
         </div>
     )
+}
+
+async function authenticatedCheck(setCookieRemoved) {
+    try {
+        const response = await axios.get(`${SERVER_URL}/auth/loggedInCheck`);
+        console.log("/auth/loggedInCheck response", response.data)
+        setCookieRemoved(!Cookies.get("auth_csrf")) //  auth check may notice we had a bad session and silently remove the cookie so we must update that info
+    }
+    catch (err) {
+        console.log("Error with GET /auth/loggedInCheck", err?.response?.data)
+    }
+}
+
+function cookieCheck() {
+    console.log(Cookies.get("auth_csrf"))
+}
+
+function toggleCSRFSending(setSendingCSRF) {
+    setSendingCSRF(oldValue => !oldValue);
+    authTamperingSettings.sendCSRFHeader = !authTamperingSettings.sendCSRFHeader
+    console.log("Set CSRF sending to", authTamperingSettings.sendCSRFHeader)
+}
+
+function removeCSRFCookie() {
+    Cookies.remove("auth_csrf")
+    console.log("auth_csrf cookie removed")
+    setCookieRemoved(true)
+}
+
+function toggleCSRFTamper() {
+    setTamperedCSRF(oldValue => !oldValue);
+    authTamperingSettings.tamperWithCSRFHeader = !authTamperingSettings.tamperWithCSRFHeader
+    console.log("CSRF tampering set to", authTamperingSettings.tamperWithCSRFHeader)
+}
+
+async function authRequiredEndpoint() {
+    try {
+        const response = await axios.get(`${SERVER_URL}/auth/test`);
+        console.log("/auth/test response", response.data)
+    }
+    catch (err) {
+        console.log(err);
+        console.log("Error with GET /auth/test", err?.response?.data)
+    }
+}
+
+async function logOut(setCookieRemoved) {
+    try {
+        const response = await axios.get(`${SERVER_URL}/auth/logout`);
+        console.log("/auth/logout response", response.data)
+        setCookieRemoved(!Cookies.get("auth_csrf")) // logout will remove our cookie 
+    }
+    catch (err) {
+        console.log("Error with GET /auth/logout", err?.response?.data)
+    }
 }
 
 

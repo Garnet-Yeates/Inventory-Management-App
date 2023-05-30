@@ -1,21 +1,29 @@
-import { db } from "../../../server.js";
-import { Table } from "./ProcedureAbstractions.js";
+import { Table } from "./procedureAbstractions.js";
 
-// Returns null (no result), user, or { sqlError: truthy }
+
+/**
+ * Finds a client by userName or by clientId (which are both unique identifiers). This function will throw
+ * an SQL error if one occurs querying the database
+ * 
+ */
 export async function findClient({ userName, clientId }) {
 
     if (clientId) {
-        return Table("TblClient").where({ clientId: clientId }).first().execute();
+        return Table("Client").where({ clientId: clientId }).first().execute();
     }
     else {
-        return Table("TblClient").where({ userIdentifier: userName.toLowerCase() }).first().execute();
+        return Table("Client").where({ userIdentifier: userName.toLowerCase() }).first().execute();
     }
 }
 
-export async function createClient(clientName, userName, password) {
+/**
+ * Attempts to create a client with the given companyName, userName, and password. If SQL errors occur
+ * (i.e, connection issues, constraint violations) they will be thrown.
+ */
+export async function newClient(companyName, userName, password) {
 
     const userIdentifier = userName.toLowerCase();
     const hashPassword = await bcrypt.hash(password, 10)
 
-    return Table("TblClient").insert({ clientName, userName, userIdentifier, hashPassword }).execute();
+    return Table("Client").insert({ companyName, userName, userIdentifier, hashPassword }).execute();
 }

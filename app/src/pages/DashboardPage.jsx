@@ -9,7 +9,6 @@ export default function DashboardPage() {
         
         // Fetch data from test endpoint that requires auth
         const fetchData = async() => {
-            console.log("fesh")
             try {
                 const response = await axios.get(`${SERVER_URL}/auth/test`);
                 console.log("DASH response", response.data)
@@ -20,7 +19,6 @@ export default function DashboardPage() {
                 }
 
                 console.log("DASH ERR", err?.response?.data)
-                console.log("err.dealtWith", err.dealtWith)
             }
         }
 

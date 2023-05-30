@@ -3,7 +3,6 @@ import { currentTimeSeconds } from "../../utilities.js";
 import { deleteSession, findSession } from "../tools/database/tblSessionProcedures.js";
 import { createSessionAndSetCookies } from "../controllers/authcontroller.js";
 import { findClient } from "../tools/database/tblClientProcedures.js";
-import { Table } from "../tools/database/ProcedureAbstractions.js";
 
 export default async function authCheck(req, res, next) {
 
@@ -23,11 +22,10 @@ export default async function authCheck(req, res, next) {
     const { clientId, sessionUUID } = authCheckResult;
 
     // Wait 15 seconds before deleting the session upon refresh. This is so that if a chain of auth requests occur all using the 
-    // same cookie (i.e, they all send before one of them resolves sets the new cookie in the browser), the other requests
-    // cookie isn't invalidated as a result of the deletion of the session that all the cookies were on
+    // same cookie (i.e, they all send before one of them resolves sets the new cookie in the browser), the other requests'
+    // cookies aren't invalidated as a result of the deletion of the session that all the cookies were on
     //
     // Realized this concurrency error due to React's 'double-mount' in development mode, but it was a good catch :)
-    console.log("REFRSH DEL SESH")
     deleteSessionSoon(sessionUUID)
 
     res.clearCookie("auth_csrf")
@@ -47,13 +45,15 @@ export default async function authCheck(req, res, next) {
         return res.status(500).json({ authRejected: { errorType: "database", errorMessage: "Error querying database for user associated with the clientId tied to the session being updated" } })
     }
 
-
     if (!await createSessionAndSetCookies(user, res)) {
         // Send authFailed here so that our interceptor brings them to the login page and displays error
         return res.status(500).json({ authRejected: { errorType: "database", errorMessage: "Error inserting new session into database upon session refresh" } })
     }
 
     // Next middleware if all is good 
+
+    // Attach user to request
+    req.auth = { clientId, sessionUUID };
 
     next();
 }
@@ -82,14 +82,14 @@ export function userSuppliedAnyAuth(req) {
  * 
  * If `deleteCookiesOnFail` it will also delete cookies on failure (on top of returning false)
  * 
- * @param {{sendResOnFail: any, deleteCookiesOnFail: boolean }} options 
+ * @param {{sendResOnFail: boolean, deleteCookiesOnFail: boolean }} options 
  * @returns object containing SessionUUID and clientID upon success, or false upon failure
  */
 export async function authCheckHelper(req, res, options) {
 
     const { sendResOnFail, deleteCookiesOnFail } = options;
 
-    // Initialize these here so our helper function below can't crash when trying to access sessionUUID before it is initialized
+    // Initialize these here so our first call to onAuthFailure can access sessionUUID
     let sessionUUID, sessionCSRF = null;
 
     const authJWTCookie = req.cookies["auth_jwt"];
@@ -187,8 +187,11 @@ export async function authCheckHelper(req, res, options) {
 // Deletes session in 15 seconds
 export function deleteSessionSoon(sessionUUID) {
     setTimeout(async () => {
-        if (await deleteSession(sessionUUID).sqlError) {
-            console.log("WARN: call to deleteSession 'deleteSessionSoon' failed");
+        try {
+            await deleteSession(sessionUUID)
+        }
+        catch (err) {
+            console.log("WARN: call to deleteSession 'deleteSessionSoon' failed", err);
         }
     }, 15 * 1000)
 }

@@ -146,10 +146,6 @@ export class SelectQueryBuilder {
         }
         return newMap;
     }
-
-    getExplicit(selectClause, alias) {
-        return 
-    }
 }
 
 export class DeleteQueryBuilder {
@@ -260,4 +256,3 @@ function getValueAsSQLString(str) {
 function printSql(sql) {
     console.log("\nSQL Generated: ", `\n${sql}\n`)
 }
-
