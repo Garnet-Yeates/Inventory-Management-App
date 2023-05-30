@@ -1,18 +1,34 @@
 import bcrypt from 'bcrypt'
 import { authCheckHelper, deleteSessionSoon, userSuppliedAnyAuth } from '../middleware/authCheck.js';
-import { createClient, findClient } from '../tools/database/tblClientProcedures.js';
-import { createSession } from '../tools/database/tblSessionProcedures.js';
-
-const userNameRegex = /^[a-zA-Z][a-zA-Z0-9_]+$/
-
-const clientNameRegex = /^[a-zA-Z0-9_ ]+$/
-
-const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[\d!@#$%^&*()\[\]{}\\\/.,<>_+=\-;:~ ])[\w\d!@#$%^&*()\[\]{}\\\/.,<>_+=\-;:]+$/
+import { newClient, findClient } from '../tools/database/tblClientProcedures.js';
+import { newSession } from '../tools/database/tblSessionProcedures.js';
+import { clearErrJson } from '../tools/controller/validationHelpers.js';
 
 // GET /auth/test
 export async function authRequiredTest(req, res) {
     res.status(200).json({ success: "Auth middleware test successful" });
 }
+
+/**
+ * Must start with a letter, but it can be alphanumeric (underscore allowed, space is not)
+ */
+const userNameRegex = /^[a-zA-Z][a-zA-Z0-9_]+$/
+
+/**
+ * Must be alphanumeric, underscore and spaces are allowed
+ */
+const companyNameRegex = /^[a-zA-Z0-9_ ]+$/
+
+/**
+ * Must have:
+ * 
+ * - At least 1 uppercase letter
+ * - At least 1 lowercase letter
+ * - A number OR special character. Quotation special characters are not allowed (backticks, double, single quotes)
+ * 
+ */
+const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[\d!@#$%^&*()\[\]{}\\\/.,<>_+=\-;:~ ])[\w\d!@#$%^&*()\[\]{}\\\/.,<>_+=\-;:]+$/
+
 
 /**
  * `POST` `/auth/register` 
@@ -23,7 +39,7 @@ export async function authRequiredTest(req, res) {
  * 
  * ---
  * 
- * `clientName`: 5-32 characters, required
+ * `companyName`: 5-32 characters, required
  * 
  * `userName`: 5-32 characters, required, unique
  * 
@@ -31,10 +47,10 @@ export async function authRequiredTest(req, res) {
  * 
  * ---
  * 
- * `clientName`, `userName`, and `password` all must conform to their respective regular expressions
+ * `companyName`, `userName`, and `password` all must conform to their respective regular expressions
  * for validation.
  *
- * `clientName` must be alphanumeric, spaces and numbers are allowed but special characters are not
+ * `companyName` must be alphanumeric, spaces and numbers are allowed but special characters are not
  * 
  * `userName` must also be alphanumeric, but it must start with a letter and cannot contain spaces (underscore allowed)
  * 
@@ -52,75 +68,102 @@ export async function authRequiredTest(req, res) {
  */
 export async function register(req, res) {
 
-    const { clientName, userName, password } = req.body;
+    const { companyName, userName, password } = req.body;
 
-    const userNameErrors = [];
-    const passwordErrors = [];
-    const clientNameErrors = [];
-    const databaseErrors = [];
-    const errJson = {};
-
-    if (clientName.length < 5 || clientName.length > 32) {
-        clientNameErrors.push("Client name must be between 5 and 32 characters")
+    const errJson = {
+        companyNameErrors: [],
+        userNameErrors: [],
+        passwordErrors: [],
+        databaseErrors: [],
     }
 
-    if (!clientNameRegex.exec(clientName)) {
-        clientNameErrors.push("Client name must be alphanumeric (may contain spaces or underscore)")
-    }
+    const { companyNameErrors, userNameErrors, passwordErrors, databaseErrors } = errJson;
 
-    if (userName.length < 5 || userName.length > 16) {
-        userNameErrors.push("Username must be between 5 and 16 characters")
-    }
+    // Validate company name
 
-    if (!userNameRegex.exec(userName)) {
-        userNameErrors.push("Username must start with a letter and be alphanumeric (underscore allowed)")
+    if (!companyName) {
+        companyNameErrors.push("Company name must be supplied")
     }
-
-    let user;
-    try {
-        user = await findClient({ userName });
-        if (user) {
-            userNameErrors.push("Username is taken")
+    else if (typeof companyName !== "string") {
+        companyNameErrors.push("Company name must be a string")
+    }
+    else {
+        if (companyName.length < 5 || companyName.length > 32) {
+            companyNameErrors.push("Company name must be between 5 and 32 characters")
         }
-    }
-    catch (err) {
-        databaseErrors.push("Error querying database for existing user check")
-    }
-
-    if (password.length < 10 || password.length > 16) {
-        passwordErrors.push("Password must be between 10 and 16 characters")
-    }
-
-    if (password.includes(`"`) || password.includes(`'`) || password.includes("`")) {
-        passwordErrors.push(`Quotation characters ', ", and ${"`"} are not allowed in the password`)
-    }
-
-    if (!passwordRegex.exec(password)) {
-        passwordErrors.push("Password must contain at least one uppercase letter and one lowercase letter, as well as a number or special character")
-    }
-
-    let noErrors = () => databaseErrors.length == 0 && clientNameErrors.length == 0 && userNameErrors.length == 0 && passwordErrors.length == 0;
-
-    if (noErrors) {
-        try {
-            await createClient(clientName, userName, password);
-        }
-        catch (err) {
-            errJson.databaseErrors.push("Error inserting new user into the database")
+    
+        if (!companyNameRegex.exec(companyName)) {
+            companyNameErrors.push("Company name must be alphanumeric (may contain spaces or underscore)")
         }
     }
 
-    databaseErrors.length > 0 && (errJson.databaseErrors = databaseErrors);
-    clientNameErrors.length > 0 && (errJson.clientNameErrors = clientNameErrors);
-    userNameErrors.length > 0 && (errJson.userNameErrors = userNameErrors);
-    passwordErrors.length > 0 && (errJson.passwordErrors = passwordErrors);
+    // Validate userName
+
+    if (!userName) {
+        userNameErrors.push("Username must be supplied")
+    }
+    else if (typeof userName !== "string") {
+        userNameErrors.push("Username must be a string")
+    }
+    else {
+        if (userName.length < 5 || userName.length > 16) {
+            userNameErrors.push("Username must be between 5 and 16 characters")
+        }
+
+        if (!userNameRegex.exec(userName)) {
+            userNameErrors.push("Username must start with a letter and be alphanumeric (underscore allowed)")
+        }
+
+        if (userNameErrors.length === 0) {
+            let user;
+            try {
+                user = await findClient({ userName });
+                if (user) {
+                    userNameErrors.push("Username is taken")
+                }
+            }
+            catch (err) {
+                databaseErrors.push("Error querying database for existing user check")
+            }
+        }
+    }
+
+    // Validate password
+
+    if (!password) {
+        passwordErrors.push("Password must be supplied")
+    }
+    else if (typeof password !== "string") {
+        passwordErrors.push("Password must be a string")
+    }
+    else {
+        if (password.length < 10 || password.length > 16) {
+            passwordErrors.push("Password must be between 10 and 16 characters")
+        }
+
+        if (password.includes(`"`) || password.includes(`'`) || password.includes("`")) {
+            passwordErrors.push(`Quotation characters ', ", and ${"`"} are not allowed in the password`)
+        }
+
+        if (!passwordRegex.exec(password)) {
+            passwordErrors.push("Password must contain at least one uppercase letter and one lowercase letter, as well as a number or special character")
+        }
+    }
 
     // If any errors, return errJson
-    if (!noErrors) {
+    if (!clearErrJson(errJson)) {
         return res.status(databaseErrors ? 500 : 400).json(errJson);
     }
 
-    return res.status(200).json({ message: "You did it!" });
+    // One final error possibility here
+    try {
+        await newClient(companyName, userName, password);
+    }
+    catch (err) {
+        return res.status(500).json({ databaseErrors: ["Error inserting new user into the database"] });
+    }
+
+    return res.status(200).json({ message: "Registration successful" });
 }
 
 /**
@@ -278,7 +321,7 @@ export async function createSessionAndSetCookies(client, res) {
 
     let session;
     try {
-        session = await createSession(client);
+        session = await newSession(client.clientId);
     }
     catch (err) {
         return false;
