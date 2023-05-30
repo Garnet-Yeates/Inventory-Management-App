@@ -7,6 +7,7 @@ import cookieParser from 'cookie-parser';
 import configureRoutes from './api/routes/configureRoutes.js';
 import authCheck from './api/middleware/authCheck.js';
 import createDatabase from './api/tools/database/initializeDatabase.js';
+import bcrypt from 'bcrypt';
 
 const port = process.env.PORT || 4000;
 

@@ -16,8 +16,8 @@ function LoginPage({ }) {
 
     const state = location.state ?? {};
 
-    const [userName, setUserName] = useState("GarnetTheYet")
-    const [password, setPassword] = useState("Dangman101")
+    const [userName, setUserName] = useState("TestUser")
+    const [password, setPassword] = useState("TestUserPass123")
 
     async function postLogin() {
 

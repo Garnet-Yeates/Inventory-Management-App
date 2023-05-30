@@ -1,4 +1,5 @@
 import { Table } from "./procedureAbstractions.js";
+import bcrypt from 'bcrypt';
 
 
 /**

@@ -43,7 +43,7 @@ function AuthTestPage({ }) {
                                     <AuthTestButton buttonText={`${sendingCSRF ? "Remove" : "Restore"} CSRF Header`} onClick={() => toggleCSRFSending(setSendingCSRF)} />
                                 </div>
                                 <div className="col-xl-6">
-                                    <AuthTestButton buttonText="Remove CSRF Cookie" onClick={removeCSRFCookie} disabled={cookieRemoved}/>
+                                    <AuthTestButton buttonText="Remove CSRF Cookie" onClick={() => removeCSRFCookie(setCookieRemoved)} disabled={cookieRemoved}/>
                                 </div>
                             </div>
                         </div>
@@ -75,13 +75,13 @@ function toggleCSRFSending(setSendingCSRF) {
     console.log("Set CSRF sending to", authTamperingSettings.sendCSRFHeader)
 }
 
-function removeCSRFCookie() {
+function removeCSRFCookie(setCookieRemoved) {
     Cookies.remove("auth_csrf")
     console.log("auth_csrf cookie removed")
     setCookieRemoved(true)
 }
 
-function toggleCSRFTamper() {
+function toggleCSRFTamper(setTamperedCSRF) {
     setTamperedCSRF(oldValue => !oldValue);
     authTamperingSettings.tamperWithCSRFHeader = !authTamperingSettings.tamperWithCSRFHeader
     console.log("CSRF tampering set to", authTamperingSettings.tamperWithCSRFHeader)

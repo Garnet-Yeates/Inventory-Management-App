@@ -96,7 +96,7 @@ CREATE TABLE Invoice (
 );
 
 INSERT INTO Client (companyName, userName, userIdentifier, hashPassword)
-VALUES ("Garnet Well and Pump Service", "GarnetTheYet", "garnettheyet", "$2b$10$fYez5NsvsON.loYRvs2zHuTQz0EWjsXJjlDSrWlhnXT0IYwQ2UolS");
+VALUES ("Garnet Well and Pump Service", "TestUser", "testuser", "$2b$10$laGVhlfiRlyC54AfV6LKLuuELeGlcX.ZTEvVSCOYebjtW4pPrzguS");
 
 INSERT INTO ItemType (clientId, itemCode, itemCodeIdentifier, itemName, defaultBuyPrice, defaultSellPrice)
 VALUES (1, "item1", "item1", "Item One", 2, 2.2);

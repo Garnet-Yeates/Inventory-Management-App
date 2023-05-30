@@ -108,7 +108,7 @@ export async function authCheckHelper(req, res, options) {
     let decodedToken;
     if (authJWTCookie) {
         try {
-            decodedToken = jwt.verify(authJWTCookie + "DD", process.env.JWT_SECRET);
+            decodedToken = jwt.verify(authJWTCookie, process.env.JWT_SECRET);
         }
         catch {
             return onAuthFailure(401, "verification", "AUTH_JWT cookie could not be verified")
