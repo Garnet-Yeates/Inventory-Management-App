@@ -59,7 +59,7 @@ DROP DATABASE TrackIt;
 After you have done this, press the lightning bolt button that says "Execute the selected portion of the script, or everything if there is nothing selected" and make sure you have nothing selected
 so the whole script runs. After this you can add the line of code that you removed back (if you want).
 
-## Setup REST API Server in VS Code
+## Set Up REST API Server in VS Code
 
 ### Download Node Modules
 
@@ -116,7 +116,7 @@ After doing this the server should be set up. Whenever you want to start the web
 Inventory-Management-App/server> npm start
 ```
 
-## Setup Web App in VS Code
+## Set Up Web App in VS Code
 
 ### Download Node Modules
 
