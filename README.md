@@ -110,7 +110,7 @@ DATABASE_PASSWORD="$uper$ecurePassword1#"
 
 ### Running the Server
 
-After doing this the server should be set up. Whenever you want to start the web app, make sure you are in the `/app` sub-directory and type `npm start`. Example:
+After doing this the server should be set up. Whenever you want to start the server, make sure you are in the `/server` sub-directory and type `npm start`.
 
 ```
 Inventory-Management-App/server> npm start
@@ -140,7 +140,7 @@ Inventory-Management-App/app> npm install
 
 ### Running the Web App
 
-After doing this the web app should be set up. Whenever you want to start the web app, make sure you are in the `/app` sub-directory and type `npm start`. Example:
+After doing this the web app should be set up. Whenever you want to start the web app, make sure you are in the `/app` sub-directory and type `npm start`.
 
 ```
 Inventory-Management-App/app> npm start
