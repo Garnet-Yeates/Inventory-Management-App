@@ -1,7 +1,7 @@
 import axios from "axios"
 
 import "../sass/LoginPage.scss"
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
 import { SERVER_URL, lockScroll, unlockScroll } from "./App"
 import StatefulInput from "../components/StatefulInput"
 import { useLocation, useNavigate } from "react-router-dom"
@@ -112,7 +112,6 @@ function SessionExpiredModal({ authError }) {
                         <button className="responsive-button hover-dim auth-rejected-button" onClick={onButtonClick}><span>Back to Login</span></button>
                     </div>
                 </div>
-
             </div>
         </div>
     )

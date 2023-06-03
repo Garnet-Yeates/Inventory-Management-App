@@ -1,8 +1,9 @@
 import axios from "axios";
 import Cookies from "js-cookie";
-import { useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SERVER_URL } from "../pages/App";
+import { newAbortSignal, useIsMounted, useMountGET } from "../tools/axiosTools.js";
 
 console.log("middleware init")
 
@@ -31,6 +32,7 @@ export function AuthAxiosInterceptor() {
     useEffect(() => {
 
         const reqIntId = axios.interceptors.request.use(function addCsrfHeader(config) {
+
             let auth_csrf_cookie = Cookies.get('auth_csrf');
 
             if (authTamperingSettings.tamperWithCSRFHeader) {
@@ -84,16 +86,34 @@ export function redirectIfAlreadyLoggedIn(Component, redirectTo) {
 
         useEffect(() => {
 
-            const fetchData = async () => {
-
-                const { loggedIn } = (await axios.get(`${SERVER_URL}/auth/loggedInCheck`)).data
-                if (loggedIn) {
-                    navigate(redirectTo, { replace: true, state: { alreadyLoggedInNotice: "Already logged in" } })
+            const controller = newAbortSignal(5);
+            let active = true;
+    
+            (async function getData() {
+                
+                try {
+                    let response = await axios.get(`${SERVER_URL}/auth/loggedInCheck`, { signal: controller.signal })
+                    response.data.loggedIn && active && navigate(redirectTo, { replace: true, state: { alreadyLoggedInNotice: "Already logged in" } })
+                    console.log("Shworked")
                 }
+                catch (err) {
+                    if (!active) // Req canceled due to cleanup (unmount in this case)
+                        return console.log("Shanceled");
+                    if (axios.isCancel(err)) {
+                        return console.log("Timed out")
+                        // Req canceled due to time out
+                    }
+
+                    console.log("Error at GET /auth/loggedInCheck", err);
+                }
+            })()
+        
+            return function cleanup() {
+                active = false;
+                controller.abort();
             }
 
-            fetchData()
-        }, [navigate])
+        }, [navigate]);
 
         return <Component {...props}  />
     }

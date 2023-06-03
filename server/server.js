@@ -7,7 +7,6 @@ import cookieParser from 'cookie-parser';
 import configureRoutes from './api/routes/configureRoutes.js';
 import authCheck from './api/middleware/authCheck.js';
 import createDatabase from './api/tools/database/initializeDatabase.js';
-import bcrypt from 'bcrypt';
 
 const port = process.env.PORT || 4000;
 
@@ -43,15 +42,6 @@ const con = mysql.createConnection({
 });
 
 export const db = createDatabase(con);
-
-/*let invoiceId = 2;
-Table("ItemType")
-    .select(["itemName", "itemId"])
-    .join("MultiInvoiceItemType", { "itemId": "itemId" })
-    .where({ "MultiInvoiceItemType.InvoiceId": invoiceId })
-    .execute();*/
-
-// Start
 
 app.listen(port, () => {
     console.log("Server is up and running")

@@ -89,7 +89,7 @@ export default async function createItemType(req, res) {
                 }
             }
             catch (err) {
-                databaseErrors.push("Error querying database for unique itemCode check")
+                databaseErrors.push("Error querying database for unique itemCode check", err)
             }
         }
     }

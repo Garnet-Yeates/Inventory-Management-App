@@ -15,7 +15,7 @@ export default function DashboardPage() {
             }
             catch (err) {
                 if (err.canceled) {
-                //    return;
+                    return;
                 }
 
                 console.log("DASH ERR", err?.response?.data)
