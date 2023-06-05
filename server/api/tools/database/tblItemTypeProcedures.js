@@ -1,3 +1,5 @@
+import { Table } from "./procedureAbstractions.js";
+
 export async function newItemType(clientId, itemName, itemCode, itemDescription, defaultBuyPrice, defaultSellPrice) {
 
     Table("ItemType").insert({ 

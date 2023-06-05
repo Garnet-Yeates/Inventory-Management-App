@@ -3,7 +3,7 @@ import Cookies from "js-cookie";
 import { memo, useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SERVER_URL } from "../pages/App";
-import { newAbortSignal, useIsMounted, useMountGET } from "../tools/axiosTools.js";
+import { mountAbortSignal, newAbortSignal, useIsMounted, useMountGET } from "../tools/axiosTools.js";
 
 console.log("middleware init")
 
@@ -86,32 +86,24 @@ export function redirectIfAlreadyLoggedIn(Component, redirectTo) {
 
         useEffect(() => {
 
-            const controller = newAbortSignal(5);
-            let active = true;
+            const { controller, isMounted, cleanup } = mountAbortSignal(5);
     
-            (async function getData() {
+            const getData = async () => {
                 
                 try {
                     let response = await axios.get(`${SERVER_URL}/auth/loggedInCheck`, { signal: controller.signal })
-                    response.data.loggedIn && active && navigate(redirectTo, { replace: true, state: { alreadyLoggedInNotice: "Already logged in" } })
-                    console.log("Shworked")
+                    response.data.loggedIn && isMounted() && navigate(redirectTo, { replace: true, state: { alreadyLoggedInNotice: "Already logged in" } })
                 }
                 catch (err) {
-                    if (!active) // Req canceled due to cleanup (unmount in this case)
-                        return console.log("Shanceled");
-                    if (axios.isCancel(err)) {
-                        return console.log("Timed out")
-                        // Req canceled due to time out
-                    }
+                    if (axios.isCancel(err)) return `Request canceled due to ${isMounted() ? "unmount" : "timeout"}`
 
                     console.log("Error at GET /auth/loggedInCheck", err);
                 }
-            })()
-        
-            return function cleanup() {
-                active = false;
-                controller.abort();
             }
+
+            getData();
+        
+            return cleanup;
 
         }, [navigate]);
 

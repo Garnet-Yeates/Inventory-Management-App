@@ -93,6 +93,28 @@ ul {
     margin: 0px;
 }
 
+.general-page-container {
+ 
+    min-height: 100vh;
+    overflow: hidden;
+
+    display: flex;
+    flex-direction: column;
+    
+    .general-page {
+        flex-grow: 1;
+
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+
+        width: 100%;
+     
+        @include rfs(24px, padding);
+    }
+}
+
 .not-found-page {
     height: 100vh;
     display: flex;
