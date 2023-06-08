@@ -15,7 +15,7 @@ export const mountAbortSignal = (timeoutS) => {
     const isMounted = () => mounted;
     const cleanup = () => {
         mounted = false;
-        controller.abort;
+        controller.abort();
     }
 
     return { controller, isMounted, cleanup }

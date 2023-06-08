@@ -1,5 +1,5 @@
-import { countDecimalPlaces, hasMaxNDecimalPlaces as isNumberWithMaxDecimalPlaces, numDigits as countDigits } from "../tools/controller/validationHelpers";
-import { newItemType } from "../tools/database/tblItemTypeProcedures";
+import { countDecimalPlaces, numDigits as countDigits } from "../tools/controller/validationHelpers.js";
+import { newItemType } from "../tools/database/tblItemTypeProcedures.js";
 
 const itemCodeRegex = /^[a-zA-Z0-9_]+$/
 
@@ -31,7 +31,7 @@ const itemCodeRegex = /^[a-zA-Z0-9_]+$/
  * ---
  * 
  */
-export default async function createItemType(req, res) {
+export async function createItemType(req, res) {
 
     const { itemCode, itemName, defaultBuyPrice, defaultSellPrice } = req.body;
 

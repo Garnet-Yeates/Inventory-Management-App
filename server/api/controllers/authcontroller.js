@@ -1,7 +1,6 @@
 import bcrypt from 'bcrypt'
-import { authCheckHelper, deleteSessionSoon, userSuppliedAnyAuth } from '../middleware/authCheck.js';
+import { authCheckHelper, createSessionAndSetCookies, deleteSessionSoon, userSuppliedAnyAuth } from '../middleware/authCheck.js';
 import { newClient, findClient } from '../tools/database/tblClientProcedures.js';
-import { newSession } from '../tools/database/tblSessionProcedures.js';
 import { clearErrJson } from '../tools/controller/validationHelpers.js';
 
 // GET /auth/test
@@ -314,30 +313,4 @@ export async function loggedInCheck(req, res) {
     }
 
     return res.status(200).json({ loggedIn: "You are already logged in" })
-}
-
-// Returns { token, decoded } or false if there was an sql error
-export async function createSessionAndSetCookies(client, res) {
-
-    let session;
-    try {
-        session = await newSession(client.clientId);
-    }
-    catch (err) {
-        return false;
-    }
-
-    // Session returns [ token, decodedToken: { sessionUUID, sessionCSRF } ]. We only destructure CSRF out of decodedToken here
-    const [token, { sessionCSRF }] = session;
-
-    // Session cookie lasts 3 hours while session in database lasts 15 minutes
-    // If cookie exists but session expires they will get "Session Expired" modal
-    // If cookie no longer exists they will get "Not Authorized" modal4
-    // This means:
-    // If they come back after 15 mins of their last request, but also within 3 hours of their last request they get "Session Expired modal"
-    // If they come back after 3 hours it will simply tell them they aren't logged in
-    res.cookie("auth_jwt", token, { httpOnly: true, maxAge: 1000 * 60 * (180) });
-    res.cookie("auth_csrf", sessionCSRF, { httpOnly: false, maxAge: 1000 * 60 * (180) });
-
-    return true;
 }

@@ -8,7 +8,7 @@ import { useLocation, useNavigate } from "react-router-dom"
 import RedX from '../images/RedX.png'
 import { redirectIfAlreadyLoggedIn } from "../middleware/AuthenticationMiddleware"
 
-function LoginPage({ }) {
+function LoginPage(props) {
 
     const navigate = useNavigate();
 
@@ -85,6 +85,9 @@ function SessionExpiredModal({ authError }) {
         case "sessionCanceled":
             headingText = "Session Canceled";
             description = `Your session has been manually canceled. Please log back in to continue.`
+            break;
+        default:
+            console.log("This is awkward")
             break;
     }
 

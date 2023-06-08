@@ -1,4 +1,6 @@
 import '../sass/App.scss'
+import "../sass/ResponsiveLayout.scss"
+
 import { BrowserRouter as Router, Route, Routes, useNavigate } from 'react-router-dom';
 
 import RegisterPage from './RegisterPage';

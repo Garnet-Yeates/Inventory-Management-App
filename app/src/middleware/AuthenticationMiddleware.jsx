@@ -1,9 +1,9 @@
 import axios from "axios";
 import Cookies from "js-cookie";
-import { memo, useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SERVER_URL } from "../pages/App";
-import { mountAbortSignal, newAbortSignal, useIsMounted, useMountGET } from "../tools/axiosTools.js";
+import { mountAbortSignal } from "../tools/axiosTools.js";
 
 console.log("middleware init")
 
@@ -95,8 +95,7 @@ export function redirectIfAlreadyLoggedIn(Component, redirectTo) {
                     response.data.loggedIn && isMounted() && navigate(redirectTo, { replace: true, state: { alreadyLoggedInNotice: "Already logged in" } })
                 }
                 catch (err) {
-                    if (axios.isCancel(err)) return `Request canceled due to ${isMounted() ? "unmount" : "timeout"}`
-
+                    if (axios.isCancel(err)) return `Request canceled due to ${isMounted() ? "timeout" : "unmount"}`
                     console.log("Error at GET /auth/loggedInCheck", err);
                 }
             }

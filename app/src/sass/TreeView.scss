@@ -1,0 +1,75 @@
+@import "./App.scss";
+
+html {
+    -webkit-font-smoothing: antialiased;
+}
+
+.MuiTreeItem-label {
+    background-color: transparent !important;
+}
+
+.MuiTypography-body1,
+.MuiTypography-root {
+    font: inherit !important;
+}
+
+.MuiTreeItem-content {
+    --default-selected-bg: rgb(240, 240, 240);
+    --default-color: rgb(65, 65, 65);
+    font-family: "Helvetica";
+    font-size: 16px;
+    color: var(--default-color);
+    padding-right: 0.5rem;
+    border-top-right-radius: 1rem;
+    border-bottom-right-radius: 1rem;
+    font-weight: bold;
+
+    // Expanded
+    .Mui-expanded > & {
+        font-weight: medium;
+    }
+
+    // Selected, Focused
+    .MuiTreeItem-root:focus > &,
+    .MuiTreeItem-root.Mui-selected > & {
+        background-color: var(--tree-view-bg-color, var(--default-selected-bg));
+        color: var(--tree-view-color, var(--default-color));
+    }
+
+    // Hovered
+    .MuiTreeItem-root:hover > & {
+        background-color: rgb(246, 246, 246);
+    }
+
+    // Focused and hovered, selected and hovered
+    .MuiTreeItem-root:focus.MuiTreeItem-root:hover > &,
+    .MuiTreeItem-root.Mui-selected.MuiTreeItem-root:hover > & {
+        background-color: var(--tree-view-bg-color, var(--default-selected-bg));
+    }
+}
+
+.tree-view-icon {
+    font-size: 1.25rem !important;
+}
+
+.tree-view-label-root {
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    padding: 0.3rem 0rem;
+
+    .label-icon {
+        font-size: 1.25rem !important;
+        margin-right: 0.5rem;
+    }
+    
+    .label-text {
+        font-weight: inherit;
+        flex-grow: 1;
+    }
+}
+
+.navigation-tree-view-wrapper {
+    padding-right: 0.25rem;
+}
+

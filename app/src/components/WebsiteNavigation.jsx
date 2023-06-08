@@ -1,62 +1,148 @@
+import { TreeItem, TreeView } from '@material-ui/lab'
+import '../sass/TreeView.scss'
+import { ArrowDropDown, ArrowRight } from '@material-ui/icons'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { newAbortSignal } from '../tools/axiosTools'
+import axios from 'axios'
+import { SERVER_URL } from '../pages/App'
+
 /**
- * So there will be a prop called 'websiteNavigation' on one of the higher component levels
- * of the app. It will contain informtion that both the <NavigationTreeView> and <Dashboard>
- * will use. The NavigationTreeView is a simplified version of what you see on the dashboard.
- * For large screen users, this will be shown on the left side of every page (including the
- * dashboard itself!). On mobile, the 'left side of the page' will instead be a fixed display
- * triple bar thingy majigy at the top, and when clicked it will pull down a menu. 
- * 
- * So in essence we will probably have 3 different components all using the same information being
- * passed down from the top level: <DashboardPage>, <NavigationPanel>, <NavigationMobilePanel>
- * 
- * All pages will be set up in a <d-flex flex-row> outer div container, but
- * 
- * 
- * 
+ * My function description.
+ * @returns {[Object, () => void]} An array containing an object as the first element and a function as the second element.
  */
+export const useGETNavInfo = () => {
 
-// All pages will have this. 
-const MobileFriendlyWrapper = (props) => {
+    const [navInfo, setNavInfo] = useState({})
 
-    // general-app-page should 
+    const refreshNavInfoController = useRef(null);
 
-    // general page has rfs padding so on small screens, responsive-page-container should
-    // just about fill the whole screen
+    // This effect does nothing except return a cleanup (on unmount essentially) function that will abort the current controller
+    useEffect(() => {
+        return () => {
+            refreshNavInfoController.current?.abort();
+        }
+    }, [])
 
-    // Responsive-page-container will have a max width
-    // when it is small, it will have no border radius, no border, no box shadow, nada
-    // when it is small it might also have a slightly gray background
+    const refreshNavInfo = useCallback(async () => {
 
-    return (
-        <div className="general-page-container">
-            <div className="general-page">
-                <div className="responsive-page-container d-flex flex-row">
-                    <FixedMobileBar/>
-                    <NavigationPanel/>
-                    {props.children}
-                </div>
-            </div>
-        </div>
+        refreshNavInfoController.current?.abort();
 
-    )
+        const controller = newAbortSignal(10);
+        refreshNavInfoController.current = controller;
 
+        try {
+            let { data } = await axios.get(`${SERVER_URL}/dashboard/navInfo`, { signal: controller.signal })
+
+            // For now we do this
+            data = {
+
+                customers: 3,
+
+                invoices: 4,
+                inProgressInvoices: [
+                    {
+                        invoiceId: 1,
+                        customerName: "Joe",
+                    },
+                    {
+                        invoiceId: 2,
+                        customerName: "Joe",
+                    },
+                ],
+
+                itemTypes: 22,
+                itemInstances: 21,
+
+                stockChanges: 5,
+                inProgressStockChanges: [
+                    {
+                        stockChangeId: 1,
+                        date: "11 Jun 2023",
+                    },
+                    {
+                        stockChangeId: 1,
+                        date: "11 Jun 2023",
+                    },
+                ],
+            }
+
+            setNavInfo(data);
+        }
+        catch (err) {
+            if (axios.isCancel(err)) return console.log("Request canceled due to timeout or unmount", err);
+            console.log("Error at GET /dashboard/navInfo", err);
+        }
+    }, [])
+
+    return ([navInfo, refreshNavInfo]);
 }
 
 // Will not be displayed on md or higher
-// Display fixed and we prbably want responsive-page-container to be position relative
+// Display fixed and we prbably want responsive-page-container to be position relative <-- jk def not
 // (so it is inside the 'gray' area on mobile)
-const FixedMobileBar = () => {
+export const FixedMobileBar = () => {
     return (
-        <div className="fixed-mobile-bar d-block d-md-none">
+        <nav className="mobile-navigation-bar">
 
-        </div>)
+        </nav>)
 }
 
 // Will ONLY be displayed on md or higher, and it will be on the left side of our 'flex-row' responsive-page
-const NavigationPanel = () => {
-    return (
-        <div className="navigation panel d-none d-md-block">
+export const NavigationPanel = ({ treeItems }) => {
 
-        </div>
+    const collapseIcon = <ArrowDropDown className="tree-view-icon" />
+    const expandIcon = <ArrowRight className="tree-view-icon" />
+
+    return (
+        <nav className="navigation-panel">
+            <div className="navigation-tree-view-wrapper">
+                <TreeView defaultCollapseIcon={collapseIcon} defaultExpandIcon={expandIcon}>
+                    {treeItems.map(info => <RichTreeItem key={info.nodeId} {...info} />)}
+                </TreeView>
+            </div>
+        </nav>
+    )
+}
+
+const RichTreeItem = (props) => {
+
+    const {
+        labelText,
+        labelIcon: LabelIcon,
+        labelInfo,
+        color,
+        bgColor,
+        nodeChildren,
+        id,
+        ...other
+    } = props;
+
+    return (
+        <TreeItem
+            id={id}
+            label={
+                <div className="tree-view-label-root">
+                    <LabelIcon color="inherit" className="label-icon" />
+                    <span className="label-text">
+                        {labelText}
+                    </span>
+                    <span color="inherit">
+                        {labelInfo}
+                    </span>
+                </div>
+            }
+            style={{
+                "--tree-view-color": color,
+                "--tree-view-bg-color": bgColor
+            }}
+            classes={{
+
+            }}
+            {...other}
+        >
+            {nodeChildren && nodeChildren.map(child => {
+                return <RichTreeItem key={child.nodeId} {...child} />
+            })}
+        </TreeItem>
     )
 }

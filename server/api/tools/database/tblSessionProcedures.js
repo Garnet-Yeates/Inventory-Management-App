@@ -26,7 +26,7 @@ export async function newSession(clientID) {
         sessionUUID,
         clientId: clientID,
         isCanceled: false,
-        expiresAt: minutesFromNow(1)
+        expiresAt: minutesFromNow(15)
     }
 
     const payload = { sessionUUID, sessionCSRF }
@@ -46,4 +46,3 @@ export async function deleteSession(sessionUUID) {
 
     return Table("Session").removeWhere({ sessionUUID: sessionUUID }).executeSafe();
 }
-

@@ -1,13 +1,26 @@
 import jwt from "jsonwebtoken";
 import { currentTimeSeconds } from "../../utilities.js";
-import { deleteSession, findSession } from "../tools/database/tblSessionProcedures.js";
-import { createSessionAndSetCookies } from "../controllers/authcontroller.js";
+import { deleteSession, findSession, newSession } from "../tools/database/tblSessionProcedures.js";
 import { findClient } from "../tools/database/tblClientProcedures.js";
 
+/*
+ * This javascript file has to do with authentication checking (on all requests), authentication failure, session creation (including setting cookies)
+ * as well as session deletion and session refreshing.
+ */
+
+const exemptEndpoints = ['/', '/auth/register', '/auth/loggedInCheck', '/auth/login', '/auth/logout'];
+
+/**
+ * This middleware is responsible for making sure the user has a signed, valid session. This means they must have a valid auth_jwt cookie, auth_csrf cookie, 
+ * as well as proof they can read the auth_csrf cookie (i.e, they must have the auth_csrf header whose value is equivalent to that of the auth_csrf cookie). 
+ * The session must also exist in the database and not be `expired` or `canceled`. If there is any issue what-so-ever proving that they have a valid, active session
+ * in the database, a `401 unauthorized` or a `500 database error` will be returned. Depending on the situation, the session may even be deleted on failure (e.g, 
+ * they supplied a valid auth_jwt and their session exists, but they got the csrf header wrong. For their own safety the session will be removed). This middleware 
+ * will be run on all endpoints besides 'exemptEndpoints' (places where auth/clientId won't be required)
+ */
 export default async function authCheck(req, res, next) {
 
     // Home, register, loggedInCheck, and login are exempt from this
-    const exemptEndpoints = ['/', '/auth/register', '/auth/loggedInCheck', '/auth/login', '/auth/logout'];
 
     if (exemptEndpoints.includes(req.path)) return next();
 
@@ -97,7 +110,7 @@ export async function authCheckHelper(req, res, options) {
     const authCSRFHeader = req.headers["auth_csrf"];
 
     if (!userSuppliedAnyAuth(req)) {
-        sendResOnFail && res.status(400).json({ authRejected: { errorType: "notLoggedIn", errorMessage: "You must be logged in to view this data" } })
+        sendResOnFail && res.status(401).json({ authRejected: { errorType: "notLoggedIn", errorMessage: "You must be logged in to view this data" } })
         return false; // No need to clear cookies we know they're not set here
     }
 
@@ -130,7 +143,7 @@ export async function authCheckHelper(req, res, options) {
 
         const s = errors.length == 1 ? "" : "s";
         sessionUUID && deleteSessionSoon(sessionUUID);
-        return onAuthFailure(400, "incompleteAuth", `Incomplete authentication. Missing ${errors.length} form${s} of authentication: ${errors.join(", ")}`);
+        return onAuthFailure(401, "incompleteAuth", `Incomplete authentication. Missing ${errors.length} form${s} of authentication: ${errors.join(", ")}`);
     }
 
     // Down here it is now implied that authJWTCookie, authCSRFCookie, authCSRFHeader are set
@@ -164,13 +177,13 @@ export async function authCheckHelper(req, res, options) {
     // It is implied that these exist here
     const { clientId, isCanceled, expiresAt } = session;
 
-    // Session expired
-    if (currentTimeSeconds() >= expiresAt) 
-        return onAuthFailure(401, "sessionExpired", "Session expired")
-
     // Session manually canceled. Probs remove this tbh and just delete it to cancel it
     if (isCanceled) 
         return onAuthFailure(401, "sessionCanceled", "Session was manually canceled")
+
+    // Session expired
+    if (currentTimeSeconds() >= expiresAt) 
+        return onAuthFailure(401, "sessionExpired", "Session expired")
 
     return { clientId, sessionUUID: sessionUUID }
 
@@ -196,14 +209,28 @@ export function deleteSessionSoon(sessionUUID) {
     }, 15 * 1000)
 }
 
-/**
- * Helper function for authCheckHelper
- */
-export function clearAuthCookiesWithErrors(status, res, options, errorType, errorMessage) {
+// Returns { token, decoded } or false if there was an sql error
+export async function createSessionAndSetCookies(client, res) {
 
-    const { sendResOnFail, deleteCookiesOnFail } = options;
-    deleteCookiesOnFail && res.clearCookie("auth_jwt")
-    deleteCookiesOnFail && res.clearCookie("auth_csrf")
-    sendResOnFail && res.status(status).json({ authRejected: { errorType, errorMessage } })
-    return false;
+    let session;
+    try {
+        session = await newSession(client.clientId);
+    }
+    catch (err) {
+        return false;
+    }
+
+    // Session returns [ token, decodedToken: { sessionUUID, sessionCSRF } ]. We only destructure CSRF out of decodedToken here
+    const [token, { sessionCSRF }] = session;
+
+    // Session cookie lasts 3 hours while session in database lasts 15 minutes
+    // If cookie exists but session expires they will get "Session Expired" modal
+    // If cookie no longer exists they will get "Not Authorized" modal4
+    // This means:
+    // If they come back after 15 mins of their last request, but also within 3 hours of their last request they get "Session Expired modal"
+    // If they come back after 3 hours it will simply tell them they aren't logged in
+    res.cookie("auth_jwt", token, { httpOnly: true, maxAge: 1000 * 60 * (180) });
+    res.cookie("auth_csrf", sessionCSRF, { httpOnly: false, maxAge: 1000 * 60 * (180) });
+
+    return true;
 }

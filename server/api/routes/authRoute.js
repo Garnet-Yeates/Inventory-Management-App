@@ -1,6 +1,6 @@
 import { loggedInCheck, authRequiredTest, login, register, logout } from "../controllers/authcontroller.js"
 
-export default function (app) {
+const configureAuthRoute = (app) => {
     app.route('/auth/register')
         .post(register)
     app.route('/auth/login')
@@ -12,3 +12,5 @@ export default function (app) {
     app.route('/auth/test')
         .get(authRequiredTest)
 }
+
+export default configureAuthRoute;
