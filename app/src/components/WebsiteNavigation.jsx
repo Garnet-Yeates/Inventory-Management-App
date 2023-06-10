@@ -1,11 +1,12 @@
-import { TreeItem, TreeView } from '@material-ui/lab'
 import '../sass/TreeView.scss'
-import { ArrowDropDown, ArrowRight } from '@material-ui/icons'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { newAbortSignal } from '../tools/axiosTools'
 import axios from 'axios'
 import { SERVER_URL } from '../pages/App'
+import { TreeItem, TreeView } from '@mui/lab'
+import { ArrowDropDown, ArrowRight } from '@mui/icons-material'
 
+let times = 1;
 /**
  * My function description.
  * @returns {[Object, () => void]} An array containing an object as the first element and a function as the second element.
@@ -66,6 +67,14 @@ export const useGETNavInfo = () => {
                 ],
             }
 
+            for (let i = 0; i < times; i++) {
+                data.inProgressInvoices.push(                    {
+                    invoiceId: 1000 + times,
+                    customerName: "Jo",
+                })
+            }
+ 
+            times++;
             setNavInfo(data);
         }
         catch (err) {
@@ -88,7 +97,7 @@ export const FixedMobileBar = () => {
 }
 
 // Will ONLY be displayed on md or higher, and it will be on the left side of our 'flex-row' responsive-page
-export const NavigationPanel = ({ treeItems }) => {
+export const NavigationPanel = React.memo(({ treeItems, ...rest }) => {
 
     const collapseIcon = <ArrowDropDown className="tree-view-icon" />
     const expandIcon = <ArrowRight className="tree-view-icon" />
@@ -96,13 +105,17 @@ export const NavigationPanel = ({ treeItems }) => {
     return (
         <nav className="navigation-panel">
             <div className="navigation-tree-view-wrapper">
-                <TreeView defaultCollapseIcon={collapseIcon} defaultExpandIcon={expandIcon}>
+                <TreeView 
+                {...rest}
+                defaultCollapseIcon={collapseIcon} 
+                defaultExpandIcon={expandIcon}
+                >
                     {treeItems.map(info => <RichTreeItem key={info.nodeId} {...info} />)}
                 </TreeView>
             </div>
         </nav>
     )
-}
+})
 
 const RichTreeItem = (props) => {
 
@@ -114,6 +127,8 @@ const RichTreeItem = (props) => {
         bgColor,
         nodeChildren,
         id,
+        onSelected,
+        pageLossOnSelect,
         ...other
     } = props;
 
@@ -126,7 +141,7 @@ const RichTreeItem = (props) => {
                     <span className="label-text">
                         {labelText}
                     </span>
-                    <span color="inherit">
+                    <span className="label-info" color="inherit">
                         {labelInfo}
                     </span>
                 </div>
@@ -134,9 +149,6 @@ const RichTreeItem = (props) => {
             style={{
                 "--tree-view-color": color,
                 "--tree-view-bg-color": bgColor
-            }}
-            classes={{
-
             }}
             {...other}
         >

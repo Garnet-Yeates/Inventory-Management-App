@@ -26,7 +26,7 @@ function LoginPage(props) {
         try {
             const response = await axios.post(`${SERVER_URL}/auth/login`, loginData);
             console.log("Login response", response.data)
-            navigate('/authTest')
+            navigate('/dashboard')
         }
         catch (err) {
             console.log("Login error", err?.response?.data)

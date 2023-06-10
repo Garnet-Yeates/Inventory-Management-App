@@ -16,60 +16,67 @@ html {
 .MuiTreeItem-content {
     --default-selected-bg: rgb(240, 240, 240);
     --default-color: rgb(65, 65, 65);
-    font-family: "Helvetica";
+    --default-hover-bg: rgba(0, 0, 0, 0.04);
+    font-family: "Roboto", "Helvetica", "sans-seriff" !important;
     font-size: 16px;
+    padding-right: 0px !important;
     color: var(--default-color);
-    padding-right: 0.5rem;
     border-top-right-radius: 1rem;
     border-bottom-right-radius: 1rem;
-    font-weight: bold;
+    font-weight: 600;
+    transition: background-color 0.25s linear, color 0.25s linear;
 
     // Expanded
-    .Mui-expanded > & {
-        font-weight: medium;
+    &.Mui-expanded {
+        font-weight: 600;
     }
 
-    // Selected, Focused
-    .MuiTreeItem-root:focus > &,
-    .MuiTreeItem-root.Mui-selected > & {
-        background-color: var(--tree-view-bg-color, var(--default-selected-bg));
-        color: var(--tree-view-color, var(--default-color));
+    &.Mui-selected,
+    &.Mui-focused {
+        background-color: var(--tree-view-bg-color, var(--default-selected-bg)) !important;
+        color: var(--tree-view-color, var(--default-color)) !important;
     }
 
-    // Hovered
-    .MuiTreeItem-root:hover > & {
-        background-color: rgb(246, 246, 246);
+    &:hover {
+        background-color: var(--default-hover-bg) !important;
     }
 
-    // Focused and hovered, selected and hovered
-    .MuiTreeItem-root:focus.MuiTreeItem-root:hover > &,
-    .MuiTreeItem-root.Mui-selected.MuiTreeItem-root:hover > & {
-        background-color: var(--tree-view-bg-color, var(--default-selected-bg));
+    &:hover {
+        background-color: var(--tree-view-bg-color, var(--default-selected-bg)) !important;
+        color: var(--tree-view-color, var(--default-color)) !important;
     }
 }
 
-.tree-view-icon {
-    font-size: 1.25rem !important;
+.MuiTreeItem-label {
+    font-weight: inherit !important;
+    font-family: inherit !important;
 }
 
 .tree-view-label-root {
+    font-weight: inherit !important;
+    font-family: inherit !important;
     font-size: 0.875rem;
     display: flex;
     align-items: center;
     padding: 0.3rem 0rem;
+    padding-right: 0.625rem; // This is so the number isn't all the way to the right of the curved border
 
     .label-icon {
-        font-size: 1.25rem !important;
+        font-size: 1.375rem !important;
         margin-right: 0.5rem;
     }
-    
+
     .label-text {
         font-weight: inherit;
         flex-grow: 1;
     }
+
+    .label-info {
+        font-size: 0.75rem;
+        font-weight: normal;
+    }
 }
 
 .navigation-tree-view-wrapper {
-    padding-right: 0.25rem;
+    padding-right: 1rem;
 }
-
