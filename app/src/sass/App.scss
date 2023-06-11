@@ -93,6 +93,14 @@ ul {
     margin: 0px;
 }
 
+.not-found-page {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
 .fixed-info-overlay {
 
     display: flex;

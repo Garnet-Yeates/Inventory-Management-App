@@ -8,7 +8,7 @@ import { SERVER_URL } from "../App";
  
 const CreateCustomerPage = (props) => {
 
-    const { editingId, blockExitWith, unblockExit } = props;
+    const { editingId, lockExitWith, unlockExit } = props;
 
     const [ customerName, setCustomerName ] = useState("");
 
@@ -25,7 +25,7 @@ const CreateCustomerPage = (props) => {
     // Mount/Prop-Change effect to fetch existing customer data if 'editingId' is defined on mount or changes
     useEffect(() => {
 
-        blockExitWith("Warn!");
+        lockExitWith("Warn!");
 
         if (!editingId)
             return;
@@ -49,7 +49,7 @@ const CreateCustomerPage = (props) => {
 
         return cleanup;
 
-    }, [navigate, editingId, blockExitWith]);
+    }, [navigate, editingId, lockExitWith]);
 
     return (
         <div>

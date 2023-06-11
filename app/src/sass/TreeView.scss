@@ -14,12 +14,12 @@ html {
 }
 
 .MuiTreeItem-content {
-    --default-selected-bg: rgb(240, 240, 240);
-    --default-color: rgb(65, 65, 65);
-    --default-hover-bg: rgba(0, 0, 0, 0.04);
+    --default-color: rgba(0, 0, 0, 0.65);
+    --default-selected-bg: rgba(0, 0, 0, 0.06);
     font-family: "Roboto", "Helvetica", "sans-seriff" !important;
     font-size: 16px;
     padding-right: 0px !important;
+    padding-left: 0px !important;
     color: var(--default-color);
     border-top-right-radius: 1rem;
     border-bottom-right-radius: 1rem;
@@ -35,10 +35,6 @@ html {
     &.Mui-focused {
         background-color: var(--tree-view-bg-color, var(--default-selected-bg)) !important;
         color: var(--tree-view-color, var(--default-color)) !important;
-    }
-
-    &:hover {
-        background-color: var(--default-hover-bg) !important;
     }
 
     &:hover {
@@ -75,8 +71,4 @@ html {
         font-size: 0.75rem;
         font-weight: normal;
     }
-}
-
-.navigation-tree-view-wrapper {
-    padding-right: 1rem;
 }

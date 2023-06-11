@@ -1,20 +1,26 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import "../sass/DashboardPage.scss"
-import { FixedMobileBar, NavigationPanel, useGETNavInfo } from "../components/WebsiteNavigation.jsx";
+import useGETNavInfo from "../hooks/useGetNavInfo.js";
 import ViewInvoicePage from '../pages/Invoices/ViewInvoicePage'
 import InvoiceManagementPage from '../pages/Invoices/InvoiceManagementPage'
 import CreateInvoicePage from '../pages/Invoices/CreateInvoicePage'
 import CustomerManagementPage from '../pages/Customer/CustomerManagementPage'
 import CreateCustomerPage from '../pages/Customer/CreateCustomerPage'
-import { AccountCircle as AccountCircleIcon, AddBox, Category, Description as DescriptionIcon, ListAlt as ListAltIcon, Logout as LogoutIcon, Person as PersonIcon, PersonAdd as PersonAddIcon, Warehouse as WarehouseIcon, ManageAccounts, Receipt as ReceiptIcon, PostAdd as PostAddIcon, PendingActions as PendingActionsIcon, HomeRepairService, NoteAlt as NoteAltIcon, Edit as EditIcon, NoteAdd as NoteAddIcon, Refresh as RefreshIcon } from "@mui/icons-material";
+import { AccountCircle as AccountCircleIcon, AddBox, Category, Description as DescriptionIcon, ListAlt as ListAltIcon, Logout as LogoutIcon, Person as PersonIcon, PersonAdd as PersonAddIcon, Warehouse as WarehouseIcon, ManageAccounts, Receipt as ReceiptIcon, PostAdd as PostAddIcon, PendingActions as PendingActionsIcon, HomeRepairService, NoteAlt as NoteAltIcon, Edit as EditIcon, NoteAdd as NoteAddIcon, Refresh as RefreshIcon, Dashboard as DashboardIcon } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import CreateItemTypePage from "./Item Types/CreateItemTypePage";
 import ItemTypeManagementPage from "./Item Types/ItemTypeManagementPage";
 import CreateItemInstancePage from "./Item Instances/CreateItemInstancePage";
 import ItemInstanceManagementPage from "./Item Instances/ItemInstanceManagementPage";
+import { TreeView } from '@mui/lab'
+import { ArrowDropDown, ArrowRight } from '@mui/icons-material'
 import { logout } from "../API/APICalls";
+import RichTreeItem from "../components/RichTreeItem";
 
 export default function DashboardPage() {
+
+    // Has nothing to do with navInfo, this is just how we redirect to other pages with react-router-dom
+    const navigate = useNavigate();
 
     // Current page to be rendered inside the responsive-page-container. 
     // Tons of information (state changers, callbacks) generated here is added to the props of this page when it is rendered
@@ -24,70 +30,126 @@ export default function DashboardPage() {
     const [navInfo, refreshNavInfo] = useGETNavInfo();
     useEffect(() => void refreshNavInfo(), [refreshNavInfo]);
 
-    // Has nothing to do with navInfo, this is just how we redirect to other pages with react-router-dom
-    const navigate = useNavigate();
-
     // An array of objects describing RichTreeItem components to be passed to <NavigationPanel>
     // Updated whenever navInfo changes. Note that navInfo is a state variable so when it changes, a re-render occurs here
     const [dashboardTreeItems, treeItemMap] = useMemo(() => {
         return getDashboardTreeItemsFromNavInfo(navInfo, navigate, refreshNavInfo)
     }, [navInfo, navigate, refreshNavInfo]) // navInfo is the only 'real' dependency since navigate and refreshNavInfo are memoized
 
+    // We use the 'controlled tree' capability of Mui TreeView
+    const [selected, setSelected] = useState([]);
+    const [expanded, setExpanded] = useState([]);
+
     // This is a ref because we want our 'currentPage' to set it/unset it without causing re-render
     const blockExitRef = useRef("");
 
     // Pages will call this upon mount if they want the data loss warning modal to pop up when the user wants to switch pages
-    const blockExitWith = useCallback((message) => blockExitRef.current = message);
+    const lockExitWith = useCallback((message) => blockExitRef.current = message, []);
 
     // Pages will use this when their data is saved/the page has completed its task to prevent the data loss warning modal from appearing 
-    const unblockExit = useCallback(() => blockExitRef.current = null);
+    const unlockExit = useCallback(() => blockExitRef.current = null, []);
 
-    // Only gets set when the user attempts to select a new page and blockExitRef.current exists
-    // This will cause the "Are you sure?" modal to pop up
+    // Gets set when the user attempts to select a new page when blockExitRef.current exists. If set, the data loss warning modal renders
     const [triedToSelect, setTriedToSelect] = useState();
 
-    const [selected, setSelected] = useState([]);
-
     // When a node selection event is triggered (via clicking, or pressing enter on focused node) this callback will run.
-    const trySelectNode = useCallback((event, nodeId) => {
+    const trySelectNode = useCallback((nodeId, programmatic = false) => {
 
-        let item = treeItemMap[nodeId]
-        if (!item) {
-            // ig it is *techicallyyyy* possible for our data loss warning modal to call trySelectNode on a node that is gone now....
+        // No additional logic if they are clicking the node that represents the current page (return)
+        if (selected === nodeId) {
+            return;
         }
 
-        if (blockExitRef.current && (item.page || item.onSelected && item.pageLossOnSelect)) {
+        let node = treeItemMap[nodeId]
+        if (!node) {
+            return; // Don't think this will ever happen
+        }
+
+        // If this block runs it causes the data loss warning modal to render
+        if (blockExitRef.current && (node.page || (node.onSelected && node.pageLossOnSelect))) {
             setTriedToSelect(nodeId)
             return;
         }
 
-        item.page && setCurrentPage(item.page)
-        item.onSelected && item.onSelected()
-        setSelected(nodeId);
+        // Don't call setSelected unless the node info has 'page' or 'pageLossOnSelect' set. This ensures that the currently
+        // selected node is always associated with the current page (of loss thereof) in the eyes of the user
+        if (node.page) {
+            setSelected(nodeId);
+            setCurrentPage(node.page);
+        }
+        else if (node.onSelected) {
+            node.onSelected(); // Note that node.onSelected() being called doesn't imply the node was actually selected 
+            // Since only nodes with onSelected effects that affect currentPage
+            if (node.pageLossOnSelect) {
+                setSelected(nodeId); // We only actually call setSelected if the node changes the display/current page.
+            }
+        }
 
-    }, [treeItemMap])
+        if (programmatic) {
 
-    // These props below are passed down to whatever page is rendered inside the responsive-page-container
-    let pageProps = { setCurrentPage, refreshNavInfo, blockExitWith, unblockExit }
-    const pageElement = currentPage ? React.cloneElement(currentPage, pageProps) : <DashboardContent {...pageProps} />
+            let newExpanded = [...expanded];
+
+            // Create simple map for constant lookup operation time for seeing if a specific node is expanded
+            let isExpanded = {};
+            for (let nodeId of newExpanded) {
+                isExpanded[nodeId] = true;
+            }
+
+            // When a node is selected we ensure that its parents are expanded
+            // This is because there are cases where we will programatically select nodes and we want the user to see this happen
+            for (let parentId of node.parentIds) {
+                if (!isExpanded[parentId]) {
+                    newExpanded.push(parentId);
+                }
+            }
+
+            setExpanded(newExpanded);
+        }
+
+    }, [treeItemMap, expanded, selected])
+
+    // Only nodes that cause 'currentPage' to change/unmount can be selected in this tree view. See trySelectNode 
+    const onNodeSelect = useCallback((_, nodeId) => trySelectNode(nodeId), [trySelectNode]);
+
+    // For node expansion, there is no change in user triggered logic. However if you look in trySelectNode you can see we use expansion logic there
+    const onNodeToggle = useCallback((_, nodeIds) => setExpanded(nodeIds), [setExpanded])
+
+    // The first time dashboardTreeItems updates to a non empty object, we will programatically select the overview node
+    const didInitialSelection = useRef(false);
+    useEffect(() => {
+        if (Object.keys(dashboardTreeItems).length > 0 && !didInitialSelection.current) {
+            didInitialSelection.current = true;
+            trySelectNode("createNewItemInstane", true)
+        }
+    }, [dashboardTreeItems]);
+
+    const { type: CurrentPage, pageProps } = currentPage ?? {}
 
     return (
-        <div className="general-page-container">
-            <div className="general-page">
+        <div className="dashboard-page-container">
+            <div className="dashboard-page">
                 <div className="responsive-page-container">
-                    {triedToSelect &&
-                        <PageChangeWarning
-                            triedToSelect={triedToSelect}
-                            setTriedToSelect={setTriedToSelect}
-                            blockExitRef={blockExitRef}
-                            trySelectNode={trySelectNode} />}
+                    {triedToSelect && <PageChangeWarning
+                        triedToSelect={triedToSelect}
+                        setTriedToSelect={setTriedToSelect}
+                        blockExitRef={blockExitRef}
+                        trySelectNode={trySelectNode}>
+                    </PageChangeWarning>}
                     <FixedMobileBar navInfo={dashboardTreeItems} />
                     <NavigationPanel
                         treeItems={dashboardTreeItems}
-                        onNodeSelect={trySelectNode}
-                        selected={selected} />
+                        onNodeSelect={onNodeSelect}
+                        onNodeToggle={onNodeToggle}
+                        selected={selected}
+                        expanded={expanded}>
+                    </NavigationPanel>
                     <div className="sub-page-container">
-                        {pageElement}
+                        {currentPage && <CurrentPage {...pageProps}
+                            setCurrentPage={setCurrentPage}
+                            refreshNavInfo={refreshNavInfo}
+                            lockExitWith={lockExitWith}
+                            unlockExit={unlockExit}>
+                        </CurrentPage>}
                     </div>
                 </div>
             </div>
@@ -95,12 +157,43 @@ export default function DashboardPage() {
     )
 }
 
+// Will not be displayed on md or higher
+// Display fixed and we prbably want responsive-page-container to be position relative <-- jk def not
+// (so it is inside the 'gray' area on mobile)
+export const FixedMobileBar = () => {
+    return (
+        <nav className="mobile-navigation-bar">
+
+        </nav>)
+}
+
+// Will ONLY be displayed on md or higher, and it will be on the left side of our 'flex-row' responsive-page
+export const NavigationPanel = React.memo(({ treeItems, ...rest }) => {
+
+    const collapseIcon = <ArrowDropDown className="tree-view-icon" />
+    const expandIcon = <ArrowRight className="tree-view-icon" />
+
+    return (
+        <nav className="navigation-panel">
+            <div className="navigation-tree-view-wrapper">
+                <TreeView 
+                {...rest}
+                defaultCollapseIcon={collapseIcon} 
+                defaultExpandIcon={expandIcon}
+                >
+                    {treeItems.map(info => <RichTreeItem key={info.nodeId} {...info} />)}
+                </TreeView>
+            </div>
+        </nav>
+    )
+})
+
 const PageChangeWarning = ({ triedToSelect, setTriedToSelect, blockExitRef, trySelectNode }) => {
 
     const onProceed = () => {
         blockExitRef.current = ""
         setTriedToSelect(null)
-        trySelectNode(null, [triedToSelect])
+        trySelectNode(triedToSelect)
     }
 
     const onNeverMind = () => {
@@ -116,27 +209,33 @@ const PageChangeWarning = ({ triedToSelect, setTriedToSelect, blockExitRef, tryS
             </div>
         </div>
     )
-
-
-
 }
 
-const DashboardContent = () => {
-
+const OverviewPage = () => {
     return (
-        <div className="dashboard-page">
-            DASH
+        <div>
+            Overview
         </div>
     )
 }
 
-const addFg = "#148f28"
-const addBg = "#d8eddb"
 
-const manageFg = "#148f28"
-const manageBg = "#d8eddb"
+const greenFg = "#148f28"
+const greenBg = "#dff1e2"
 
-// TODO remove refreshnavinfo later, unless i actually wanna use it
+const purpleFg = "#9c42f7"
+const purpleBg = "#f2e4ff"
+
+const blueFg = "#427ff7"
+const blueBg = "#e4f0ff"
+
+const orangeFg = "#f77f42"
+const orangeBg = "#ffefe4"
+
+const redFg = "#f74242"
+const redBg = "#ffe4e4"
+
+// TODO remove refreshnavinfo tree node item/dependency later, unless i actually wanna use it
 // 
 
 /**
@@ -150,19 +249,15 @@ const manageBg = "#d8eddb"
  * @returns 
  */
 const getDashboardTreeItemsFromNavInfo = (navInfo, navigate, refreshNavInfo) => {
+
     if (!navInfo || Object.keys(navInfo).length === 0) {
         return [[], {}];
     }
 
-    let nodeId = 1;
-
-    function getId() {
-        return String(nodeId++);
-    }
-
-    function CreateNode(labelText, labelIcon, labelInfo, color, bgColor) {
+    // Every node should have a unique, deterministic id based on what the node does
+    function Node(nodeId, labelText, labelIcon, labelInfo, color, bgColor) {
         return {
-            nodeId: getId(),
+            nodeId,
             labelText,
             labelIcon,
             labelInfo,
@@ -174,61 +269,65 @@ const getDashboardTreeItemsFromNavInfo = (navInfo, navigate, refreshNavInfo) => 
     // Map response.data to RichTreeItem props
     const nodes = [
         {
-            ...CreateNode("My Account", AccountCircleIcon),
+            ...Node("overview", "Overview", DashboardIcon, ""),
+            page: <OverviewPage />
+        },
+        {
+            ...Node("account", "My Account", AccountCircleIcon),
             nodeChildren: [
                 {
-                    ...CreateNode("Log Out", LogoutIcon),
+                    ...Node("logout", "Log Out", LogoutIcon),
                     pageLossOnSelect: true,
                     onSelected: () => logout(navigate),
                 },
                 {
-                    ...CreateNode("Refresh Nav Info", RefreshIcon),
+                    ...Node("refresh", "Refresh Nav Info", RefreshIcon),
                     onSelected: () => refreshNavInfo(),
                 },
             ],
         },
         {
-            ...CreateNode("Inventory", WarehouseIcon),
+            ...Node("inventory", "Inventory", WarehouseIcon, ""),
             nodeChildren: [
                 {
-                    ...CreateNode("Item Types", Category),
+                    ...Node("itemTypes", "Item Types", Category, "", orangeFg, orangeBg),
                     nodeChildren: [
                         {
-                            ...CreateNode("Define New Item Type", AddBox, "", addFg, addBg),
+                            ...Node("createNewItemType", "Define New Item Type", AddBox, "", greenFg, greenBg),
                             page: <CreateItemTypePage />,
                         },
                         {
-                            ...CreateNode("Manage Item Types", ListAltIcon, "", manageFg, manageBg),
+                            ...Node("manageItemTypes", "Manage Item Types", ListAltIcon, "", purpleFg, purpleBg),
                             page: <ItemTypeManagementPage />,
                         },
                     ],
                 },
                 {
-                    ...CreateNode("Item Instances", HomeRepairService),
+                    ...Node("itemInstances", "Item Instances", HomeRepairService, "", orangeFg, orangeBg),
                     nodeChildren: [
                         {
-                            ...CreateNode("Create New", AddBox, "", addFg, addBg),
+                            ...Node("createNewItemInstane", "Create New", AddBox, "", greenFg, greenBg),
                             page: <CreateItemInstancePage />,
                         },
                         {
-                            ...CreateNode("Manage Item Instances", ListAltIcon, "", manageFg, manageBg),
+                            ...Node("manageItemInstances", "Manage Item Instances", ListAltIcon, "", purpleFg, purpleBg),
                             page: <ItemInstanceManagementPage />,
                         },
                     ],
                 },
                 {
-                    ...CreateNode("Stock Changes", DescriptionIcon),
+                    ...Node("stockChanges", "Stock Changes", DescriptionIcon, "", orangeFg, orangeBg),
                     nodeChildren: [
                         {
-                            ...CreateNode("Create New", NoteAddIcon, "", addFg, addBg),
+                            ...Node("createNewStockChange", "Create New", NoteAddIcon, "", greenFg, greenBg),
                             page: <CreateItemInstancePage />,
                         },
                         {
-                            ...CreateNode("In Progress", PendingActionsIcon, "", manageFg, manageBg),
+                            ...Node("viewInProgressStockChanges", "In Progress", PendingActionsIcon, "", blueFg, blueBg),
                             page: <ItemInstanceManagementPage />,
                         },
                         {
-                            ...CreateNode("View All", ListAltIcon, "", manageFg, manageBg),
+                            ...Node("viewAllStockChanges", "View All", ListAltIcon, "", purpleFg, purpleBg),
                             page: <ItemInstanceManagementPage />,
                         },
                     ],
@@ -236,33 +335,33 @@ const getDashboardTreeItemsFromNavInfo = (navInfo, navigate, refreshNavInfo) => 
             ],
         },
         {
-            ...CreateNode("Customers", PersonIcon, navInfo.customers),
+            ...Node("customers", "Customers", PersonIcon, navInfo.customers),
             nodeChildren: [
                 {
-                    ...CreateNode("Create New Customer", PersonAddIcon, "", addFg, addBg),
+                    ...Node("createNewCustomer", "Create New Customer", PersonAddIcon, "", greenFg, greenBg),
                     page: <CreateCustomerPage />,
                 },
                 {
-                    ...CreateNode("Manage Customers", ManageAccounts, "", manageFg, manageBg),
+                    ...Node("manageCustomers", "Manage Customers", ManageAccounts, "", purpleFg, purpleBg),
                     page: <CustomerManagementPage />,
                 },
             ],
         },
         {
-            ...CreateNode("Invoices", ReceiptIcon, ""),
+            ...Node("invoices", "Invoices", ReceiptIcon, ""),
             nodeChildren: [
                 {
-                    ...CreateNode("Create New Invoice", PostAddIcon, "", addFg, addBg),
+                    ...Node("createNewInvoice", "Create New Invoice", PostAddIcon, "", greenFg, greenBg),
                     page: <CreateInvoicePage />,
                 },
                 {
-                    ...CreateNode("View Completed Invoices", ListAltIcon, "", addFg, addBg),
+                    ...Node("viewCompletedInvoices", "View Completed Invoices", ListAltIcon, "", purpleFg, purpleBg),
                     page: <InvoiceManagementPage />,
                 },
                 {
-                    ...CreateNode("In Progress", PendingActionsIcon, "", addFg, addBg),
+                    ...Node("viewInProgressInvoices", "In Progress", PendingActionsIcon, "", blueFg, blueBg),
                     nodeChildren: navInfo.inProgressInvoices.map(({ customerName, invoiceId }) => ({
-                        ...CreateNode(customerName, ReceiptIcon, ""),
+                        ...Node(`viewInProgressInvoiceId${invoiceId}`, customerName, ReceiptIcon, ""),
                         page: <ViewInvoicePage invoiceId={invoiceId} />,
                     })),
                 },
@@ -270,19 +369,32 @@ const getDashboardTreeItemsFromNavInfo = (navInfo, navigate, refreshNavInfo) => 
         },
     ];
 
-    const nodeMap = nodeMapList(nodes);
+    const nodeMap = nodeMapMultiple(nodes);
+    calculateParentMultiple(nodes);
 
     return [nodes, nodeMap]
 }
 
 const nodeMapRec = (currNode, map = {}) => {
     map[currNode.nodeId] = currNode;
-    nodeMapList(currNode.nodeChildren, map);
+    nodeMapMultiple(currNode.nodeChildren, map);
     return map;
 }
 
-const nodeMapList = (nodes, map = {}) => {
+const nodeMapMultiple = (nodes, map = {}) => {
     for (let nodeChild of nodes ?? [])
         nodeMapRec(nodeChild, map);
     return map;
+}
+
+const calculateParent = (currNode, parentArr) => {
+    currNode.parentIds = parentArr;
+    // Note we clone array here instead of in the multiple method, so siblings share a reference to the same parent arr
+    parentArr = [...parentArr, currNode.nodeId];
+    calculateParentMultiple(currNode.nodeChildren, parentArr);
+}
+
+const calculateParentMultiple = (nodes, parentArr = []) => {
+    for (let node of nodes ?? [])
+        calculateParent(node, parentArr);
 }
