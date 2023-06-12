@@ -13,33 +13,58 @@ html {
     font: inherit !important;
 }
 
+.MuiTreeItem-root {
+    --inactive-color: rgba(0, 0, 0, 0.65);
+    --inactive-bg-color: transparent;
+
+    // By active I mean: selected, focused, expanded, or hovered
+    --active-color: var(--inactive-color);
+    --active-bg-color: rgba(0, 0, 0, 0.06);
+
+    --selected-color: var(--active-color);
+    --selected-bg-color: var(--active-bg-color);
+
+    --focused-color: var(--active-color);
+    --focused-bg-color: var(--active-bg-color);
+
+    --expanded-color: var(--active-color);
+    --expanded-bg-color: var(--active-bg-color);
+
+    --hovered-color: var(--active-color);
+    --hovered-bg-color: var(--active-bg-color);
+}
+
 .MuiTreeItem-content {
-    --default-color: rgba(0, 0, 0, 0.65);
-    --default-selected-bg: rgba(0, 0, 0, 0.06);
+
     font-family: "Roboto", "Helvetica", "sans-seriff" !important;
     font-size: 16px;
     padding-right: 0px !important;
     padding-left: 0px !important;
-    color: var(--default-color);
+    color: var(--inactive-color) !important;
+    background-color: var(--inactive-bg-color) !important;
     border-top-right-radius: 1rem;
     border-bottom-right-radius: 1rem;
     font-weight: 600;
-    transition: background-color 0.25s linear, color 0.25s linear;
+    transition: background-color 0.2s linear, color 0.25s linear;
 
     // Expanded
     &.Mui-expanded {
         font-weight: 600;
     }
 
-    &.Mui-selected,
+    &.Mui-selected {
+        background-color: var(--selected-bg-color) !important;
+        color: var(--selected-color) !important;
+    }
+
     &.Mui-focused {
-        background-color: var(--tree-view-bg-color, var(--default-selected-bg)) !important;
-        color: var(--tree-view-color, var(--default-color)) !important;
+        background-color: var(--focused-bg-color) !important;
+        color: var(--focused-color) !important;
     }
 
     &:hover {
-        background-color: var(--tree-view-bg-color, var(--default-selected-bg)) !important;
-        color: var(--tree-view-color, var(--default-color)) !important;
+        background-color: var(--hovered-bg-color) !important;
+        color: var(--hovered-color) !important;
     }
 }
 

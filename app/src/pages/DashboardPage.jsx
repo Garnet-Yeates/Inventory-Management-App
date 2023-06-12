@@ -71,18 +71,13 @@ export default function DashboardPage() {
             return;
         }
 
+        node.page && setCurrentPage(node.page);
+        node.onSelected && node.onSelected() 
+
         // Don't call setSelected unless the node info has 'page' or 'pageLossOnSelect' set. This ensures that the currently
         // selected node is always associated with the current page (of loss thereof) in the eyes of the user
-        if (node.page) {
+        if (node.page || node.pageLossOnSelect) {
             setSelected(nodeId);
-            setCurrentPage(node.page);
-        }
-        else if (node.onSelected) {
-            node.onSelected(); // Note that node.onSelected() being called doesn't imply the node was actually selected 
-            // Since only nodes with onSelected effects that affect currentPage
-            if (node.pageLossOnSelect) {
-                setSelected(nodeId); // We only actually call setSelected if the node changes the display/current page.
-            }
         }
 
         if (programmatic) {

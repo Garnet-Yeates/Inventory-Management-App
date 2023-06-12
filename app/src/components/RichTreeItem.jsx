@@ -27,8 +27,8 @@ const RichTreeItem = (props) => {
                 </div>
             }
             style={{
-                "--tree-view-color": color,
-                "--tree-view-bg-color": bgColor
+                "--active-color": "var(--inactive-color)",
+                "--active-bg-color": "var(--inactive-bg-color)"
             }}
         >
             {nodeChildren && nodeChildren.map(child => {
