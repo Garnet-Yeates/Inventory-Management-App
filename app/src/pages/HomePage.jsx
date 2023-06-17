@@ -1,6 +1,8 @@
-function HomePage({}) {
+import { useEffect, useRef, useState } from "react";
+
+function HomePage({ }) {
     return (
-        <div>Nothing here yet</div>
+        <div>HOME PAGE</div>
     )
 }
 

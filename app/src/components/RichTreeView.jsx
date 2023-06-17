@@ -1,6 +1,23 @@
-import { TreeItem } from "@mui/lab";
+import { ArrowDropDown, ArrowRight } from "@mui/icons-material";
+import { TreeItem, TreeView } from "@mui/lab";
+import React from "react";
 
-const RichTreeItem = (props) => {
+const RichTreeView = ({ treeItems, ...treeViewProps }) => {
+
+    const collapseIcon = <ArrowDropDown className="tree-view-icon" />
+    const expandIcon = <ArrowRight className="tree-view-icon" />
+
+    return (
+        <TreeView
+            {...treeViewProps}
+            defaultCollapseIcon={collapseIcon}
+            defaultExpandIcon={expandIcon}>
+            {treeItems.map(info => <RichTreeItem key={info.nodeId} {...info} />)}
+        </TreeView>
+    )
+}
+
+export const RichTreeItem = (props) => {
 
     const {
         labelText,
@@ -27,8 +44,8 @@ const RichTreeItem = (props) => {
                 </div>
             }
             style={{
-                "--active-color": "var(--inactive-color)",
-                "--active-bg-color": "var(--inactive-bg-color)"
+                "--active-color": color,
+                "--active-bg-color": bgColor,
             }}
         >
             {nodeChildren && nodeChildren.map(child => {
@@ -38,4 +55,4 @@ const RichTreeItem = (props) => {
     )
 }
 
-export default RichTreeItem;
+export default React.memo(RichTreeView);

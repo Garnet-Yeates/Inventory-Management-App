@@ -71,7 +71,6 @@ export default async function authCheck(req, res, next) {
     next();
 }
 
-
 /**
  * This function checks whether the user supplied any auth credentials. There are 3 credentials that they must supply
  * in total (csrf cookie, csrf header, httponly jwt cookie). If any are missing there will be auth errors. We use this
@@ -225,7 +224,7 @@ export async function createSessionAndSetCookies(client, res) {
 
     // Session cookie lasts 3 hours while session in database lasts 15 minutes
     // If cookie exists but session expires they will get "Session Expired" modal
-    // If cookie no longer exists they will get "Not Authorized" modal4
+    // If cookie no longer exists they will get "Not Authorized" modal
     // This means:
     // If they come back after 15 mins of their last request, but also within 3 hours of their last request they get "Session Expired modal"
     // If they come back after 3 hours it will simply tell them they aren't logged in

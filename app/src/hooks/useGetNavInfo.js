@@ -22,7 +22,7 @@ const useGETNavInfo = () => {
         }
     }, [])
 
-    const refreshNavInfo = useCallback(async () => {
+    const refreshNavInfo = useCallback(async (additionalInfo) => {
 
         refreshNavInfoController.current?.abort();
 
@@ -66,13 +66,14 @@ const useGETNavInfo = () => {
             }
 
             for (let i = 0; i < times; i++) {
-                data.inProgressInvoices.push(                    {
+                data.inProgressInvoices.push({
                     invoiceId: 1000 + i,
                     customerName: "Jo",
                 })
             }
- 
+
             times++;
+            console.log("refreshNavInfo: Calling setNavInfo which will re-render dashboard")
             setNavInfo(data);
         }
         catch (err) {

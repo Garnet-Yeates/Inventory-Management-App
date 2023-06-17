@@ -80,34 +80,19 @@ export function AuthAxiosInterceptor() {
  */
 export function redirectIfAlreadyLoggedIn(Component, redirectTo) {
 
-    return function Hoc(props) {
-
-        const navigate = useNavigate();
-
-        useEffect(() => {
-
-            const { controller, isMounted, cleanup } = mountAbortSignal(5);
-    
-            const getData = async () => {
-                
-                try {
-                    let response = await axios.get(`${SERVER_URL}/auth/loggedInCheck`, { signal: controller.signal })
-                    response.data.loggedIn && isMounted() && navigate(redirectTo, { replace: true, state: { alreadyLoggedInNotice: "Already logged in" } })
-                }
-                catch (err) {
-                    if (axios.isCancel(err)) return `Request canceled due to ${isMounted() ? "timeout" : "unmount"}`
-                    console.log("Error at GET /auth/loggedInCheck", err);
+    return mountAuthDetector(
+        Component,
+        {
+            redirectIf: "loggedIn", 
+            redirectTo,
+            redirectOptions: {
+                replace: true,
+                state: {
+                    alreadyLoggedInNotice: "Already logged in"
                 }
             }
-
-            getData();
-        
-            return cleanup;
-
-        }, [navigate]);
-
-        return <Component {...props}  />
-    }
+        }
+    )
 }
 
 /**
@@ -120,7 +105,10 @@ export function redirectIfAlreadyLoggedIn(Component, redirectTo) {
  * I mainly use this for the home page. For example some components will be wrapped with authDetector HOC so that
  * if you are logged in it will show "Go to dashboard" but if not it will show "Register/Login" buttons
  */
-export function mountAuthDetector(Component, redirectTo, safe = true) {
+export function mountAuthDetector(Component, redirectInfo, safe = true) {
+
+    // redirectOn: "loggedIn" OR "loggedOut"
+    const { redirectIf, redirectTo, redirectOptions } = redirectInfo;
 
     return function Hoc(props) {
 
@@ -133,19 +121,32 @@ export function mountAuthDetector(Component, redirectTo, safe = true) {
 
         useEffect(() => {
 
+            const { controller, isMounted, cleanup } = mountAbortSignal(5);
+
             const fetchData = async () => {
 
-                // If logged in, server will send { loggedIn: "You are logged in" } so we base it on the truthiness of existence of the property
-                const { loggedIn } = (await axios.get(`${SERVER_URL}/auth/loggedInCheck`)).data;
+                try {
+                    const { loggedIn } = (await axios.get(`${SERVER_URL}/auth/loggedInCheck`, { signal: controller.signal })).data
 
-                setLoggedIn(loggedIn)
-
-                if (loggedIn) {
-                    navigate(redirectTo, { replace: true, state: { alreadyLoggedInNotice: "Already logged in" } })
+                    if (isMounted()) {
+                        if (redirectInfo && (loggedIn && redirectIf.toLowerCase() === "loggedin") || (!loggedIn && redirectIf.toLowerCase() == "loggediut")) {
+                            navigate(redirectTo, redirectOptions);
+                        }
+                        else {
+                            setLoggedIn(loggedIn)
+                        }
+                    }
+                }
+                catch (err) {
+                    if (axios.isCancel(err)) return console.log(`Request canceled due to ${isMounted() ? "timeout" : "unmount"}`, err);
+                    console.log("Error at GET /auth/loggedInCheck", err);
                 }
             }
 
-            redirectTo && fetchData()
+            fetchData()
+
+            return cleanup;
+
         }, [navigate])
 
         return <Component {...props} loggedIn={loggedIn} />

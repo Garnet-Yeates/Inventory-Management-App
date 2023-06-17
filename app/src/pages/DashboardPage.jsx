@@ -6,39 +6,69 @@ import InvoiceManagementPage from '../pages/Invoices/InvoiceManagementPage'
 import CreateInvoicePage from '../pages/Invoices/CreateInvoicePage'
 import CustomerManagementPage from '../pages/Customer/CustomerManagementPage'
 import CreateCustomerPage from '../pages/Customer/CreateCustomerPage'
-import { AccountCircle as AccountCircleIcon, AddBox, Category, Description as DescriptionIcon, ListAlt as ListAltIcon, Logout as LogoutIcon, Person as PersonIcon, PersonAdd as PersonAddIcon, Warehouse as WarehouseIcon, ManageAccounts, Receipt as ReceiptIcon, PostAdd as PostAddIcon, PendingActions as PendingActionsIcon, HomeRepairService, NoteAlt as NoteAltIcon, Edit as EditIcon, NoteAdd as NoteAddIcon, Refresh as RefreshIcon, Dashboard as DashboardIcon } from "@mui/icons-material";
+import { AccountCircle as AccountCircleIcon, AddBox, Category, Description as DescriptionIcon, ListAlt as ListAltIcon, Logout as LogoutIcon, Person as PersonIcon, PersonAdd as PersonAddIcon, Warehouse as WarehouseIcon, ManageAccounts, Receipt as ReceiptIcon, PostAdd as PostAddIcon, PendingActions as PendingActionsIcon, HomeRepairService, NoteAlt as NoteAltIcon, Edit as EditIcon, NoteAdd as NoteAddIcon, Refresh as RefreshIcon, Dashboard as DashboardIcon, Menu as MenuIcon, Close as CloseIcon } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import CreateItemTypePage from "./Item Types/CreateItemTypePage";
 import ItemTypeManagementPage from "./Item Types/ItemTypeManagementPage";
 import CreateItemInstancePage from "./Item Instances/CreateItemInstancePage";
 import ItemInstanceManagementPage from "./Item Instances/ItemInstanceManagementPage";
-import { TreeView } from '@mui/lab'
-import { ArrowDropDown, ArrowRight } from '@mui/icons-material'
 import { logout } from "../API/APICalls";
-import RichTreeItem from "../components/RichTreeItem";
+import { IconButton } from "@mui/material";
+import RichTreeView from "../components/RichTreeView";
+import { AnimatePresence, motion } from "framer-motion";
+import usePrevious from "../hooks/usePrevious";
 
-export default function DashboardPage() {
+export default function DashboardPage(props) {
 
-    // Has nothing to do with navInfo, this is just how we redirect to other pages with react-router-dom
-    const navigate = useNavigate();
+    console.log("------------------- RENDER BEGIN --------------")
+
+    // We use the 'controlled tree' capability of Mui TreeView
+    const [selected, setSelected] = useState("");
+    const [expanded, setExpanded] = useState([]);
 
     // Current page to be rendered inside the responsive-page-container. 
     // Tons of information (state changers, callbacks) generated here is added to the props of this page when it is rendered
     const [currentPage, setCurrentPage] = useState();
 
+    const {
+        initialNode = "createNewItemInstance",
+        additionalNodeInfo: additionalNavInfo,
+
+    } = props;
+
+    // Determines if the mobile panel is open or closed. It is invisible no matter what on desktop
+    const [mobilePanelShown, setMobilePanelShown] = useState(false);
+
+    // Has nothing to do with navInfo, this is just how we redirect to other pages with react-router-dom
+    const navigate = useNavigate();
+
     // NavInfo received via GET request that we will use to build our dashboardTreeItems
     const [navInfo, refreshNavInfo] = useGETNavInfo();
-    useEffect(() => void refreshNavInfo(), [refreshNavInfo]);
 
-    // An array of objects describing RichTreeItem components to be passed to <NavigationPanel>
-    // Updated whenever navInfo changes. Note that navInfo is a state variable so when it changes, a re-render occurs here
+    const selectNextRefreshRef = useRef();
+    const selectNodeNextRefresh = useCallback((nodeId) => {
+        selectNextRefreshRef.current = nodeId;
+    }, [])
+
+    // Select initial node on mount and ONLY on mount (0 dependencies, we don't care to re-select initialNode if the prop changes after mounting)
+    useEffect(() => {
+        selectNodeNextRefresh(initialNode); 
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
+
+    // Refresh navInfo whenever additionalNavInfo prop changes (or on first mount). Notice how this effect runs after our effect to selectNodeNextRefresh(initialNode) (they work together on first mount)
+    useEffect(() => {
+        refreshNavInfo(additionalNavInfo)
+        // eslint-disable-next-line react-hooks/exhaustive-deps    
+    }, [additionalNavInfo])
+
+    // An array of objects describing RichTreeItem components to be passed to <NavigationPanel> and <MobileNavigationBar>
+    // Updated whenever navInfo changes. Note that navInfo is a state variable so when it changes a re-render also occurs before this memo is updated
     const [dashboardTreeItems, treeItemMap] = useMemo(() => {
+        console.log("navInfo changed, calling getDashboardTreeItemsFromNavInfo to update memo")
         return getDashboardTreeItemsFromNavInfo(navInfo, navigate, refreshNavInfo)
-    }, [navInfo, navigate, refreshNavInfo]) // navInfo is the only 'real' dependency since navigate and refreshNavInfo are memoized
-
-    // We use the 'controlled tree' capability of Mui TreeView
-    const [selected, setSelected] = useState([]);
-    const [expanded, setExpanded] = useState([]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps    
+    }, [navInfo]) 
 
     // This is a ref because we want our 'currentPage' to set it/unset it without causing re-render
     const blockExitRef = useRef("");
@@ -61,8 +91,8 @@ export default function DashboardPage() {
         }
 
         let node = treeItemMap[nodeId]
-        if (!node) {
-            return; // Don't think this will ever happen
+        if (!node) { // Prolly won't ever happen
+            return console.log(`Could not select node with nodeId={${nodeId}} as it does not exist in the node map`)
         }
 
         // If this block runs it causes the data loss warning modal to render
@@ -71,13 +101,24 @@ export default function DashboardPage() {
             return;
         }
 
-        node.page && setCurrentPage(node.page);
-        node.onSelected && node.onSelected() 
+        // Down here it is implied that their action went through
+
+        if (node.page) {
+            let { type: Page, props } = node.page;
+            setCurrentPage(<Page {...props} nodeId={nodeId} />) // Add nodeId as a prop here. Technically could do it when we declare the page JSX in getDashboardTreeItemsFromNavInfo but it would create redundancies in that method 
+        }
+        if (node.onSelected) {
+            node.onSelected();
+        }
 
         // Don't call setSelected unless the node info has 'page' or 'pageLossOnSelect' set. This ensures that the currently
         // selected node is always associated with the current page (of loss thereof) in the eyes of the user
+        let selectedSomething = false;
+
         if (node.page || node.pageLossOnSelect) {
+            console.log(`trySelectNode: calling setSelected(${nodeId}). setCurrentPage may have been called as well`)
             setSelected(nodeId);
+            selectedSomething = true;
         }
 
         if (programmatic) {
@@ -100,6 +141,11 @@ export default function DashboardPage() {
 
             setExpanded(newExpanded);
         }
+        else { // If a user manually selected a node
+            if (selectedSomething) {
+                setMobilePanelShown(false);
+            }
+        }
 
     }, [treeItemMap, expanded, selected])
 
@@ -109,16 +155,23 @@ export default function DashboardPage() {
     // For node expansion, there is no change in user triggered logic. However if you look in trySelectNode you can see we use expansion logic there
     const onNodeToggle = useCallback((_, nodeIds) => setExpanded(nodeIds), [setExpanded])
 
-    // The first time dashboardTreeItems updates to a non empty object, we will programatically select the overview node
-    const didInitialSelection = useRef(false);
+    // Whenever dashboardTreeItems updates to a non empty object, we will programatically select the node stored in the ref
     useEffect(() => {
-        if (Object.keys(dashboardTreeItems).length > 0 && !didInitialSelection.current) {
-            didInitialSelection.current = true;
-            trySelectNode("createNewItemInstane", true)
+        if (Object.keys(dashboardTreeItems).length > 0 && selectNextRefreshRef.current) {
+            console.log("[dashboardTreeItems effect]: trySelectNode(selectNextRefreshRef.current)")
+            trySelectNode(selectNextRefreshRef.current, true)
+            selectNextRefreshRef.current = null;
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps    
     }, [dashboardTreeItems]);
 
-    const { type: CurrentPage, pageProps } = currentPage ?? {}
+    useEffect(() => {
+        console.log("------------------- LAST EFFECT RAN --------------")
+    })
+
+    const { type: CurrentPage, pageProps: { nodeId, ...pagePropsRest } = {} } = currentPage ?? {}
+
+    const treeViewProps = { treeItems: dashboardTreeItems, onNodeSelect, onNodeToggle, selected, expanded };
 
     return (
         <div className="dashboard-page-container">
@@ -130,20 +183,23 @@ export default function DashboardPage() {
                         blockExitRef={blockExitRef}
                         trySelectNode={trySelectNode}>
                     </PageChangeWarning>}
-                    <FixedMobileBar navInfo={dashboardTreeItems} />
-                    <NavigationPanel
-                        treeItems={dashboardTreeItems}
-                        onNodeSelect={onNodeSelect}
-                        onNodeToggle={onNodeToggle}
-                        selected={selected}
-                        expanded={expanded}>
-                    </NavigationPanel>
+                    <MobileNavigationBar
+                        mobilePanelShown={mobilePanelShown}
+                        setMobilePanelShown={setMobilePanelShown}
+                        {...treeViewProps}>
+                    </MobileNavigationBar>
+                    <DesktopNavigationPanel {...treeViewProps} />
                     <div className="sub-page-container">
-                        {currentPage && <CurrentPage {...pageProps}
+                        {currentPage && <CurrentPage
+                            nodeId={nodeId}
+                            key={nodeId}
                             setCurrentPage={setCurrentPage}
                             refreshNavInfo={refreshNavInfo}
+                            selectNodeNextRefresh={selectNodeNextRefresh}
                             lockExitWith={lockExitWith}
-                            unlockExit={unlockExit}>
+                            unlockExit={unlockExit}
+                            {...pagePropsRest} // <- Whatever props are defined for the page in getDashboardTreeItemsFromNavInfo
+                        >
                         </CurrentPage>}
                     </div>
                 </div>
@@ -155,33 +211,49 @@ export default function DashboardPage() {
 // Will not be displayed on md or higher
 // Display fixed and we prbably want responsive-page-container to be position relative <-- jk def not
 // (so it is inside the 'gray' area on mobile)
-export const FixedMobileBar = () => {
-    return (
-        <nav className="mobile-navigation-bar">
+export const MobileNavigationBar = ({ mobilePanelShown, setMobilePanelShown, ...richTreeViewProps }) => {
 
+    return (
+        <nav className="mobile-navigation">
+            <div className="mobile-navigation-bar">
+                <IconButton onClick={() => setMobilePanelShown(true)}>
+                    <MenuIcon />
+                </IconButton>
+            </div>
+            <MobileNavigationPanel panelShown={mobilePanelShown} setPanelShown={setMobilePanelShown} {...richTreeViewProps} />
+            <AnimatePresence>
+                {mobilePanelShown && <motion.div className="fixed-info-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15, delay: 0 }} />}
+            </AnimatePresence>
         </nav>)
 }
 
-// Will ONLY be displayed on md or higher, and it will be on the left side of our 'flex-row' responsive-page
-export const NavigationPanel = React.memo(({ treeItems, ...rest }) => {
+export const MobileNavigationPanel = ({ panelShown, setPanelShown, ...richTreeViewProps }) => {
+    return (
+        <div className={"mobile-navigation-panel" + (panelShown ? " visible" : "")}>
+            <div className="mobile-navigation-header">
+                <h3 className="mobile-navigation-heading">Navigation</h3>
+                <IconButton onClick={() => setPanelShown(false)}>
+                    <CloseIcon />
+                </IconButton>
+            </div>
+            <div className="mobile-navigation-tree-view-wrapper">
+                <RichTreeView {...richTreeViewProps} />
+            </div>
+        </div>
+    )
+}
 
-    const collapseIcon = <ArrowDropDown className="tree-view-icon" />
-    const expandIcon = <ArrowRight className="tree-view-icon" />
+// Will ONLY be displayed on md or higher, and it will be on the left side of our 'flex-row' responsive-page
+export const DesktopNavigationPanel = ({ ...richTreeViewProps }) => {
 
     return (
         <nav className="navigation-panel">
             <div className="navigation-tree-view-wrapper">
-                <TreeView 
-                {...rest}
-                defaultCollapseIcon={collapseIcon} 
-                defaultExpandIcon={expandIcon}
-                >
-                    {treeItems.map(info => <RichTreeItem key={info.nodeId} {...info} />)}
-                </TreeView>
+                <RichTreeView {...richTreeViewProps} />
             </div>
         </nav>
     )
-})
+}
 
 const PageChangeWarning = ({ triedToSelect, setTriedToSelect, blockExitRef, trySelectNode }) => {
 
@@ -231,7 +303,6 @@ const redFg = "#f74242"
 const redBg = "#ffe4e4"
 
 // TODO remove refreshnavinfo tree node item/dependency later, unless i actually wanna use it
-// 
 
 /**
  * When supplying 'onSelected' on one of the nodes, keep dependencies in mind (i.e if we change some other value besides
@@ -264,7 +335,7 @@ const getDashboardTreeItemsFromNavInfo = (navInfo, navigate, refreshNavInfo) => 
     // Map response.data to RichTreeItem props
     const nodes = [
         {
-            ...Node("overview", "Overview", DashboardIcon, ""),
+            ...Node("overview", "Overview", DashboardIcon, "", purpleFg, purpleBg),
             page: <OverviewPage />
         },
         {
@@ -301,7 +372,7 @@ const getDashboardTreeItemsFromNavInfo = (navInfo, navigate, refreshNavInfo) => 
                     ...Node("itemInstances", "Item Instances", HomeRepairService, "", orangeFg, orangeBg),
                     nodeChildren: [
                         {
-                            ...Node("createNewItemInstane", "Create New", AddBox, "", greenFg, greenBg),
+                            ...Node("createNewItemInstance", "Create New", AddBox, "", greenFg, greenBg),
                             page: <CreateItemInstancePage />,
                         },
                         {

@@ -17,7 +17,10 @@ html {
     --inactive-color: rgba(0, 0, 0, 0.65);
     --inactive-bg-color: transparent;
 
-    // By active I mean: selected, focused, expanded, or hovered
+    --expanded-color: var(--inactive-color);
+    --expanded-bg-color: var(--inactive-bg-color);
+
+    // By active I mean: selected, focused, or hovered
     --active-color: var(--inactive-color);
     --active-bg-color: rgba(0, 0, 0, 0.06);
 
@@ -26,9 +29,6 @@ html {
 
     --focused-color: var(--active-color);
     --focused-bg-color: var(--active-bg-color);
-
-    --expanded-color: var(--active-color);
-    --expanded-bg-color: var(--active-bg-color);
 
     --hovered-color: var(--active-color);
     --hovered-bg-color: var(--active-bg-color);
@@ -50,21 +50,23 @@ html {
     // Expanded
     &.Mui-expanded {
         font-weight: 600;
+        color: var(--expanded-color) !important;
+        background-color: var(--expanded-bg-color) !important;
     }
 
     &.Mui-selected {
-        background-color: var(--selected-bg-color) !important;
         color: var(--selected-color) !important;
+        background-color: var(--selected-bg-color) !important;
     }
 
     &.Mui-focused {
-        background-color: var(--focused-bg-color) !important;
         color: var(--focused-color) !important;
+        background-color: var(--focused-bg-color) !important;
     }
 
     &:hover {
-        background-color: var(--hovered-bg-color) !important;
         color: var(--hovered-color) !important;
+        background-color: var(--hovered-bg-color) !important;
     }
 }
 
@@ -80,10 +82,10 @@ html {
     display: flex;
     align-items: center;
     padding: 0.3rem 0rem;
-    padding-right: 0.625rem; // This is so the number isn't all the way to the right of the curved border
+    padding-right: 0.75rem; // This is so the number isn't all the way to the right of the curved border
 
     .label-icon {
-        font-size: 1.375rem !important;
+        font-size: 1.5rem !important;
         margin-right: 0.5rem;
     }
 
@@ -93,7 +95,7 @@ html {
     }
 
     .label-info {
-        font-size: 0.75rem;
-        font-weight: normal;
+        font-size: 0.875rem;
+        font-weight: bold;
     }
 }
