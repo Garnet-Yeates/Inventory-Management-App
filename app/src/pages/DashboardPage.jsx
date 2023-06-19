@@ -31,7 +31,7 @@ export default function DashboardPage(props) {
     const [currentPage, setCurrentPage] = useState();
 
     const {
-        initialNode = "createNewItemInstance",
+        initialNode = "createNewItemType",
         additionalNodeInfo: additionalNavInfo,
 
     } = props;
@@ -193,8 +193,8 @@ export default function DashboardPage(props) {
                         {currentPage && <CurrentPage
                             nodeId={nodeId}
                             key={nodeId}
-                            setCurrentPage={setCurrentPage}
                             refreshNavInfo={refreshNavInfo}
+                            trySelectNode={trySelectNode}
                             selectNodeNextRefresh={selectNodeNextRefresh}
                             lockExitWith={lockExitWith}
                             unlockExit={unlockExit}

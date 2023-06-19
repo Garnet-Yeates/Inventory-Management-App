@@ -48,6 +48,7 @@
 // Only exists on < lg breakpoints
 nav.mobile-navigation {
     position: fixed;
+    z-index: 100;
     top: 0;
     left: 0;
     width: 100%;
@@ -72,8 +73,8 @@ nav.mobile-navigation {
     .mobile-navigation-panel {
 
         --mobile-nav-pan-pad: 1rem;
-        z-index: 200;
 
+        z-index: 200;
         position: fixed;
         top: 0;
         left: 0;
@@ -148,12 +149,32 @@ nav.mobile-navigation {
     }
 }
 
+.form-control {
+    padding: 4px 10px;
+
+    .MuiFormHelperText-root {
+        overflow-wrap: break-word;
+    }    
+}
 
 
 // Active on all breakpoints
 .sub-page-container {
     display: flex;
     width: 100%;
+    color: rgba(0, 0, 0, 0.75);
+
+    .create-item-type-sub-page {
+        width: 100%;        
+    }
+
+    .sub-page-header {
+        text-align: center;
+        margin-bottom: 24px;
+    }
+
+
+
 }
 
 @include media-breakpoint-up(lg) {
@@ -182,6 +203,7 @@ nav.mobile-navigation {
 
     .sub-page-container {
         padding-left: 1rem;
-        border-left: 2px solid rgb(172, 172, 172);
+        border-left: 1px solid rgba(0, 0, 0, 0.2);
     }
 }
+
