@@ -1,8 +1,8 @@
 const CustomerManagementPage = (props) => {
 
     return (
-        <div>
-            Customer Management Page
+        <div className="customer-management-sub-page">
+            <h2 className="sub-page-heading">Customer Management Page (TODO)</h2>
         </div>
     )
 

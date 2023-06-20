@@ -1,4 +1,4 @@
-import { loggedInCheck, authRequiredTest, login, register, logout } from "../controllers/authcontroller.js"
+import { loggedInCheck, authRequiredTest, login, register, logout } from "../controllers/authController.js"
 
 const configureAuthRoute = (app) => {
     app.route('/auth/register')

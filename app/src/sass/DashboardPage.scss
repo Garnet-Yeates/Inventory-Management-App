@@ -27,6 +27,10 @@
     }
 }
 
+.page-change.warning-modal {
+    
+}
+
 // Active on all breakpoints
 .responsive-page-container {
 
@@ -74,7 +78,7 @@ nav.mobile-navigation {
 
         --mobile-nav-pan-pad: 1rem;
 
-        z-index: 200;
+        z-index: 600;
         position: fixed;
         top: 0;
         left: 0;
@@ -132,7 +136,6 @@ nav.mobile-navigation {
             font-size: 1.75rem;
         }
     }
-
 }
 
 // Does not exist on < lg breakpoints
@@ -150,17 +153,20 @@ nav.mobile-navigation {
 }
 
 .form-control {
-    padding: 4px 10px;
+    padding: 6px 10px;
 
     .MuiFormHelperText-root {
-        overflow-wrap: break-word;
+        overflow: hidden;
     }    
 }
 
-
 // Active on all breakpoints
 .sub-page-container {
+    position: relative;
     display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
     width: 100%;
     color: rgba(0, 0, 0, 0.75);
 
@@ -168,13 +174,68 @@ nav.mobile-navigation {
         width: 100%;        
     }
 
-    .sub-page-header {
+    .sub-page-heading {
         text-align: center;
         margin-bottom: 24px;
     }
 
+    .messages-box {
+        position: absolute;
+        top: 0;
+        left: 5%;
+        width: 90%;
 
+        .message-container {
 
+            padding: 8px 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--bg-col);
+            border-radius: 2px;
+            box-shadow: 0px 0px 8px -2px var(--shadow-col);
+
+            &.warning {
+                --bg-col: rgb(255, 251, 192);
+                --shadow-col: rgba(147, 145, 110, 0.5);
+            }
+
+            &.error {
+                --bg-col: rgb(255, 197, 197);
+                --shadow-col: rgba(152, 119, 119, 0.5);
+            }
+
+            &.info {
+                --bg-col: rgb(197, 231, 255);
+                --shadow-col: rgba(107, 124, 135, 0.5);
+            }
+
+            &.success {
+                --bg-col: rgb(200, 255, 197);
+                --shadow-col: rgba(87, 113, 85, 0.5);
+            }
+
+            p.message-text {
+                font-size: 0.875rem;
+                margin-bottom: 0;
+            }
+        }
+    }
+}
+
+.page-change-warning-modal {
+
+    .page-change-warning-heading {
+        margin: 0;
+        text-align: center;
+    }
+
+    .page-change-warning-quote {
+        @include rfs(1.25rem, font-size);
+        margin-bottom: 18px;
+        max-width: 75%;
+        text-align: center;
+    }
 }
 
 @include media-breakpoint-up(lg) {

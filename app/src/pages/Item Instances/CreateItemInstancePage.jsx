@@ -6,15 +6,9 @@ const CreateItemInstancePage = (props) => {
 
     const { selectNodeNextRefresh, refreshNavInfo } = props;
 
-    const onClick = () => {
-        selectNodeNextRefresh("createNewCustomer");
-        refreshNavInfo();
-    }
-
     return (
-        <div>
-            Create Item Instance Page
-            <button onClick={onClick}>SELECT CREATE CUST</button>
+        <div className="overview-sub-page">
+            <h2 className="sub-page-heading">Create Item Instance Page (TODO)</h2>
         </div>
     )
 

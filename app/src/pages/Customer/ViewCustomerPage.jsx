@@ -4,7 +4,7 @@ const ViewCustomerPage = (props) => {
 
     return (
         <div>
-            View Invoice Page
+            View Customer Page
         </div>
     )
 

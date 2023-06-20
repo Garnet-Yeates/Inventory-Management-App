@@ -15,7 +15,7 @@ export function hasMaxNDecimalPlaces(number, n) {
   * @returns the number of figures when the number is converted to an integer
   */
 export function numDigits(number) {
-    return number.toFixed(0).length();
+    return number.toFixed(0).length;
 }
 
 export function countDecimalPlaces(number) {

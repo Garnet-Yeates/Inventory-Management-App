@@ -1,5 +1,5 @@
-import { countDecimalPlaces, numDigits as countDigits } from "../tools/controller/validationHelpers.js";
-import { newItemType } from "../tools/database/tblItemTypeProcedures.js";
+import { clearErrJson, countDecimalPlaces, numDigits as countDigits } from "../tools/controller/validationHelpers.js";
+import { findItemType, newItemType } from "../tools/database/tblItemTypeProcedures.js";
 
 const itemCodeRegex = /^[a-zA-Z0-9_]+$/
 
@@ -33,32 +33,34 @@ const itemCodeRegex = /^[a-zA-Z0-9_]+$/
  */
 export async function createItemType(req, res) {
 
-    const { itemCode, itemName, defaultBuyPrice, defaultSellPrice } = req.body;
+    const { itemName, itemCode, itemDescription, defaultBuyPrice, defaultSellPrice } = req.body;
 
     const clientId = req.clientId;
+
+    console.log("REQ BODY", req.body)
 
     const errJson = {
         itemNameErrors: [],
         itemCodeErrors: [],
         itemDescriptionErrors: [],
-        buyPriceErrors: [],
-        sellPriceErrors: [],
+        defaultBuyPriceErrors: [],
+        defaultSellPriceErrors: [],
         databaseErrors: [],
     }
 
-    const { itemNameErrors, itemCodeErrors, itemDescriptionErrors, buyPriceErrors, sellPriceErrors, databaseErrors } = errJson;
+    const { itemNameErrors, itemCodeErrors, itemDescriptionErrors, defaultBuyPriceErrors, defaultSellPriceErrors, databaseErrors } = errJson;
 
     // Validate item name
 
     if (!itemName) {
-        itemNameErrors.push("Item name must be supplied")
+        itemNameErrors.push("This field is required")
     }
     else if (typeof itemName !== "string") {
-        itemNameErrors.push("Item name must be a string")
+        itemNameErrors.push("This must be a string")
     }
     else {
         if (itemName.length < 3 || itemName.length > 64) {
-            itemNameErrors.push("Item name must be between 3 and 64 characters")
+            itemNameErrors.push("Must be 3-64 characters")
         }
         // Possibly add regex later
     }
@@ -66,29 +68,30 @@ export async function createItemType(req, res) {
     // Validate item code
 
     if (!itemCode) {
-        itemCodeErrors.push("Item code must be supplied")
+        itemCodeErrors.push("This field is required")
     }
     else if (typeof itemCode !== "string") {
-        itemCodeErrors.push("Item code must be a string")
+        itemCodeErrors.push("This must be a string")
     }
     else {
         if (itemCode.length < 3 || itemCode.length > 24) {
-            itemCodeErrors.push("Item code must be between 5 and 32 characters")
+            itemCodeErrors.push("Must be 5-32 characters")
         }
 
         if (!itemCodeRegex.exec(itemCode)) {
-            itemCodeErrors.push("Item code must be alphanumeric (underscore is allowed)")
+            itemCodeErrors.push("Must be alphanumeric (underscore is allowed)")
         }
 
         if (itemCodeErrors.length === 0) {
             let existingItem;
             try {
-                existingItem = await findItem({ itemCode });
+                existingItem = await findItemType({ itemCode });
                 if (existingItem) {
-                    itemCodeErrors.push("This item code is taken")
+                    itemCodeErrors.push("Item code is in use")
                 }
             }
             catch (err) {
+                console.log("Database error:", err)
                 databaseErrors.push("Error querying database for unique itemCode check", err)
             }
         }
@@ -99,54 +102,54 @@ export async function createItemType(req, res) {
     if (itemDescription) {
 
         if (typeof itemDescription !== "string") {
-            itemDescriptionErrors.push("Item description must be a string")
+            itemDescriptionErrors.push("This must be a string")
         }
         else {
             if (itemDescription.length > 512) {
-                itemDescriptionErrors.push("Item description must be at most 512 characters")
+                itemDescriptionErrors.push("Must be at most 512 characters")
             }
         }
     }
 
     // Validate default buy price
 
-    if (typeof defaultBuyPrice !== "number") {
-        buyPriceErrors.push("Default buy price must be supplied")
-    }
-    else if (Number.isNaN(defaultBuyPrice)) {
-        buyPriceErrors.push("Default buy price can not be NaN")
-    }
+    if (defaultBuyPrice === null || defaultBuyPrice === undefined)
+        defaultBuyPriceErrors.push("This field is required")
+    else if (typeof defaultBuyPrice !== "number")
+        defaultBuyPriceErrors.push("This must be a number")
+    else if (Number.isNaN(defaultBuyPrice))
+        defaultBuyPriceErrors.push("Can not be NaN")
     else {
         if (countDecimalPlaces(defaultBuyPrice) > 2) {
-            buyPriceErrors.push("Default buy price can not have more than 2 decimal places")
+            defaultBuyPriceErrors.push("Can't have more than 2 decimal places")
         }
 
         if (countDigits(defaultBuyPrice) > 4) {
-            buyPriceErrors.push("Default buy price can not have more than 4 digits")
+            defaultBuyPriceErrors.push("Can't have more than 4 digits")
         }
     }
 
     // Validate default sell price
 
-    if (typeof defaultSellPrice !== "number") {
-        sellPriceErrors.push("Default sell price must be supplied")
-    }
-    else if (Number.isNaN(defaultSellPrice)) {
-        sellPriceErrors.push("Default sell price can not be NaN")
-    }
+    if (defaultSellPrice === null || defaultSellPrice === undefined)
+        defaultSellPriceErrors.push("This field is required")
+    else if (typeof defaultSellPrice !== "number")
+        defaultSellPriceErrors.push("This must be a number")
+    else if (Number.isNaN(defaultSellPrice)) 
+        defaultSellPriceErrors.push("Can not be NaN")
     else {
         if (countDecimalPlaces(defaultSellPrice) > 2) {
-            sellPriceErrors.push("Default sell price can not have more than 2 decimal places")
+            defaultSellPriceErrors.push("Can't have more than 2 decimal places")
         }
 
         if (countDigits(defaultSellPrice) > 4) {
-            sellPriceErrors.push("Default sell price can not have more than 4 digits")
+            defaultSellPriceErrors.push("Can't have more than 4 digits")
         }
     }
 
     // If any errors, return errJson
     if (!clearErrJson(errJson)) {
-        return res.status(databaseErrors ? 500 : 400).json(errJson);
+        return res.status(databaseErrors.length > 0 ? 500 : 400).json(errJson);
     }
 
     // One final error possibility here

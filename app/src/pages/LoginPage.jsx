@@ -26,7 +26,7 @@ function LoginPage(props) {
         try {
             const response = await axios.post(`${SERVER_URL}/auth/login`, loginData);
             console.log("Login response", response.data)
-            navigate('/dashboard')
+            navigate('/authTest')
         }
         catch (err) {
             console.log("Login error", err?.response?.data)
@@ -104,16 +104,14 @@ function SessionExpiredModal({ authError }) {
 
     return (
         <div className="fixed-info-overlay">
-            <div className="container">
-                <div className="fixed-info-container">
-                    <div className="auth-rejected-popup-container">
-                        <img className="auth-rejected-image" src={RedX} />
-                        <h4 className="auth-rejected-heading py-2">{headingText}</h4>
-                        <p className="auth-rejected-quote">
-                            {description}
-                        </p>
-                        <button className="responsive-button hover-dim auth-rejected-button" onClick={onButtonClick}><span>Back to Login</span></button>
-                    </div>
+            <div className="fixed-info-modal-container">
+                <div className="fixed-info-modal auth-rejected-modal">
+                    <img className="auth-rejected-image" src={RedX} />
+                    <h4 className="auth-rejected-heading py-2">{headingText}</h4>
+                    <p className="auth-rejected-quote">
+                        {description}
+                    </p>
+                    <button className="responsive-button hover-dim auth-rejected-button" onClick={onButtonClick}><span>Back to Login</span></button>
                 </div>
             </div>
         </div>

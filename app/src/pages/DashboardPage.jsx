@@ -13,10 +13,11 @@ import ItemTypeManagementPage from "./Item Types/ItemTypeManagementPage";
 import CreateItemInstancePage from "./Item Instances/CreateItemInstancePage";
 import ItemInstanceManagementPage from "./Item Instances/ItemInstanceManagementPage";
 import { logout } from "../API/APICalls";
-import { IconButton } from "@mui/material";
+import { Button, IconButton } from "@mui/material";
 import RichTreeView from "../components/RichTreeView";
 import { AnimatePresence, motion } from "framer-motion";
 import usePrevious from "../hooks/usePrevious";
+import SecurityIcon from '@mui/icons-material/Security';
 
 export default function DashboardPage(props) {
 
@@ -52,7 +53,7 @@ export default function DashboardPage(props) {
 
     // Select initial node on mount and ONLY on mount (0 dependencies, we don't care to re-select initialNode if the prop changes after mounting)
     useEffect(() => {
-        selectNodeNextRefresh(initialNode); 
+        selectNodeNextRefresh(initialNode);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
@@ -68,7 +69,7 @@ export default function DashboardPage(props) {
         console.log("navInfo changed, calling getDashboardTreeItemsFromNavInfo to update memo")
         return getDashboardTreeItemsFromNavInfo(navInfo, navigate, refreshNavInfo)
         // eslint-disable-next-line react-hooks/exhaustive-deps    
-    }, [navInfo]) 
+    }, [navInfo])
 
     // This is a ref because we want our 'currentPage' to set it/unset it without causing re-render
     const blockExitRef = useRef("");
@@ -81,6 +82,13 @@ export default function DashboardPage(props) {
 
     // Gets set when the user attempts to select a new page when blockExitRef.current exists. If set, the data loss warning modal renders
     const [triedToSelect, setTriedToSelect] = useState();
+
+    const [messages, setMessages] = useState({})
+    const addDashboardMessage = useCallback((messageKey, message) => {
+        console.log("ADD MESSAGE", messageKey, message)
+        messages[messageKey] = message;
+        setMessages({ ...messages });
+    }, [messages, setMessages])
 
     // When a node selection event is triggered (via clicking, or pressing enter on focused node) this callback will run.
     const trySelectNode = useCallback((nodeId, programmatic = false) => {
@@ -98,6 +106,7 @@ export default function DashboardPage(props) {
         // If this block runs it causes the data loss warning modal to render
         if (blockExitRef.current && (node.page || (node.onSelected && node.pageLossOnSelect))) {
             setTriedToSelect(nodeId)
+            setMobilePanelShown(false);
             return;
         }
 
@@ -177,12 +186,14 @@ export default function DashboardPage(props) {
         <div className="dashboard-page-container">
             <div className="dashboard-page">
                 <div className="responsive-page-container">
-                    {triedToSelect && <PageChangeWarning
-                        triedToSelect={triedToSelect}
-                        setTriedToSelect={setTriedToSelect}
-                        blockExitRef={blockExitRef}
-                        trySelectNode={trySelectNode}>
-                    </PageChangeWarning>}
+                    <AnimatePresence>
+                        {triedToSelect && <PageChangeWarning
+                            triedToSelect={triedToSelect}
+                            setTriedToSelect={setTriedToSelect}
+                            blockExitRef={blockExitRef}
+                            trySelectNode={trySelectNode}>
+                        </PageChangeWarning>}
+                    </AnimatePresence>
                     <MobileNavigationBar
                         mobilePanelShown={mobilePanelShown}
                         setMobilePanelShown={setMobilePanelShown}
@@ -190,6 +201,7 @@ export default function DashboardPage(props) {
                     </MobileNavigationBar>
                     <DesktopNavigationPanel {...treeViewProps} />
                     <div className="sub-page-container">
+                        <MessageContainer messages={messages} setMessages={setMessages}/>
                         {currentPage && <CurrentPage
                             nodeId={nodeId}
                             key={nodeId}
@@ -198,6 +210,7 @@ export default function DashboardPage(props) {
                             selectNodeNextRefresh={selectNodeNextRefresh}
                             lockExitWith={lockExitWith}
                             unlockExit={unlockExit}
+                            addDashboardMessage={addDashboardMessage}
                             {...pagePropsRest} // <- Whatever props are defined for the page in getDashboardTreeItemsFromNavInfo
                         >
                         </CurrentPage>}
@@ -205,6 +218,55 @@ export default function DashboardPage(props) {
                 </div>
             </div>
         </div>
+    )
+}
+
+export const MessageContainer = ({ messages, setMessages }) => {
+
+    console.log("RENDER MESSAGECONTAINER. MESSAGES: ", messages)
+    return (
+        <div className="messages-box">
+            <AnimatePresence>
+                {Object.keys(messages).map(key => {
+                    return <MessageView key={key} messageKey={key} messages={messages} setMessages={setMessages} {...messages[key]} />
+                })}
+            </AnimatePresence>
+        </div>
+    )
+}
+
+
+const messageInitial = { y: "-50px", opacity: 0 } 
+const messageAnimate = { y: 0, opacity: 1, transition: { duration: 0.75 } }
+const messageExit = { opacity: 0, transition: { duration: 1.5 }};
+
+export const MessageView = ({ messageKey, messages, setMessages, type = "info", text, selfClosing = true, closeTimer = 2 }) => {
+
+    const latestTimeoutRef = useRef();
+
+    const onXClick = () => {
+        selfClosing && clearTimeout(latestTimeoutRef)
+        delete messages[messageKey]
+        setMessages({ ...messages })
+    }
+
+    useEffect(() => {
+        if (selfClosing) {
+            const id = setTimeout(() => onXClick(), closeTimer * 1000)
+            latestTimeoutRef.current = id;
+            return () => clearTimeout(id);
+        }
+    }, [])
+
+    return (
+        <motion.div className="p-2 w-100" initial={messageInitial} animate={messageAnimate} exit={messageExit}>
+            <div className={`message-container ${type}`}>
+                <p className="message-text">{text}</p>
+                <IconButton size="small" onClick={onXClick}>
+                    <CloseIcon fontSize="small" />
+                </IconButton>
+            </div>
+        </motion.div>
     )
 }
 
@@ -268,20 +330,50 @@ const PageChangeWarning = ({ triedToSelect, setTriedToSelect, blockExitRef, tryS
     }
 
     return (
-        <div className="fixed-info-overlay">
-            <div className="container">
+        <motion.div className="fixed-info-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15, delay: 0 }}>
+            <div className="fixed-info-modal-container">
+                <div className="fixed-info-modal page-change-warning-modal">
+                    <h4 className="page-change-warning-heading py-2">Warning</h4>
+                    <p className="page-change-warning-quote">
+                        {blockExitRef.current}
+                    </p>
+                    <div className="row gx-1">
+                        <div className="col-auto">
+                            <Button
+                                size="large"
+                                variant="contained"
+                                onClick={onNeverMind}>
+                                <span>Never Mind</span>
+                            </Button>
+                        </div>
+                        <div className="col-auto">
+                            <Button
+                                color="error"
+                                size="large"
+                                variant="contained"
+                                onClick={onProceed}>
+                                <span>Proceed</span>
+                            </Button>
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+            <div className="page-change-warning-modal">
                 {blockExitRef.current}
                 <button onClick={() => onProceed()}>Proceed</button>
                 <button onClick={() => onNeverMind()}>Never Mind</button>
             </div>
-        </div>
+        </motion.div>
     )
 }
 
 const OverviewPage = () => {
     return (
-        <div>
-            Overview
+        <div className="overview-sub-page">
+            <h2 className="sub-page-heading">Overview Page (TODO)</h2>
         </div>
     )
 }
@@ -337,6 +429,11 @@ const getDashboardTreeItemsFromNavInfo = (navInfo, navigate, refreshNavInfo) => 
         {
             ...Node("overview", "Overview", DashboardIcon, "", purpleFg, purpleBg),
             page: <OverviewPage />
+        },
+        {
+            ...Node("authTest", "Authentication Testing", SecurityIcon),
+            pageLossOnSelect: true,
+            onSelected: () => navigate("/authTest"),
         },
         {
             ...Node("account", "My Account", AccountCircleIcon),

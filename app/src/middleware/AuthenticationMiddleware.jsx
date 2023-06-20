@@ -35,11 +35,12 @@ export function AuthAxiosInterceptor() {
 
             let auth_csrf_cookie = Cookies.get('auth_csrf');
 
-            if (authTamperingSettings.tamperWithCSRFHeader) {
-                auth_csrf_cookie = "tampered" // Doesn't actually modify the cookie, just the reference to the cookie's value that we have here
-            }
-
             if (auth_csrf_cookie && authTamperingSettings.sendCSRFHeader) {
+
+                if (authTamperingSettings.tamperWithCSRFHeader) {
+                    auth_csrf_cookie = "tampered" // Doesn't actually modify the cookie, just the reference to the cookie's value that we have here
+                }
+
                 config.headers["auth_csrf"] = auth_csrf_cookie;
             }
 

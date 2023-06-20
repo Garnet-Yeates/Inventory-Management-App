@@ -3,8 +3,8 @@
 const ViewInvoicePage = (props) => {
 
     return (
-        <div>
-            View Invoice Page
+        <div className="view-invoice-sub-page">
+            <h2 className="sub-page-heading">View Invoice Page (TODO)</h2>
         </div>
     )
 

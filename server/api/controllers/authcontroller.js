@@ -151,7 +151,7 @@ export async function register(req, res) {
 
     // If any errors, return errJson
     if (!clearErrJson(errJson)) {
-        return res.status(databaseErrors ? 500 : 400).json(errJson);
+        return res.status(databaseErrors.length > 0 ? 500 : 400).json(errJson);
     }
 
     // One final error possibility here

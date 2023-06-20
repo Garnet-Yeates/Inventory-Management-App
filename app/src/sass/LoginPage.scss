@@ -18,7 +18,7 @@
         align-items: center;
 
         width: 100%;
-     
+
         @include rfs(24px, padding);
     }
 }
@@ -27,23 +27,7 @@
 
     // fixed-info-overlay is declared in App.scss, we just "extend" it here
 
-    .auth-rejected-popup-container {
-
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-
-        width: 85%;
-        max-width: 600px;
-
-        background-color: white;
-
-        user-select: none;
-
-        box-shadow: 0 0 8px 0 rgb(0 0 0 / 30%);
-        border-radius: 12px;
-        padding: 24px 32px;
+    .auth-rejected-modal {
 
         .auth-rejected-image {
             object-fit: contain;
@@ -63,25 +47,13 @@
             text-align: center;
         }
 
-        .exit-details-container {
+        .auth-rejected-button {
 
-            display: flex;
-            justify-content: center;
-            align-items: center;
-
-            .exit-details-button {
-                width: 75%;
-                border-radius: 6px;
-                font-size: 1.25rem;
-            }
+            border-radius: 1.5rem;
+            --button-bg-color: #3278d4;
+            --bg-pressed-color: rgb(43, 92, 156);
+            color: #FFFFFF
         }
     }
 
-    .auth-rejected-button {
-
-        border-radius: 1.5rem;
-        --button-bg-color: #3278d4;
-        --bg-pressed-color: rgb(43, 92, 156);
-        color: #FFFFFF
-    }
 }

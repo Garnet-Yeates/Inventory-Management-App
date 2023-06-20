@@ -5,8 +5,11 @@ import "../sass/AuthTestPage.scss"
 import { SERVER_URL, lockScroll, unlockScroll } from "./App"
 import { authTamperingSettings } from "../middleware/AuthenticationMiddleware"
 import { useState } from "react"
+import { useNavigate } from "react-router-dom"
 
 function AuthTestPage({ }) {
+
+    const navigate = useNavigate();
 
     const [tamperedCSRF, setTamperedCSRF] = useState(authTamperingSettings.tamperWithCSRFHeader);
 
@@ -25,7 +28,7 @@ function AuthTestPage({ }) {
                         <div className="container-fluid button-container">
                             <div className="row gy-2 justify-content-center">
                                 <div className="col-sm-6">
-                                    <AuthTestButton buttonText="Auth Required" onClick={() => authRequiredEndpoint()} />
+                                    <AuthTestButton buttonText="Go To Dashboard" onClick={() => navigate("/dashboard")} />
                                 </div>
                                 <div className="col-sm-6">
                                     <AuthTestButton buttonText="Logged In Check" onClick={() => authenticatedCheck(setCookieRemoved)} />

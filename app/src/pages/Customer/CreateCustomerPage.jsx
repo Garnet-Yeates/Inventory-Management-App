@@ -25,8 +25,6 @@ const CreateCustomerPage = (props) => {
     // Mount/Prop-Change effect to fetch existing customer data if 'editingId' is defined on mount or changes
     useEffect(() => {
 
-        lockExitWith("Warn!");
-
         if (!editingId)
             return;
 
@@ -52,8 +50,8 @@ const CreateCustomerPage = (props) => {
     }, [navigate, editingId, lockExitWith]);
 
     return (
-        <div>
-            Create Customer Page
+        <div className="create-customer-sub-page">
+            <h2 className="sub-page-heading">Create Customer Page (TODO)</h2>
         </div>
     )
 
