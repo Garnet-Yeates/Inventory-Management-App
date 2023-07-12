@@ -32,7 +32,7 @@ export default function DashboardPage(props) {
     const [currentPage, setCurrentPage] = useState();
 
     const {
-        initialNode = "createNewItemType",
+        initialNode = "overview",
         additionalNodeInfo: additionalNavInfo,
 
     } = props;

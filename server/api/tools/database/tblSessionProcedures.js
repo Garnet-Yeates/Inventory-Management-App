@@ -9,7 +9,7 @@ import { Table } from './procedureAbstractions.js';
  */
 export async function findSession(sessionUUID) {
 
-    return Table("Session").where({ sessionUUID: sessionUUID }).first().execute();
+    return await Table("Session").where({ sessionUUID: sessionUUID }).first().execute();
 }
 
 /**
@@ -32,7 +32,7 @@ export async function newSession(clientID) {
     const payload = { sessionUUID, sessionCSRF }
     const token = jwt.sign(payload, process.env.JWT_SECRET)
 
-    Table("Session").insert(newSession).execute()
+    await Table("Session").insert(newSession).execute()
     
     return [token, payload];
 }
@@ -44,5 +44,5 @@ export async function newSession(clientID) {
  */
 export async function deleteSession(sessionUUID) {
 
-    return Table("Session").removeWhere({ sessionUUID: sessionUUID }).executeSafe();
+    return await Table("Session").removeWhere({ sessionUUID: sessionUUID }).execute();
 }
