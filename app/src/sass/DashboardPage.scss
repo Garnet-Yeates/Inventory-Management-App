@@ -83,8 +83,8 @@ nav.mobile-navigation {
         top: 0;
         left: 0;
 
-        max-width: calc(min(350px, 99%));
-        min-width: calc(min(350px, 99%));
+        max-width: calc(min(350px, 97%));
+        min-width: calc(min(350px, 97%));
         min-height: calc(min(1200px, 100%));
         max-height: calc(min(1200px, 100%));
         border-top-right-radius: 0.5rem;
@@ -98,7 +98,7 @@ nav.mobile-navigation {
 
         transition: transform 0.35s ease-in-out;
         transition-delay: 0.15s;
-        transform: translateX(-100%);
+        transform: translateX(-105%);
 
         &.visible {
             transform: translateX(0px);
@@ -169,6 +169,7 @@ nav.mobile-navigation {
     align-items: center;
     width: 100%;
     color: rgba(0, 0, 0, 0.75);
+    overflow-y: auto;
 
     .create-item-type-sub-page {
         width: 100%;        

@@ -32,14 +32,30 @@ const itemCodeRegex = /^[a-zA-Z0-9_]+$/
  * 
  */
 export async function createItemType(req, res) {
+    createOrUpdateItemType(req, res);
+}
 
-    const { itemName, itemCode, itemDescription, defaultBuyPrice, defaultSellPrice } = req.body;
+export async function updateItemType(req, res) {
+    createOrUpdateItemType(req, res, true);
+}
 
-    const clientId = req.clientId;
+// If itemId is supplied we are updating. All ids are > 0 so we can use simple truthy check
+async function createOrUpdateItemType(req, res, isUpdating) {
 
-    console.log("REQ BODY", req.body)
+    const {
+        clientId,
+        body: {
+            itemId,
+            itemName,
+            itemCode,
+            itemDescription,
+            defaultBuyPrice,
+            defaultSellPrice
+        }
+    } = req;
 
     const errJson = {
+        itemIdErrors: [],
         itemNameErrors: [],
         itemCodeErrors: [],
         itemDescriptionErrors: [],
@@ -48,7 +64,31 @@ export async function createItemType(req, res) {
         databaseErrors: [],
     }
 
-    const { itemNameErrors, itemCodeErrors, itemDescriptionErrors, defaultBuyPriceErrors, defaultSellPriceErrors, databaseErrors } = errJson;
+    const {
+        itemIdErrors,
+        itemNameErrors,
+        itemCodeErrors,
+        itemDescriptionErrors,
+        defaultBuyPriceErrors,
+        defaultSellPriceErrors,
+        databaseErrors
+    } = errJson;
+
+    // itemId validation if we are updating an item (not creating)
+    if (isUpdating) {
+
+        if (!itemId) {
+            itemIdErrors.push("itemId must be supplied for updating items")
+        }
+        else {
+            existingItem = await findItemType({ itemId });
+            if (!existingItem) {
+                itemIdErrors.push("Could not find item with the specified id")
+            }
+            // Find item in database
+        }
+
+    }
 
     // Validate item name
 
@@ -86,7 +126,7 @@ export async function createItemType(req, res) {
             let existingItem;
             try {
                 existingItem = await findItemType({ itemCode });
-                if (existingItem) {
+                if (existingItem && (!isUpdating || existingItem.itemId !== itemId)) {
                     itemCodeErrors.push("Item code is in use")
                 }
             }
@@ -113,12 +153,15 @@ export async function createItemType(req, res) {
 
     // Validate default buy price
 
-    if (defaultBuyPrice === null || defaultBuyPrice === undefined)
+    if (defaultBuyPrice === null || defaultBuyPrice === undefined) {
         defaultBuyPriceErrors.push("This field is required")
-    else if (typeof defaultBuyPrice !== "number")
+    }
+    else if (typeof defaultBuyPrice !== "number") {
         defaultBuyPriceErrors.push("This must be a number")
-    else if (Number.isNaN(defaultBuyPrice))
+    }
+    else if (Number.isNaN(defaultBuyPrice)) {
         defaultBuyPriceErrors.push("Can not be NaN")
+    }
     else {
         if (countDecimalPlaces(defaultBuyPrice) > 2) {
             defaultBuyPriceErrors.push("Can't have more than 2 decimal places")
@@ -131,17 +174,19 @@ export async function createItemType(req, res) {
 
     // Validate default sell price
 
-    if (defaultSellPrice === null || defaultSellPrice === undefined)
+    if (defaultSellPrice === null || defaultSellPrice === undefined) {
         defaultSellPriceErrors.push("This field is required")
-    else if (typeof defaultSellPrice !== "number")
+    }
+    else if (typeof defaultSellPrice !== "number") {
         defaultSellPriceErrors.push("This must be a number")
-    else if (Number.isNaN(defaultSellPrice)) 
+    }
+    else if (Number.isNaN(defaultSellPrice)) {
         defaultSellPriceErrors.push("Can not be NaN")
+    }
     else {
         if (countDecimalPlaces(defaultSellPrice) > 2) {
             defaultSellPriceErrors.push("Can't have more than 2 decimal places")
         }
-
         if (countDigits(defaultSellPrice) > 4) {
             defaultSellPriceErrors.push("Can't have more than 4 digits")
         }
@@ -154,7 +199,12 @@ export async function createItemType(req, res) {
 
     // One final error possibility here
     try {
-        await newItemType(clientId, itemCode, itemName, itemDescription, defaultBuyPrice, defaultSellPrice);
+        if (isUpdating) {
+            await updateItemType(itemId, clientId, itemCode, itemName, itemDescription, defaultBuyPrice, defaultSellPrice);
+        } 
+        else {
+            await newItemType(clientId, itemCode, itemName, itemDescription, defaultBuyPrice, defaultSellPrice);
+        }
     }
     catch (err) {
         return res.status(500).json({ databaseErrors: ["Error inserting new ItemType into the database"] });
