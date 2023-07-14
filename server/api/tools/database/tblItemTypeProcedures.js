@@ -1,24 +1,69 @@
-import { Table } from "./procedureAbstractions.js";
+import { Table, throwIfAnyKeyIsNullish } from "./procedureAbstractions.js";
 
-export async function newItemType(clientId, { itemName, itemCode, itemDescription, defaultBuyPrice, defaultSellPrice }) {
+export async function createItemType(clientId, itemName, itemCode, itemDescription, defaultBuyPrice, defaultSellPrice) {
 
-    await Table("ItemType").insert({ 
-        clientId, 
-        itemName, 
-        itemCode, 
-        itemCodeIdentifier: itemCode.toLowerCase(), 
-        itemDescription, 
-        defaultBuyPrice, 
-        defaultSellPrice }).execute()
+    throwIfAnyKeyIsNullish({ itemName, itemCode, itemDescription, defaultBuyPrice, defaultSellPrice });
+
+    if (!clientId) {
+        throw new Error("clientId must be supplied (createItemType procedure)")
+    }
+
+    await Table("ItemType").insert({
+        clientId,
+        itemName,
+        itemCode,
+        itemCodeIdentifier: itemCode.toLowerCase(),
+        itemDescription,
+        defaultBuyPrice,
+        defaultSellPrice
+    }).execute();
 }
 
-// Finds an item type by code or id. Code is case-insensitive
-export async function findItemType({ itemCode, itemId }) {
+export async function updateItemType(clientId, itemTypeId, columns) {
 
-    if (itemId) {
-        return await Table("ItemType").where({ itemId: itemId }).first().execute();
+    throwIfAnyKeyIsNullish(columns);
+
+    if (!clientId) {
+        throw new Error("clientId must be supplied (updateItemType procedure)")
     }
-    else {
-        return await Table("ItemType").where({ itemCodeIdentifier: itemCode.toLowerCase() }).first().execute();
+
+    if (!itemTypeId) {
+        throw new Error("itemTypeId must be supplied (updateItemType procedure)")
     }
+
+    if (Object.keys(columns).length === 0) {
+        throw new Error("At least one column key-value-pair must be supplied in the columns object (updateItemType procedure)")
+    }
+
+    await Table("ItemType")
+        .update({ ...columns })
+        .where({ clientId, itemTypeId, isActive: true })
+        .execute();
+}
+
+/**
+ * Finds the first ItemType for this client that matches the specified where clause (if supplied). 
+ * @returns the first found ItemType, or null if it could not find one
+ */
+export async function getItemType(clientId, where = {}) {
+
+    return getItemTypes(clientId, where)[0]
+}
+
+/**
+ * Finds all ItemTypes for this client that match the specified where clause (if supplied). 
+ * @returns a list of ItemTypes, or an empty array if it could not find any
+ */
+export async function getItemTypes(clientId, where = {}) {
+
+    throwIfAnyKeyIsNullish(where);
+
+    if (!clientId) {
+        throw new Error("clientId must be supplied (getAllItemTypes procedure)")
+    }
+
+    return await Table("ItemType")
+        .where({ clientId, isActive: true, ...where })
+        .list()
+        .execute();
 }

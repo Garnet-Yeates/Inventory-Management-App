@@ -9,16 +9,20 @@ export function Table(tableName) {
             return new SelectQueryBuilder(tableName).select(columns);
         },
 
-        where(whereClause) {
-            return new SelectQueryBuilder(tableName).where(whereClause);
+        where(whereMap) {
+            return new SelectQueryBuilder(tableName).where(whereMap);
+        },
+
+        update(updateMap) {
+            return new UpdateQueryBuilder(tableName).update(updateMap);
         },
 
         join(joinedTableName, columnMap, selectClause) {
             return new SelectQueryBuilder(tableName).join(joinedTableName, columnMap, selectClause);
         },
 
-        removeWhere(whereClause) {
-            return new DeleteQueryBuilder(tableName).where(whereClause)
+        removeWhere(whereMap) {
+            return new DeleteQueryBuilder(tableName).where(whereMap)
         },
 
         insert(keyValuePairs) {
@@ -28,27 +32,70 @@ export function Table(tableName) {
 
 }
 
+export class UpdateQueryBuilder {
+
+    tableName;
+    updateMap;
+    whereMap;
+
+    constructor(tableName) {
+        this.tableName = tableName;
+    }
+
+    update(updateMap) {
+        this.updateMap = updateMap;
+        return this;
+    }
+
+    where(whereMap) {
+        if (Object.keys(whereMap).length < 1) {
+            throw new Error("whereMap cannot be empty")
+        }
+        return this;
+    }
+
+    async execute() {
+
+        if (!this.updateMap) {
+            throw new Error("updateMap must be defined")
+        }
+
+        let updateSQL = `UPDATE ${tableName}`
+
+        let setSQL = `\nSET ${keyValueEquality(this.updateMap, ", ")}`
+
+        let whereSQL = this.whereMap ? `\nWHERE ${keyValueEquality(this.whereMap, " AND ")}` : "";
+
+        let sql = `${updateSQL}${setSQL}${whereSQL}`;
+
+        printSql(sql);
+
+        await db.query(sql);
+    }
+}
+
 export class SelectQueryBuilder {
 
     tableName;
-    selectClause = [];
+    selectColumns = [];
     joinClauses = [];
-    whereClause;
-    limit = 0;
+    whereMap;
+    limit = undefined;
 
     constructor(tableName) {
         this.limit = undefined;
         this.tableName = tableName;
-        createSafeExecute(this);
     }
 
     select(columns) {
-        this.selectClause = columns;
+        this.selectColumns = columns;
         return this;
     }
 
-    where(clause) {
-        this.whereClause = clause;
+    where(whereMap) {
+        if (Object.keys(whereMap).length < 1) {
+            throw new Error("whereMap cannot be empty")
+        }
         return this;
     }
 
@@ -72,23 +119,24 @@ export class SelectQueryBuilder {
         return this;
     }
 
-    lastQuery;
-
     async execute() {
+
+        if (limit === null || limit === undefined) {
+            throw new Error("Limit must be defined")
+        }
 
         let limitSQL = this.limit > 0 ? `\nLIMIT ${this.limit} ` : ""
 
-        let selectSQL = `SELECT ${this.selectClause.length > 0 ? this.selectClause.join(", ") : "*"}`
+        let selectSQL = `SELECT ${this.selectColumns.length > 0 ? this.selectColumns.join(", ") : "*"}`
 
         let fromSQL = `\nFROM ${this.tableName}`;
 
         let joinSQL = this.getJoinClauses()
 
-        let whereSQL = this.whereClause ? `\nWHERE ${keyValueEquality(this.whereClause, " AND ")}` : "";
+        let whereSQL = this.whereMap ? `\nWHERE ${keyValueEquality(this.whereMap, " AND ")}` : "";
 
         let sql = `${selectSQL}${fromSQL}${joinSQL}${whereSQL}${limitSQL}`;
 
-        this.lastQuery = sql;
         printSql(sql);
 
         let [results] = await db.query(sql);
@@ -105,15 +153,15 @@ export class SelectQueryBuilder {
         let joinClauses = this.joinClauses
 
         if (joinClauses.length === 0) {
-            return [];
+            return "";
         }
 
         let prevTableName = this.tableName;
-        this.selectClause = this.selectClause.map(element => `${this.tableName}.${element}`); 
-        
+        this.selectColumns = this.selectColumns.map(element => `${this.tableName}.${element}`);
+
         const addToSelect = [];
         const queryStrings = [];
-    
+
         for (let joinClause of joinClauses) {
 
             let { tableName: joinedTableName, columnMap, additionalSelect = [] } = joinClause;
@@ -132,7 +180,7 @@ export class SelectQueryBuilder {
             prevTableName = joinedTableName;
         }
 
-        this.selectClause = [ ...this.selectClause, ...addToSelect ]
+        this.selectColumns = [...this.selectColumns, ...addToSelect]
 
         return queryStrings;
         // joinClauses: [ { tableName: "name", selectClause: { KVP } }, { ..... }]
@@ -151,26 +199,24 @@ export class SelectQueryBuilder {
 export class DeleteQueryBuilder {
 
     tableName;
-    whereClause;
+    whereMap;
 
     constructor(tableName) {
         this.limit = undefined;
         this.tableName = tableName;
-        createSafeExecute(this);
     }
 
-    where(clause) {
-        this.whereClause = clause;
+    where(whereMap) {
+        if (Object.keys(whereMap).length < 1) {
+            throw new Error("whereMap cannot be empty")
+        }
         return this;
     }
 
-    lastQuery;
-
     async execute() {
 
-        let sql = `DELETE FROM ${this.tableName} \nWHERE ${keyValueEquality(this.whereClause, " AND ")}`;
+        let sql = `DELETE FROM ${this.tableName} \nWHERE ${keyValueEquality(this.whereMap, " AND ")}`;
 
-        this.lastQuery = sql;
         printSql(sql);
 
         await db.query(sql);
@@ -185,7 +231,6 @@ export class InsertQueryBuilder {
     constructor(tableName) {
         this.limit = undefined;
         this.tableName = tableName;
-        createSafeExecute(this);
     }
 
     insert(keyValuePairs) {
@@ -193,15 +238,12 @@ export class InsertQueryBuilder {
         return this;
     }
 
-    lastQuery;
-
     async execute() {
 
-        let [ columnNames, columnValues ] = extractKeysAndValuesAsLists(this.keyValuePairs)
+        let [columnNames, columnValues] = extractKeysAndValuesAsLists(this.keyValuePairs)
 
         let sql = `INSERT INTO ${this.tableName} (${columnNames}) \nVALUES (${columnValues})`;
 
-        this.lastQuery = sql;
         printSql(sql);
 
         await db.query(sql);
@@ -210,18 +252,18 @@ export class InsertQueryBuilder {
     }
 }
 
-// Adds a function to the queryBuilders (prevents redundancy of typing this over and over)
-function createSafeExecute(queryBuilder) {
-    queryBuilder.executeSafe = async function() {
-        try {
-            return await this.execute();
+export function removeNullish(object) {
+    for (let key of object) {
+        if (object[key] === null || object[key] === undefined) {
+            delete object[key];
         }
-        catch (err) {
-            console.log(err);
-            console.log(`error executing query (SelectQueryBuilder): \n${this.lastQuery} `)
-            return {
-                sqlError: `Error executing select query for ${this.tableName} (SelectQueryBuilder)`
-            }
+    }
+}
+
+export function throwIfAnyKeyIsNullish(obj) {
+    for (let key of Object.keys(obj)) {
+        if (obj[key] === null || obj[key] === undefined) {
+            throw new Error(`${key} can not be null`)
         }
     }
 }

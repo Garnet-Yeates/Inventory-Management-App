@@ -1,5 +1,5 @@
 import { clearErrJson, countDecimalPlaces, numDigits as countDigits } from "../tools/controller/validationHelpers.js";
-import { findItemType, newItemType } from "../tools/database/tblItemTypeProcedures.js";
+import { getItemType, getItemTypes, createItemType, updateItemType } from "../tools/database/tblItemTypeProcedures.js";
 
 const itemCodeRegex = /^[a-zA-Z0-9_]+$/
 
@@ -31,21 +31,21 @@ const itemCodeRegex = /^[a-zA-Z0-9_]+$/
  * ---
  * 
  */
-export async function createItemType(req, res) {
+export async function api_createItemType(req, res) {
     createOrUpdateItemType(req, res);
 }
 
-export async function updateItemType(req, res) {
+export async function api_updateItemType(req, res) {
     createOrUpdateItemType(req, res, true);
 }
 
-// If itemId is supplied we are updating. All ids are > 0 so we can use simple truthy check
+// If itemTypeId is supplied we are updating. All ids are > 0 so we can use simple truthy check
 async function createOrUpdateItemType(req, res, isUpdating) {
 
     const {
         clientId,
         body: {
-            itemId,
+            itemTypeId,
             itemName,
             itemCode,
             itemDescription,
@@ -55,7 +55,7 @@ async function createOrUpdateItemType(req, res, isUpdating) {
     } = req;
 
     const errJson = {
-        itemIdErrors: [],
+        itemTypeIdErrors: [],
         itemNameErrors: [],
         itemCodeErrors: [],
         itemDescriptionErrors: [],
@@ -65,7 +65,7 @@ async function createOrUpdateItemType(req, res, isUpdating) {
     }
 
     const {
-        itemIdErrors,
+        itemTypeIdErrors,
         itemNameErrors,
         itemCodeErrors,
         itemDescriptionErrors,
@@ -74,20 +74,19 @@ async function createOrUpdateItemType(req, res, isUpdating) {
         databaseErrors
     } = errJson;
 
-    // itemId validation if we are updating an item (not creating)
+    // itemTypeId validation if we are updating an item (not creating)
     if (isUpdating) {
 
-        if (!itemId) {
-            itemIdErrors.push("itemId must be supplied for updating items")
+        if (!itemTypeId) {
+            itemTypeIdErrors.push("itemTypeId must be supplied for updating items")
         }
         else {
-            existingItem = await findItemType({ itemId });
+            existingItem = await getItemType(clientId, { itemTypeId });
             if (!existingItem) {
-                itemIdErrors.push("Could not find item with the specified id")
+                itemTypeIdErrors.push("Could not find item with the specified id for this client")
             }
             // Find item in database
         }
-
     }
 
     // Validate item name
@@ -125,14 +124,14 @@ async function createOrUpdateItemType(req, res, isUpdating) {
         if (itemCodeErrors.length === 0) {
             let existingItem;
             try {
-                existingItem = await findItemType({ itemCode });
-                if (existingItem && (!isUpdating || existingItem.itemId !== itemId)) {
+                existingItem = await getItemType(clientId, { itemCode });
+                if (existingItem && (!isUpdating || existingItem.itemTypeId !== itemTypeId)) {
                     itemCodeErrors.push("Item code is in use")
                 }
             }
             catch (err) {
                 console.log("Database error:", err)
-                databaseErrors.push("Error querying database for unique itemCode check", err)
+                databaseErrors.push("Error querying database for unique itemCode check")
             }
         }
     }
@@ -163,10 +162,12 @@ async function createOrUpdateItemType(req, res, isUpdating) {
         defaultBuyPriceErrors.push("Can not be NaN")
     }
     else {
+        if (defaultBuyPrice < 0) {
+            defaultBuyPriceErrors.push("Can not be negative")
+        }
         if (countDecimalPlaces(defaultBuyPrice) > 2) {
             defaultBuyPriceErrors.push("Can't have more than 2 decimal places")
         }
-
         if (countDigits(defaultBuyPrice) > 4) {
             defaultBuyPriceErrors.push("Can't have more than 4 digits")
         }
@@ -184,6 +185,9 @@ async function createOrUpdateItemType(req, res, isUpdating) {
         defaultSellPriceErrors.push("Can not be NaN")
     }
     else {
+        if (defaultSellPrice < 0) {
+            defaultSellPriceErrors.push("Can not be negative")
+        }
         if (countDecimalPlaces(defaultSellPrice) > 2) {
             defaultSellPriceErrors.push("Can't have more than 2 decimal places")
         }
@@ -200,10 +204,10 @@ async function createOrUpdateItemType(req, res, isUpdating) {
     // One final error possibility here
     try {
         if (isUpdating) {
-            await updateItemType(itemId, clientId, itemCode, itemName, itemDescription, defaultBuyPrice, defaultSellPrice);
+            await updateItemType(itemTypeId, clientId, { itemCode, itemName, itemDescription, defaultBuyPrice, defaultSellPrice });
         } 
         else {
-            await newItemType(clientId, itemCode, itemName, itemDescription, defaultBuyPrice, defaultSellPrice);
+            await createItemType(clientId, itemCode, itemName, itemDescription, defaultBuyPrice, defaultSellPrice);
         }
     }
     catch (err) {
@@ -211,4 +215,41 @@ async function createOrUpdateItemType(req, res, isUpdating) {
     }
 
     return res.status(200).json({ message: "Item Type creation successful" });
+}
+
+export async function api_getItemType(req, res) {
+
+    const {
+        clientId,
+        body: {
+            itemTypeId,
+        }
+    } = req;
+
+    try {
+        const itemInstance = await getItemType(clientId, { itemTypeId });
+        if (!itemInstance) {
+            return res.status(404).json({ itemTypeIdError: "Could not find an item in the database with the specified itemTypeId for this client"})
+        }
+
+        return res.status(200).json({ itemInstance })
+    }
+    catch (err) {
+        console.log("Database error (getItemType endpoint)", err)
+        return res.status(500).json({ databaseError: "Error querying database for item type" });
+    }
+}
+
+export async function api_getAllItemTypes(req, res) {
+
+    const { clientId } = req;
+
+    try {
+        const itemTypes = await getItemTypes(clientId);
+        return res.status(200).json({ items: itemTypes })
+    }
+    catch (err) {
+        console.log("Database error (getItemTypes endpoint)", err)
+        return res.status(500).json({ databaseError: "Error querying database to retrieve all item types for this client" }, err)
+    }
 }

@@ -25,7 +25,9 @@ CREATE TABLE Client (
 CREATE TABLE Customer (
 	clientId INT NOT NULL,
 	customerId INT NOT NULL AUTO_INCREMENT,
-    customerName CHAR(32) NOT NULL,
+    customerFirstName CHAR(32) NOT NULL,
+	customerMiddleName CHAR(32) NULL,
+    customerLastName CHAR(32) NOT NULL,
     dateAdded DATE NOT NULL,
     FOREIGN KEY (clientId) REFERENCES Client (clientId),
     PRIMARY KEY (customerId)
@@ -35,9 +37,9 @@ CREATE TABLE Customer (
 CREATE TABLE CustomerAddress (
 	customerId INT NOT NULL,
 	addressId INT AUTO_INCREMENT,
-	address CHAR(64),
-    zip CHAR(5),
-    town CHAR(24),
+	address CHAR(64) NOT NULL,
+    zip CHAR(5) NOT NULL,
+    town CHAR(24) NOT NULL,
 	FOREIGN KEY (customerId) REFERENCES Customer (customerId),
     PRIMARY KEY (addressId)
 );
@@ -48,7 +50,7 @@ CREATE TABLE CustomerContact (
 	contactId INT AUTO_INCREMENT,
 	customerId INT NOT NULL,
 	contactType CHAR(16) NOT NULL, # Email/Cell/Home
-    contactValue CHAR(16) NOT NULL,
+    contactValue CHAR(32) NOT NULL,
     FOREIGN KEY (customerId) REFERENCES Customer (customerId),
     PRIMARY KEY (contactId)
 );
@@ -64,27 +66,31 @@ CREATE TABLE ChargedService (
 
 CREATE TABLE ItemType (
 	clientId INT NOT NULL ,
-	itemId INT NOT NULL AUTO_INCREMENT,
+	itemTypeId INT NOT NULL AUTO_INCREMENT,
 	itemName CHAR(64) NOT NULL,
     itemCode CHAR (24) NOT NULL,
 	itemCodeIdentifier CHAR(24) NOT NULL,
     itemDescription TEXT(512) NULL,
     defaultBuyPrice DECIMAL(4, 2) NOT NULL,
     defaultSellPrice DECIMAL(4, 2) NOT NULL,
+    isActive BOOL NOT NULL DEFAULT TRUE,
     FOREIGN KEY (clientId) REFERENCES Client (clientId),
-    PRIMARY KEY (itemId),
+    PRIMARY KEY (itemTypeId),
     CONSTRAINT UC_itemCode UNIQUE (itemCodeIdentifier, clientId)
 );
 
 # Many (ItemInstance) To One (ItemType)
 CREATE TABLE ItemInstance (
-	itemId INT NOT NULL,
+	itemInstanceId INT NOT NULL AUTO_INCREMENT,
+	itemTypeId INT NOT NULL,
     datePurchased DATE NOT NULL,
     dateAdded DATE NOT NULL,
     quantity INT NOT NULL,
-    price DECIMAL(4, 2) NOT NULL,
-    FOREIGN KEY (itemId) REFERENCES ItemType (itemId),
-    PRIMARY KEY (itemId, datePurchased)
+    buyPrice DECIMAL(4, 2) NOT NULL,
+	sellPrice DECIMAL(4, 2) NOT NULL,
+    FOREIGN KEY (itemTypeId) REFERENCES ItemType (itemTypeId),
+    PRIMARY KEY (itemInstanceId),
+	CONSTRAINT UC_itemType UNIQUE (itemTypeId, datePurchased, dateAdded, buyPrice, sellPrice)
 );
 
 # Many (Invoice) To One (Customer)
