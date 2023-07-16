@@ -1,8 +1,8 @@
-import { Table, throwIfAnyKeyIsNullish } from "./procedureAbstractions.js";
+import { Table, throwIfAnyKeyIsNullish } from "./driverAbstractions.js";
 
 export async function createItemType(clientId, itemName, itemCode, itemDescription, defaultBuyPrice, defaultSellPrice) {
 
-    throwIfAnyKeyIsNullish({ itemName, itemCode, itemDescription, defaultBuyPrice, defaultSellPrice });
+    throwIfAnyKeyIsNullish({ itemName, itemCode, defaultBuyPrice, defaultSellPrice });
 
     if (!clientId) {
         throw new Error("clientId must be supplied (createItemType procedure)")
@@ -47,7 +47,7 @@ export async function updateItemType(clientId, itemTypeId, columns) {
  */
 export async function getItemType(clientId, where = {}) {
 
-    return getItemTypes(clientId, where)[0]
+    return (await getItemTypes(clientId, where))[0]
 }
 
 /**
@@ -59,11 +59,11 @@ export async function getItemTypes(clientId, where = {}) {
     throwIfAnyKeyIsNullish(where);
 
     if (!clientId) {
-        throw new Error("clientId must be supplied (getAllItemTypes procedure)")
+        throw new Error("clientId must be supplied (getItemTypes procedure)")
     }
 
     return await Table("ItemType")
         .where({ clientId, isActive: true, ...where })
         .list()
-        .execute();
+        .execute()
 }

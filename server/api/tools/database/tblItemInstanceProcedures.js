@@ -1,10 +1,10 @@
 import { getDateAsSQLString } from "../controller/validationHelpers.js";
-import { Table, throwIfAnyKeyIsNullish } from "./procedureAbstractions.js";
+import { Table, throwIfAnyKeyIsNullish } from "./driverAbstractions.js";
 import { getItemType } from "./tblItemTypeProcedures.js";
 
-export async function createItemInstance(clientId, itemTypeId, datePurchased, dateAdded, quantity, buyPrice = null, sellPrice = null) {
+export async function createItemInstance(clientId, itemTypeId, datePurchased, dateAdded = null, quantity, buyPrice = null, sellPrice = null) {
 
-    throwIfAnyKeyIsNullish({ itemTypeId, datePurchased, dateAdded, quantity });
+    throwIfAnyKeyIsNullish({ itemTypeId, datePurchased, quantity });
 
     if (!clientId) {
         throw new Error("clientId must be supplied (createItemInstance procedure)")
@@ -12,42 +12,43 @@ export async function createItemInstance(clientId, itemTypeId, datePurchased, da
 
     // Make sure that this itemType is for the specified client. 
     const existingItemType = await getItemType(clientId, { itemTypeId })
+    console.log("existing type", existingItemType)
 
     if (!existingItemType) {
         throw new Error(`Could not create an item instance for the specified itemTypeId (${itemTypeId}) on the client (${clientId}) because this itemTypeId does not exist (createItemInstance procedure)`)
     }
 
+    dateAdded ??= getDateAsSQLString(new Date())
+    buyPrice ??= existingItemType.defaultBuyPrice
+    sellPrice ??= existingItemType.defaultSellPrice
+
     // Try to find an existing instance created with the same dates/price points (UC_itemInstance constituents). 
     // If we find any, we update the quantity column for that table entry instead of creating a new one. 
     // If we do not do this we will get a unique constraint error
-    const existingWhere = { datePurchased, dateAdded, buyPrice, sellPrice };
-    const instance = await getItemInstance(clientId, existingWhere)
+    const where = { itemTypeId, datePurchased, dateAdded, buyPrice, sellPrice };
+    const instance = await getItemInstance(clientId, where)
     if (instance) {
         const newQuantity = instance.quantity + quantity;
-        updateItemInstances(clientId, { quantity: newQuantity }, existingWhere)
+        await updateItemInstances({ quantity: newQuantity }, where)
     }
     else {
         await Table("ItemInstance")
             .insert({
                 itemTypeId,
                 datePurchased,
-                dateAdded: dateAdded ?? getDateAsSQLString(new Date()),
+                dateAdded,
                 quantity,
-                buyPrice: buyPrice ?? existingItemType.defaultBuyPrice,
-                sellPrice: sellPrice ?? existingItemType.defaultSellPrice,
+                buyPrice,
+                sellPrice,
             })
             .execute();
     }
 }
 
-export async function updateItemInstances(clientId, columns, where) {
+export async function updateItemInstances(columns, where) {
 
     throwIfAnyKeyIsNullish(where);
     throwIfAnyKeyIsNullish(columns);
-
-    if (!clientId) {
-        throw new Error("clientId must be supplied (updateItemInstances procedure)")
-    }
 
     if (Object.keys(columns).length === 0) {
         throw new Error("At least one column key-value-pair must be supplied in the columns object (updateItemInstances procedure)")
@@ -57,26 +58,29 @@ export async function updateItemInstances(clientId, columns, where) {
         throw new Error("At least one column key-value-pair must be supplied in the where object (updateItemInstances procedure)")
     }
 
-    await Table("ItemType")
+    await Table("ItemInstance")
         .update({ ...columns })
-        .where({ clientId, ...where })
+        .where(where)
         .execute();
 }
 
 export async function getItemInstance(clientId, where = {}) {
 
-    return getItemInstances(clientId, where)[0];
+    return (await getItemInstances(clientId, where))[0];
 }
 
 export async function getItemInstances(clientId, where = {}) {
 
     throwIfAnyKeyIsNullish(where);
 
-    if (!clientId) {
-        throw new Error("clientId must be supplied (getAllItemInstances procedure)")
+    // Remove where ambiguity as a result of the join call (ItemType and ItemInstance both have an itemTypeId column so we make it explicit). Maybe add leftWhere and rightWhere in the future
+    if (where["itemTypeId"]) {
+        where["ItemInstance.itemTypeId"] = where["itemTypeId"];
+        delete where["itemTypeId"];
     }
 
     return await Table("ItemInstance")
+        .join("ItemType", { "ItemTypeId": "ItemTypeId" })
         .where({ clientId, ...where })
         .list()
         .execute()

@@ -252,3 +252,17 @@ ul {
         color: #FFFFFF
     }
 }
+
+.Mui-ButtonCompression {
+
+    .MuiButton-endIcon {
+        margin-left: 0px !important;
+        margin-right: 0px !important;
+    }
+
+    .MuiSvgIcon-root {
+        margin-left: 0px !important;
+        margin-right: 0px !important;
+        margin-bottom: 1px !important;
+    }
+}

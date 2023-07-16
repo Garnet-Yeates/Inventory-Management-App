@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt'
 import { authCheckHelper, createSessionAndSetCookies, deleteSessionSoon, userSuppliedAnyAuth } from '../middleware/authCheck.js';
-import { newClient, findClient } from '../tools/database/tblClientProcedures.js';
+import { createClient, getClient } from '../tools/database/tblClientProcedures.js';
 import { clearErrJson } from '../tools/controller/validationHelpers.js';
 
 // GET /auth/test
@@ -116,7 +116,7 @@ export async function register(req, res) {
         if (userNameErrors.length === 0) {
             let user;
             try {
-                user = await findClient({ userName });
+                user = await getClient({ userName });
                 if (user) {
                     userNameErrors.push("Username is taken")
                 }
@@ -156,7 +156,7 @@ export async function register(req, res) {
 
     // One final error possibility here
     try {
-        await newClient(companyName, userName, password);
+        await createClient(companyName, userName, password);
     }
     catch (err) {
         return res.status(500).json({ databaseErrors: ["Error inserting new user into the database"] });
@@ -204,7 +204,7 @@ export async function login(req, res) {
 
     let user;
     try {
-        user = await findClient({ userName });
+        user = await getClient({ userName });
         if (!user) {
             return res.status(404).json({ errorMessage: "Username or password is incorrect" })
         }

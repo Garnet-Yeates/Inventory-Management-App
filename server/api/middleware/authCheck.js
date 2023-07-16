@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import { currentTimeSeconds } from "../../utilities.js";
 import { deleteSession, findSession, newSession } from "../tools/database/tblSessionProcedures.js";
-import { findClient } from "../tools/database/tblClientProcedures.js";
+import { getClient } from "../tools/database/tblClientProcedures.js";
 
 /*
  * This javascript file has to do with authentication checking (on all requests), authentication failure, session creation (including setting cookies)
@@ -48,7 +48,7 @@ export default async function authCheck(req, res, next) {
 
     let user;
     try {
-        user = await findClient({ clientId });
+        user = await getClient({ clientId });
         if (!user) {
             return res.status(500).json({ authRejected: { errorType: "noUser", errorMessage: "Could not find user associated with the clientId tied to the session being updated" } })
         }

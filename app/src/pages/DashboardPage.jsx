@@ -34,7 +34,6 @@ export default function DashboardPage(props) {
     const {
         initialNode = "overview",
         additionalNodeInfo: additionalNavInfo,
-
     } = props;
 
     // Determines if the mobile panel is open or closed. It is invisible no matter what on desktop
@@ -85,16 +84,19 @@ export default function DashboardPage(props) {
 
     const [messages, setMessages] = useState({})
     const addDashboardMessage = useCallback((messageKey, message) => {
-        console.log("ADD MESSAGE", messageKey, message)
         messages[messageKey] = message;
         setMessages({ ...messages });
     }, [messages, setMessages])
 
+    const propsOverridenRef = useRef(false);
+
     // When a node selection event is triggered (via clicking, or pressing enter on focused node) this callback will run.
-    const trySelectNode = useCallback((nodeId, programmatic = false) => {
+    const trySelectNode = useCallback((nodeId, config = {}) => {
+
+        const { overrideProps, programmatic } = config;
 
         // No additional logic if they are clicking the node that represents the current page (return)
-        if (selected === nodeId) {
+        if (selected === nodeId && !propsOverridenRef.current && !overrideProps) {
             return;
         }
 
@@ -103,9 +105,10 @@ export default function DashboardPage(props) {
             return console.log(`Could not select node with nodeId={${nodeId}} as it does not exist in the node map`)
         }
 
-        // If this block runs it causes the data loss warning modal to render
+        // If this block runs it causes the data loss warning modal to render. Clicking proceed will remove the
+        // blockExitRef and then it will call trySelectNode, preserving their initial nodeId selection and selection config
         if (blockExitRef.current && (node.page || (node.onSelected && node.pageLossOnSelect))) {
-            setTriedToSelect(nodeId)
+            setTriedToSelect({ nodeId, config })
             setMobilePanelShown(false);
             return;
         }
@@ -114,7 +117,14 @@ export default function DashboardPage(props) {
 
         if (node.page) {
             let { type: Page, props } = node.page;
-            setCurrentPage(<Page {...props} nodeId={nodeId} />) // Add nodeId as a prop here. Technically could do it when we declare the page JSX in getDashboardTreeItemsFromNavInfo but it would create redundancies in that method 
+            if (overrideProps) {
+                props = overrideProps;
+                propsOverridenRef.current = true;
+            }
+            else {
+                propsOverridenRef.current = false;
+            }
+            setCurrentPage(<Page {...props} nodeId={nodeId} />) // Add nodeId as a prop here. Technically could do it when we declare the page JSX props in getDashboardTreeItemsFromNavInfo but it would create redundancies in that method 
         }
         if (node.onSelected) {
             node.onSelected();
@@ -168,7 +178,7 @@ export default function DashboardPage(props) {
     useEffect(() => {
         if (Object.keys(dashboardTreeItems).length > 0 && selectNextRefreshRef.current) {
             console.log("[dashboardTreeItems effect]: trySelectNode(selectNextRefreshRef.current)")
-            trySelectNode(selectNextRefreshRef.current, true)
+            trySelectNode(selectNextRefreshRef.current, { programmatic: true })
             selectNextRefreshRef.current = null;
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps    
@@ -178,7 +188,7 @@ export default function DashboardPage(props) {
         console.log("------------------- LAST EFFECT RAN --------------")
     })
 
-    const { type: CurrentPage, pageProps: { nodeId, ...pagePropsRest } = {} } = currentPage ?? {}
+    const { type: CurrentPage, props: { nodeId, ...pagePropsRest } = {} } = currentPage ?? {}
 
     const treeViewProps = { treeItems: dashboardTreeItems, onNodeSelect, onNodeToggle, selected, expanded };
 
@@ -223,7 +233,6 @@ export default function DashboardPage(props) {
 
 export const MessageContainer = ({ messages, setMessages }) => {
 
-    console.log("RENDER MESSAGECONTAINER. MESSAGES: ", messages)
     return (
         <div className="messages-box">
             <AnimatePresence>
@@ -319,10 +328,13 @@ export const DesktopNavigationPanel = ({ ...richTreeViewProps }) => {
 
 const PageChangeWarning = ({ triedToSelect, setTriedToSelect, blockExitRef, trySelectNode }) => {
 
+    // When setTriedToSelect is called upon selection failure, it remembers the config of the selection attempt
+    const { nodeId, config } = triedToSelect;
+
     const onProceed = () => {
         blockExitRef.current = ""
         setTriedToSelect(null)
-        trySelectNode(triedToSelect)
+        trySelectNode(nodeId, config)
     }
 
     const onNeverMind = () => {

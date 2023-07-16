@@ -28,7 +28,7 @@ const CreateCustomerPage = (props) => {
         if (!editingId)
             return;
 
-        const { controller, isMounted, cleanup } = mountAbortSignal(5);
+        const { controller, isCleanedUp, cleanup } = mountAbortSignal(5);
 
         (async () => {
 
@@ -39,7 +39,7 @@ const CreateCustomerPage = (props) => {
 
             }
             catch (err) {
-                if (axios.isCancel(err)) return `Request canceled due to ${isMounted() ? "timeout" : "unmount"}`
+                if (axios.isCancel(err)) return `Request canceled due to ${isCleanedUp() ? "timeout" : "cleanup"}`
 
                 console.log("Error at GET /auth/loggedInCheck", err);
             }
@@ -47,7 +47,7 @@ const CreateCustomerPage = (props) => {
 
         return cleanup;
 
-    }, [navigate, editingId, lockExitWith]);
+    }, [editingId]);
 
     return (
         <div className="create-customer-sub-page">

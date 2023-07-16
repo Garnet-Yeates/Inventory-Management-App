@@ -1,5 +1,5 @@
 import { getDateAsSQLString } from "../controller/validationHelpers.js";
-import { Table, throwIfAnyKeyIsNullish } from "./procedureAbstractions.js";
+import { Table, throwIfAnyKeyIsNullish } from "./driverAbstractions.js";
 
 export async function createCustomer(clientId, customerFirstName, customerMiddleName = null, customerLastName, dateAdded = null) {
 
@@ -46,7 +46,7 @@ export async function updateCustomer(clientId, customerId, columns) {
  */
 export async function getCustomer(clientId, where = {}) {
 
-    return getCustomers(clientId, where)[0]
+    return (await getCustomers(clientId, where))[0]
 }
 
 /**
@@ -67,13 +67,9 @@ export async function getCustomers(clientId, where = {}) {
         .execute();
 }
 
-export async function createCustomerAddress(clientId, customerId, address, zip, town) {
+export async function createCustomerAddress(customerId, address, zip, town) {
 
     throwIfAnyKeyIsNullish({ customerId, address, zip, town });
-
-    if (!clientId) {
-        throw new Error("clientId must be supplied (createCustomerAddress procedure)")
-    }
 
     await Table("CustomerAddress").insert({
         customerId,
@@ -106,7 +102,7 @@ export async function updateCustomerAddress(clientId, customerAddressId, columns
 }
 
 export async function getCustomerAddress(clientId, where = {}) {
-    return await getCustomerAddresses(clientId, where)[0]
+    return (await getCustomerAddresses(clientId, where))[0]
 }
 
 export async function getCustomerAddresses(clientId, where = {}) {

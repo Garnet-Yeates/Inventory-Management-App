@@ -1,14 +1,23 @@
 import { clearErrJson, countDecimalPlaces, numDigits as countDigits, getSQLDateStringAsDateObject, isValidDateString, isDateStringFormat, getDateAsSQLString } from "../tools/controller/validationHelpers.js";
-import { createItemInstance, getItemInstances, getItemInstance } from "../tools/database/tblItemInstanceProcedures.js";
+import { createItemInstance, getItemInstances, getItemInstance, updateItemInstances } from "../tools/database/tblItemInstanceProcedures.js";
 import { getItemType, getItemTypes, createItemType, updateItemType } from "../tools/database/tblItemTypeProcedures.js";
 
-const itemCodeRegex = /^[a-zA-Z0-9_]+$/
-
 export async function api_createItemInstance(req, res) {
+    createOrUpdateItemInstance(req, res)
+}
 
-    const {
-        clientId,
+export async function api_updateItemInstance(req, res) {
+    createOrUpdateItemInstance(req, res, true);
+}
+
+async function createOrUpdateItemInstance(req, res, isUpdating) {
+    let {
+        auth: {
+            clientId,
+            sessionUUID
+        },
         body: {
+            itemInstanceId, // if updating
             itemTypeId,
             datePurchased,
             quantity,
@@ -17,59 +26,51 @@ export async function api_createItemInstance(req, res) {
         }
     } = req;
 
-    const errJson = {
-        itemTypeIdErrors: [],
-        datePurchasedErrors: [],
-        quantityErrors: [],
-        buyPriceErrors: [],
-        sellPriceErrors: [],
-        databaseErrors: [],
-    }
+    const errJson = {};
 
-    const {
-        itemTypeIdErrors,
-        datePurchasedErrors,
-        quantityErrors,
-        buyPriceErrors,
-        sellPriceErrors,
-        databaseErrors,
-    } = errJson;
-
-    // Validate itemTypeId. Must be defined integer > 1, not NaN. It must also be the foreign key to an existing itemType owned by the client
-
-    let existingItemType;
-    if (itemTypeId === null || itemTypeId === undefined) {
-        itemTypeIdErrors.push("This field is required")
-    }
-    else if (typeof itemTypeId !== "number") {
-        itemTypeIdErrors.push("This must be a number")
-    }
-    else if (!Number.isInteger(itemTypeId) || itemTypeId <= 0) {
-        itemTypeIdErrors.push("Item type must be an integer greater than 0")
-    }
-    else {
-        try {
-            existingItemType = await getItemType(clientId, { itemTypeId });
-
-            if (!existingItemType) {
-                itemTypeIdErrors.push("Could not find an itemType for this client with the specified itemTypeId")
+    if (isUpdating) {
+        if (!itemInstanceId) {
+            return res.status(404).json({ itemInstanceIdError: "itemInstanceId must be supplied for updating item instances" })
+        }
+        else {
+            if (!await getItemInstance(clientId, { itemInstanceId })) {
+                return res.status(404).json({ itemTypeIdError: "Could not find item instance with the specified id to update for this client" })
             }
         }
-        catch (err) {
-            console.log("Database error:", err)
-            databaseErrors.push("Error querying database for existing itemType foreign key check", err)
+    }
+
+    // Validate itemTypeId. Must be defined integer > 1, not NaN. It must also be the foreign key to an existing itemType owned by the client
+    if (isUpdating) {
+        if (itemTypeId === null || itemTypeId === undefined) {
+            errJson.itemTypeIdError = "This field is required";
+        } 
+        else if (typeof itemTypeId !== "number") {
+            errJson.itemTypeIdError = "This must be a number";
+        } 
+        else if (!Number.isInteger(itemTypeId) || itemTypeId <= 0) {
+            errJson.itemTypeIdError = "Item type must be an integer greater than 0";
+        } 
+        else {
+            try {    
+                if (!await getItemType(clientId, { itemTypeId })) {
+                    errJson.itemTypeIdError = "Could not find an itemType for this client with the specified itemTypeId";
+                }
+            } 
+            catch (err) {
+                console.log("Database error:", err);
+                errJson.databaseError = "Error querying database for existing itemType foreign key check";
+            }
         }
     }
 
     // Validate datePurchased. Does not need to be defined (defaults to now), but if it is defined it must be:
     // a valid sql date string (YYYY-MM-DD), as well as a valid date
-
     if (datePurchased) {
         if (!isDateStringFormat(datePurchased)) {
-            datePurchasedErrors.push("Invalid date format. Must be YYYY-MM-DD")
+            errJson.datePurchasedError = "Invalid date format. Must be YYYY-MM-DD";
         }
         if (!isValidDateString(datePurchased)) {
-            datePurchasedErrors.push("Date is formatted properly but it is an invalid date")
+            errJson.datePurchasedError = "Date is formatted properly but it is an invalid date";
         }
     }
 
@@ -77,78 +78,79 @@ export async function api_createItemInstance(req, res) {
 
     // Validate buyPrice. Does not need to be defined (defaults to defaultBuyPrice), but if it is defined it must be:
     // a decimal/integer greater than or equal to 0 with no more than 4 digits and no more than 2 decimal places
-
     if (buyPrice !== null && buyPrice !== undefined) {
-
         if (typeof buyPrice !== "number") {
-            buyPriceErrors.push("This must be a number")
-        }
+            errJson.buyPriceError = "This must be a number";
+        } 
         else if (Number.isNaN(buyPrice)) {
-            buyPriceErrors.push("Can not be NaN")
-        }
+            errJson.buyPriceError = "Can not be NaN";
+        } 
         else {
             if (buyPrice < 0) {
-                buyPriceErrors.push("Can not be negative")
+                errJson.buyPriceError = "Can not be negative";
             }
             if (countDecimalPlaces(buyPrice) > 2) {
-                buyPriceErrors.push("Can't have more than 2 decimal places")
+                errJson.buyPriceError = "Can't have more than 2 decimal places";
             }
             if (countDigits(buyPrice) > 4) {
-                buyPriceErrors.push("Can't have more than 4 digits")
+                errJson.buyPriceError = "Can't have more than 4 digits";
             }
         }
     }
 
     // Validate sellPrice. Same validation as buyPrice
-
     if (sellPrice !== null && sellPrice !== undefined) {
-        if (sellPrice === null || sellPrice === undefined) {
-            sellPriceErrors.push("This field is required")
-        }
-        else if (typeof sellPrice !== "number") {
-            sellPriceErrors.push("This must be a number")
-        }
+        if (typeof sellPrice !== "number") {
+            errJson.sellPriceError = "This must be a number";
+        } 
         else if (Number.isNaN(sellPrice)) {
-            sellPriceErrors.push("Can not be NaN")
-        }
+            errJson.sellPriceError = "Can not be NaN";
+        } 
         else {
             if (sellPrice < 0) {
-                sellPriceErrors.push("Can not be negative")
+                errJson.sellPriceError = "Can not be negative";
             }
             if (countDecimalPlaces(sellPrice) > 2) {
-                sellPriceErrors.push("Can't have more than 2 decimal places")
+                errJson.sellPriceError = "Can't have more than 2 decimal places";
             }
             if (countDigits(sellPrice) > 4) {
-                sellPriceErrors.push("Can't have more than 4 digits")
+                errJson.sellPriceError = "Can't have more than 4 digits";
             }
         }
     }
 
     // Validate quantity. Must be an integer > 0
     if (quantity === null || quantity === undefined) {
-        quantityErrors.push("This field is required")
-    }
+        errJson.quantityError = "This field is required";
+    } 
     else if (typeof quantity !== "number") {
-        quantityErrors.push("This must be a number")
-    }
+        errJson.quantityError = "This must be a number";
+    } 
     else if (!Number.isInteger(quantity) || quantity <= 0) {
-        quantityErrors.push("Item type must be an integer greater than 0")
+        errJson.quantityError = "Item type must be an integer greater than 0";
     }
 
     // If any errors, return errJson
-    if (!clearErrJson(errJson)) {
-        return res.status(databaseErrors.length > 0 ? 500 : 400).json(errJson);
+    if (Object.keys(errJson).length > 0) {
+        return res.status(errJson.databaseError ? 500 : 400).json(errJson);
     }
 
     // One final error possibility here
     try {
-        await createItemInstance(clientId, itemTypeId, datePurchased, dateAdded, quantity, buyPrice, sellPrice);
-    }
+        if (isUpdating) {
+            await createItemInstance(clientId, itemTypeId, datePurchased, dateAdded, quantity, buyPrice, sellPrice);
+        }
+        else {
+            const updateMap = { datePurchased, quantity, buyPrice, sellPrice }
+            const where = { itemInstanceId }
+            await updateItemInstances(updateMap, where);
+        }
+    } 
     catch (err) {
-        return res.status(500).json({ databaseErrors: ["Error inserting new ItemInstance into the database"] });
+        return res.status(500).json({ databaseError: "Error inserting or updating ItemInstance into the database" });
     }
 
-    return res.status(200).json({ message: "Item Instance creation successful" });
+    return res.status(200).json({ message: "Item Instance operation successful" });
 }
 
 /**
@@ -163,7 +165,10 @@ export async function api_createItemInstance(req, res) {
 export async function api_getItemInstances(req, res) {
 
     const {
-        clientId,
+        auth: {
+            clientId,
+            sessionUUID
+        },
         query: {
             itemTypeId,
             itemCode,
@@ -184,5 +189,35 @@ export async function api_getItemInstances(req, res) {
     catch (err) {
         console.log("Database error (getItemInstances endpoint)", err)
         return res.status(500).json({ databaseError: "Error querying database for item instances" });
+    }
+}
+
+export async function api_getItemInstance(req, res) {
+
+    const {
+        auth: {
+            clientId,
+            sessionUUID
+        },
+        query: {
+            itemInstanceId,
+        }
+    } = req;
+
+    if (!itemInstanceId) {
+        return res.status(400).json({ itemInstanceIdError: "This field is required" })
+    }
+
+    try {
+        const itemInstance = await getItemInstance(clientId, { itemInstanceId });
+        if (!itemInstance) {
+            return res.status(404).json({ itemInstanceIdError: "Could not find an item in the database with the specified itemInstanceId for this client" })
+        }
+
+        return res.status(200).json({ itemInstance })
+    }
+    catch (err) {
+        console.log("Database error (getItemInstance endpoint)", err)
+        return res.status(500).json({ databaseError: "Error querying database for item instance" });
     }
 }

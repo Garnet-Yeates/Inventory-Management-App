@@ -51,6 +51,7 @@ export class UpdateQueryBuilder {
         if (Object.keys(whereMap).length < 1) {
             throw new Error("whereMap cannot be empty")
         }
+        this.whereMap = whereMap;
         return this;
     }
 
@@ -60,7 +61,7 @@ export class UpdateQueryBuilder {
             throw new Error("updateMap must be defined")
         }
 
-        let updateSQL = `UPDATE ${tableName}`
+        let updateSQL = `UPDATE ${this.tableName}`
 
         let setSQL = `\nSET ${keyValueEquality(this.updateMap, ", ")}`
 
@@ -96,6 +97,7 @@ export class SelectQueryBuilder {
         if (Object.keys(whereMap).length < 1) {
             throw new Error("whereMap cannot be empty")
         }
+        this.whereMap = whereMap;
         return this;
     }
 
@@ -121,7 +123,7 @@ export class SelectQueryBuilder {
 
     async execute() {
 
-        if (limit === null || limit === undefined) {
+        if (this.limit === null || this.limit === undefined) {
             throw new Error("Limit must be defined")
         }
 
@@ -144,7 +146,7 @@ export class SelectQueryBuilder {
         if (this.limit == 1) {
             return results[0]
         }
-
+        
         return results;
     }
 
@@ -210,6 +212,7 @@ export class DeleteQueryBuilder {
         if (Object.keys(whereMap).length < 1) {
             throw new Error("whereMap cannot be empty")
         }
+        this.whereMap = whereMap;
         return this;
     }
 

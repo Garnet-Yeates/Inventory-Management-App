@@ -42,10 +42,13 @@ export async function api_updateItemType(req, res) {
 // If itemTypeId is supplied we are updating. All ids are > 0 so we can use simple truthy check
 async function createOrUpdateItemType(req, res, isUpdating) {
 
-    const {
-        clientId,
+    let {
+        auth: {
+            clientId,
+            sessionUUID
+        },
         body: {
-            itemTypeId,
+            itemTypeId, // if updating
             itemName,
             itemCode,
             itemDescription,
@@ -54,52 +57,34 @@ async function createOrUpdateItemType(req, res, isUpdating) {
         }
     } = req;
 
-    const errJson = {
-        itemTypeIdErrors: [],
-        itemNameErrors: [],
-        itemCodeErrors: [],
-        itemDescriptionErrors: [],
-        defaultBuyPriceErrors: [],
-        defaultSellPriceErrors: [],
-        databaseErrors: [],
-    }
-
-    const {
-        itemTypeIdErrors,
-        itemNameErrors,
-        itemCodeErrors,
-        itemDescriptionErrors,
-        defaultBuyPriceErrors,
-        defaultSellPriceErrors,
-        databaseErrors
-    } = errJson;
+    const errJson = {};
 
     // itemTypeId validation if we are updating an item (not creating)
+    let itemToUpdate;
     if (isUpdating) {
 
         if (!itemTypeId) {
-            itemTypeIdErrors.push("itemTypeId must be supplied for updating items")
+            return res.status(404).json({ itemTypeIdError: "itemTypeId must be supplied for updating item types" })
         }
         else {
-            existingItem = await getItemType(clientId, { itemTypeId });
-            if (!existingItem) {
-                itemTypeIdErrors.push("Could not find item with the specified id for this client")
+            itemToUpdate = await getItemType(clientId, { itemTypeId });
+            if (!itemToUpdate) {
+                return res.status(404).json({ itemTypeIdError: "Could not find item with the specified id to update for this client" })
             }
-            // Find item in database
         }
     }
 
     // Validate item name
 
     if (!itemName) {
-        itemNameErrors.push("This field is required")
+        errJson.itemNameError = "This field is required"
     }
     else if (typeof itemName !== "string") {
-        itemNameErrors.push("This must be a string")
+        errJson.itemNameError = "This must be a string"
     }
     else {
         if (itemName.length < 3 || itemName.length > 64) {
-            itemNameErrors.push("Must be 3-64 characters")
+            errJson.itemNameError = "Must be 3-64 characters"
         }
         // Possibly add regex later
     }
@@ -107,45 +92,46 @@ async function createOrUpdateItemType(req, res, isUpdating) {
     // Validate item code
 
     if (!itemCode) {
-        itemCodeErrors.push("This field is required")
+        errJson.itemCodeError = "This field is required"
     }
     else if (typeof itemCode !== "string") {
-        itemCodeErrors.push("This must be a string")
+        errJson.itemCodeError = "This must be a string"
     }
     else {
         if (itemCode.length < 3 || itemCode.length > 24) {
-            itemCodeErrors.push("Must be 5-32 characters")
+            errJson.itemCodeError = "Must be 5-32 characters"
         }
 
         if (!itemCodeRegex.exec(itemCode)) {
-            itemCodeErrors.push("Must be alphanumeric (underscore is allowed)")
+            errJson.itemCodeError = "Must be alphanumeric (underscore is allowed)"
         }
 
-        if (itemCodeErrors.length === 0) {
-            let existingItem;
+        if (itemCodeError.length === 0) {
+            let otherItem;
             try {
-                existingItem = await getItemType(clientId, { itemCode });
-                if (existingItem && (!isUpdating || existingItem.itemTypeId !== itemTypeId)) {
-                    itemCodeErrors.push("Item code is in use")
+                otherItem = await getItemType(clientId, { itemCode });
+                if (otherItem && (!isUpdating || otherItem.itemTypeId !== itemTypeId)) {
+                    errJson.itemCodeError = "Item code is in use"
                 }
             }
             catch (err) {
                 console.log("Database error:", err)
-                databaseErrors.push("Error querying database for unique itemCode check")
+                errJson.databaseError = "Error querying database for unique itemCode check"
             }
         }
     }
 
     // Validate item description if they supplied it
 
+    itemDescription = itemDescription?.trim();
     if (itemDescription) {
 
         if (typeof itemDescription !== "string") {
-            itemDescriptionErrors.push("This must be a string")
+            errJson.itemDescriptionError = "This must be a string"
         }
         else {
             if (itemDescription.length > 512) {
-                itemDescriptionErrors.push("Must be at most 512 characters")
+                errJson.itemDescriptionError = "Must be at most 512 characters"
             }
         }
     }
@@ -153,86 +139,94 @@ async function createOrUpdateItemType(req, res, isUpdating) {
     // Validate default buy price
 
     if (defaultBuyPrice === null || defaultBuyPrice === undefined) {
-        defaultBuyPriceErrors.push("This field is required")
+        errJson.defaultBuyPriceError = "This field is required"
     }
     else if (typeof defaultBuyPrice !== "number") {
-        defaultBuyPriceErrors.push("This must be a number")
+        errJson.defaultBuyPriceError = "This must be a number"
     }
     else if (Number.isNaN(defaultBuyPrice)) {
-        defaultBuyPriceErrors.push("Can not be NaN")
+        errJson.defaultBuyPriceError = "Can not be NaN"
     }
     else {
         if (defaultBuyPrice < 0) {
-            defaultBuyPriceErrors.push("Can not be negative")
+            errJson.defaultBuyPriceError = "Can not be negative"
         }
         if (countDecimalPlaces(defaultBuyPrice) > 2) {
-            defaultBuyPriceErrors.push("Can't have more than 2 decimal places")
+            errJson.defaultBuyPriceError = "Can't have more than 2 decimal places"
         }
         if (countDigits(defaultBuyPrice) > 4) {
-            defaultBuyPriceErrors.push("Can't have more than 4 digits")
+            errJson.defaultBuyPriceError = "Can't have more than 4 digits"
         }
     }
 
     // Validate default sell price
 
     if (defaultSellPrice === null || defaultSellPrice === undefined) {
-        defaultSellPriceErrors.push("This field is required")
+        errJson.defaultSellPriceError = "This field is required"
     }
     else if (typeof defaultSellPrice !== "number") {
-        defaultSellPriceErrors.push("This must be a number")
+        errJson.defaultSellPriceError = "This must be a number"
     }
     else if (Number.isNaN(defaultSellPrice)) {
-        defaultSellPriceErrors.push("Can not be NaN")
+        errJson.defaultSellPriceError = "Can not be NaN"
     }
     else {
         if (defaultSellPrice < 0) {
-            defaultSellPriceErrors.push("Can not be negative")
+            errJson.defaultSellPriceError = "Can not be negative"
         }
         if (countDecimalPlaces(defaultSellPrice) > 2) {
-            defaultSellPriceErrors.push("Can't have more than 2 decimal places")
+            errJson.defaultSellPriceError = "Can't have more than 2 decimal places"
         }
         if (countDigits(defaultSellPrice) > 4) {
-            defaultSellPriceErrors.push("Can't have more than 4 digits")
+            errJson.defaultSellPriceError = "Can't have more than 4 digits"
         }
     }
 
     // If any errors, return errJson
-    if (!clearErrJson(errJson)) {
-        return res.status(databaseErrors.length > 0 ? 500 : 400).json(errJson);
+    if (Object.keys(errJson).length > 0) {
+        return res.status(errJson.databaseError ? 500 : 400).json(errJson);
     }
 
     // One final error possibility here
     try {
         if (isUpdating) {
             await updateItemType(itemTypeId, clientId, { itemCode, itemName, itemDescription, defaultBuyPrice, defaultSellPrice });
-        } 
+        }
         else {
-            await createItemType(clientId, itemCode, itemName, itemDescription, defaultBuyPrice, defaultSellPrice);
+            await createItemType(clientId, itemName, itemCode, itemDescription, defaultBuyPrice, defaultSellPrice);
         }
     }
     catch (err) {
-        return res.status(500).json({ databaseErrors: ["Error inserting new ItemType into the database"] });
+        console.log("err inserting new ItemType into the database", err)
+        return res.status(500).json({ databaseError: "Error inserting or updating ItemType into the database" });
     }
 
-    return res.status(200).json({ message: "Item Type creation successful" });
+    return res.status(200).json({ message: "Item Type operation successful" });
 }
 
 export async function api_getItemType(req, res) {
 
     const {
-        clientId,
-        body: {
+        auth: {
+            clientId,
+            sessionUUID
+        },
+        query: {
             itemTypeId,
         }
     } = req;
 
+    if (!itemTypeId) {
+        return res.status(400).json({ itemTypeIdError: "This field is required" })
+    }
+
     try {
-        const itemInstance = await getItemType(clientId, { itemTypeId });
-        if (!itemInstance) {
-            return res.status(404).json({ itemTypeIdError: "Could not find an item in the database with the specified itemTypeId for this client"})
+        const itemType = await getItemType(clientId, { itemTypeId });
+        if (!itemType) {
+            return res.status(404).json({ itemTypeIdError: "Could not find an item in the database with the specified itemTypeId for this client" })
         }
 
-        return res.status(200).json({ itemInstance })
+        return res.status(200).json({ itemType })
     }
     catch (err) {
         console.log("Database error (getItemType endpoint)", err)
@@ -242,11 +236,16 @@ export async function api_getItemType(req, res) {
 
 export async function api_getAllItemTypes(req, res) {
 
-    const { clientId } = req;
+    const {
+        auth: {
+            clientId,
+            sessionUUID
+        },
+    } = req;
 
     try {
         const itemTypes = await getItemTypes(clientId);
-        return res.status(200).json({ items: itemTypes })
+        return res.status(200).json({ itemTypes })
     }
     catch (err) {
         console.log("Database error (getItemTypes endpoint)", err)

@@ -12,13 +12,13 @@ export const mountAbortSignal = (timeoutS) => {
     let controller = newAbortSignal(timeoutS);
 
     let mounted = true;
-    const isMounted = () => mounted;
+    const isCleanedUp = () => mounted;
     const cleanup = () => {
         mounted = false;
         controller.abort();
     }
 
-    return { controller, isMounted, cleanup }
+    return { controller, isCleanedUp, cleanup }
 }
 
 // NOTE callbacks input into these must be memoized with useCallback(() => ...., [deps])
@@ -86,22 +86,4 @@ function useMountFetch(type, url, data = undefined, { onFetched, onCanceled, onE
         }
 
     }, [url, data, onFetched, onCanceled, onError, type, config])
-}
-
-// Example: const isMounted = useIsMounted();
-export function useIsMounted() {
-
-    const mountRef = useRef(true);
-
-    useEffect(() => {
-
-        mountRef.current = true;
-
-        return function cleanup() {
-            mountRef.current = false;
-        }
-
-    }, [mountRef])
-
-    return mountRef.current;
 }

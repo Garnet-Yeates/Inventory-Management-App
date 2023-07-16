@@ -2,7 +2,7 @@ import { v4 as uuidv4 } from 'uuid'
 
 import jwt from 'jsonwebtoken'
 import { minutesFromNow } from '../../../utilities.js';
-import { Table } from './procedureAbstractions.js';
+import { Table } from './driverAbstractions.js';
 
 /**
  * Finds the session with the specified `sessionUUID`

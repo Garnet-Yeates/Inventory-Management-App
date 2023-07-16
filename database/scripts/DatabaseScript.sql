@@ -18,7 +18,7 @@ CREATE TABLE Client (
     userIdentifier CHAR(16) NOT NULL,
     hashPassword CHAR(100) NOT NULL,
     PRIMARY KEY (clientId),
-	CONSTRAINT UC_itemCode UNIQUE (userIdentifier)
+	CONSTRAINT UC_userIdentifier UNIQUE (userIdentifier)
 );
 
 # Flesh this out more
@@ -29,6 +29,7 @@ CREATE TABLE Customer (
 	customerMiddleName CHAR(32) NULL,
     customerLastName CHAR(32) NOT NULL,
     dateAdded DATE NOT NULL,
+	CONSTRAINT UC_customerIdentifier UNIQUE (customerFirstName, customerMiddleName, customerLastName, dateAdded),
     FOREIGN KEY (clientId) REFERENCES Client (clientId),
     PRIMARY KEY (customerId)
 );
@@ -50,7 +51,7 @@ CREATE TABLE CustomerContact (
 	contactId INT AUTO_INCREMENT,
 	customerId INT NOT NULL,
 	contactType CHAR(16) NOT NULL, # Email/Cell/Home
-    contactValue CHAR(32) NOT NULL,
+    contactValue CHAR(48) NOT NULL,
     FOREIGN KEY (customerId) REFERENCES Customer (customerId),
     PRIMARY KEY (contactId)
 );
@@ -106,3 +107,6 @@ VALUES ("Garnet Well and Pump Service", "TestUser", "testuser", "$2b$10$laGVhlfi
 
 INSERT INTO ItemType (clientId, itemCode, itemCodeIdentifier, itemName, defaultBuyPrice, defaultSellPrice)
 VALUES (1, "item1", "item1", "Item One", 2, 2.2);
+
+INSERT INTO ItemType (clientId, itemCode, itemCodeIdentifier, itemName, defaultBuyPrice, defaultSellPrice)
+VALUES (1, "item2", "item2", "Item Two", 2, 2.2);

@@ -1,6 +1,6 @@
 export function clearErrJson(errJson) {
     for (let key in errJson)
-        if (errJson[key].length == 0)
+        if (errJson[key] === null || errJson[key] === undefined || errJson[key].length === 0)
             delete errJson[key];
     return Object.keys(errJson).length == 0
 }
@@ -61,7 +61,11 @@ export function getDateAsSQLString(date) {
     const day = String(date.getDate()).padStart(2, '0');
 
     const formattedDate = `${year}-${month}-${day}`;
-    console.log(formattedDate);
+    return formattedDate;
+}
+
+export function capitalizeFirstLetter(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
 export function isValidDateString(dateString) {

@@ -122,14 +122,14 @@ export function mountAuthDetector(Component, redirectInfo, safe = true) {
 
         useEffect(() => {
 
-            const { controller, isMounted, cleanup } = mountAbortSignal(5);
+            const { controller, isCleanedUp, cleanup } = mountAbortSignal(5);
 
             const fetchData = async () => {
 
                 try {
                     const { loggedIn } = (await axios.get(`${SERVER_URL}/auth/loggedInCheck`, { signal: controller.signal })).data
 
-                    if (isMounted()) {
+                    if (isCleanedUp()) {
                         if (redirectInfo && (loggedIn && redirectIf.toLowerCase() === "loggedin") || (!loggedIn && redirectIf.toLowerCase() == "loggediut")) {
                             navigate(redirectTo, redirectOptions);
                         }
@@ -139,7 +139,7 @@ export function mountAuthDetector(Component, redirectInfo, safe = true) {
                     }
                 }
                 catch (err) {
-                    if (axios.isCancel(err)) return console.log(`Request canceled due to ${isMounted() ? "timeout" : "unmount"}`, err);
+                    if (axios.isCancel(err)) return console.log(`Request canceled due to ${isCleanedUp() ? "timeout" : "unmount"}`, err);
                     console.log("Error at GET /auth/loggedInCheck", err);
                 }
             }

@@ -3,7 +3,7 @@
 import axios from "axios";
 import { useEffect, useRef, useState } from "react";
 import { AdornedFormInput, FormInput } from "../../components/FormComponents";
-import { newAbortSignal } from "../../tools/axiosTools";
+import { mountAbortSignal, newAbortSignal } from "../../tools/axiosTools";
 import { SERVER_URL } from "../App";
 import { LoadingButton } from "@mui/lab";
 import { Send as SendIcon } from "@mui/icons-material";
@@ -11,7 +11,15 @@ import "../../sass/CreateItemTypeSubPage.scss"
 
 const CreateItemTypePage = (props) => {
 
-    const { selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage } = props;
+    // Inherited props
+    const {
+        selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage,
+    } = props;
+
+    // Only inherited when composed by ItemTypeManagementPage
+    const {
+        editingId,
+    } = props;
 
     const [itemName, setItemName] = useState("")
     const [itemNameError, setItemNameError] = useState("");
@@ -28,24 +36,50 @@ const CreateItemTypePage = (props) => {
     const [defaultSellPrice, setDefaultSellPrice] = useState("");
     const [defaultSellPriceError, setDefaultSellPriceError] = useState("")
 
-    const signalRef = useRef();
+    const submitSignalRef = useRef();
 
     // This effect does nothing except return a cleanup (on unmount essentially) function that will abort the current controller
-    useEffect(() => () => signalRef.current?.abort(), []);
+    useEffect(() => () => submitSignalRef.current?.abort(), []);
 
-    // On mount we lock page switching with a warning that their item won't be saved
-    useEffect(() => void lockExitWith("This item has not been saved yet. Are you sure?"))
+    useEffect(() => {
+
+        lockExitWith("Unsaved changes will be lost. Are you sure?")
+
+        if (editingId) {
+
+            const { controller, isCleanedUp, cleanup } = mountAbortSignal(5);
+
+            (async () => {
+                try {
+                    const { data: { itemType } } = await axios.get(`${SERVER_URL}/itemType/getItemType`, { params: { itemTypeId: editingId }, signal: controller.signal  })
+                    console.log("Loaded up the following item type for editing:", itemType)
+
+                    setItemName(itemType.itemName);
+                    setItemCode(itemType.itemCode);
+                    setItemDescription(itemType.itemDescription ?? "");
+                    setDefaultBuyPrice(itemType.defaultBuyPrice);
+                    setDefaultSellPrice(itemType.defaultSellPrice);
+                }
+                catch (err) {
+                    if (axios.isCancel(err)) return `Request canceled due to ${isCleanedUp() ? "timeout" : "cleanup"}`
+                    console.log("Error at GET /itemType/getItemType", err);
+                }
+            })()
+
+            return cleanup;
+        }
+    }, [editingId])
 
     const [loading, setLoading] = useState(false);
-    
+
     const submitForm = async () => {
 
         setLoading(true);
-        signalRef.current?.abort();
-        signalRef.current = newAbortSignal(10);
+        submitSignalRef.current?.abort();
+        submitSignalRef.current = newAbortSignal(10);
 
         try {
-            const config = { signal: signalRef.current.signal };
+            const config = { signal: submitSignalRef.current.signal };
             const postData = {
                 itemName,
                 itemCode,
@@ -53,22 +87,37 @@ const CreateItemTypePage = (props) => {
                 defaultBuyPrice: defaultBuyPrice ? parseFloat(defaultBuyPrice) : undefined,
                 defaultSellPrice: defaultSellPrice ? parseFloat(defaultSellPrice) : undefined,
             }
-            await axios.post(`${SERVER_URL}/itemType/createItemType`, postData, config);
-            unlockExit();
-            addDashboardMessage("itemTypeCreationSuccess", { type: "success", text: "Item Type has been successfully created" })
-            trySelectNode("manageItemTypes")
 
+            if (!editingId) {
+                await axios.post(`${SERVER_URL}/itemType/createItemType`, postData, config);
+            }
+            else {
+                postData.itemTypeId = editingId;
+                await axios.put(`${SERVER_URL}/itemType/updateItemType`, postData, config);
+            }
+
+            unlockExit();
+            addDashboardMessage("itemTypeSuccess", { type: "success", text: `Item Type has been successfully ${editingId ? "updated" : "created"}` })
+            trySelectNode("manageItemTypes", { programmatic: true })
         }
         catch (err) {
+            console.log("Error creating or updating item type", err);
             if (axios.isCancel(err)) return console.log("Request canceled due to timeout or unmount", err);
-            console.log("Error at GET /itemType/createItemType", err);
-            if (err.response.data) {
-                const { itemNameErrors, itemCodeErrors, itemDescriptionErrors, defaultBuyPriceErrors, defaultSellPriceErrors } = err.response.data;
-                setItemNameError((itemNameErrors ?? [])[0]);
-                setItemCodeError((itemCodeErrors ?? [])[0]);
-                setItemDescriptionError((itemDescriptionErrors ?? [])[0]);
-                setDefaultBuyPriceError((defaultBuyPriceErrors ?? [])[0]);
-                setDefaultSellPriceError((defaultSellPriceErrors ?? [])[0]);
+            
+            // Validation errors
+            if (err.response?.data) {
+                const {
+                    itemNameError,
+                    itemCodeError,
+                    itemDescriptionError,
+                    defaultBuyPriceError,
+                    defaultSellPriceError
+                } = err.response.data;
+                setItemNameError((itemNameError));
+                setItemCodeError((itemCodeError));
+                setItemDescriptionError((itemDescriptionError));
+                setDefaultBuyPriceError((defaultBuyPriceError));
+                setDefaultSellPriceError((defaultSellPriceError));
             }
         }
         finally {
@@ -79,7 +128,7 @@ const CreateItemTypePage = (props) => {
     return (
         <div className="create-item-type-sub-page">
             <h2 className="sub-page-heading">
-                Create New Item Type
+                {editingId ? "Edit" : "Create New"} Item Type
             </h2>
             <div className="create-item-type-form">
                 <div className="row gx-0">
@@ -150,7 +199,7 @@ const CreateItemTypePage = (props) => {
                         loading={loading}
                         loadingPosition="end"
                         variant="contained">
-                        <span>Create Item Type</span>
+                        <span>{editingId ? "Edit" : "Create"} Item Type</span>
                     </LoadingButton>
                 </div>
             </div>
