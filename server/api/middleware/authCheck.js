@@ -39,7 +39,14 @@ export default async function authCheck(req, res, next) {
     // cookies aren't invalidated as a result of the deletion of the session that all the cookies were on
     //
     // Realized this concurrency error due to React's 'double-mount' in development mode, but it was a good catch :)
-    deleteSessionSoon(sessionUUID)
+
+    // I also have to do this with sessionCSRF. sessionCSRF will have its own DB table and it will also get deleted soon here
+    // but we want to make them so they can use any sessionCSRF that we gave them recently (within 15s same as session)
+    // theres a weird issue with axios interceptor where the intercepted request is built is using cookies A and B (jwt and csrf) but before the interceptor reads
+    // cookies via JS to set the header, cookies C and D come in from a request that just completed, so the header is set to a more recent csrf.
+    // Since csrf validation would be tied to old cookies A and B (it is validated thru signed jwt in cookie A), we get an auth rejection because csrf read from c 
+    // cookie D and it does not match. So we need to not tie csrf to the session and instead use tables for csrf. 
+    deleteSessionSoon(sessionUUID) // <-- also should delete sessionCSRFUUID which we will get from authCheckHelper (authCheckHelper will return the csrfUUID of the table used to validate their csrf cookie)
 
     res.clearCookie("auth_csrf")
     res.clearCookie("auth_jwt")

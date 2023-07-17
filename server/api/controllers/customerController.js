@@ -1,4 +1,4 @@
-import { capitalizeFirstLetter, clearErrJson } from "../tools/controller/validationHelpers.js";
+import { capitalizeFirstLetter, clearErrJson, getDateAsSQLString } from "../tools/controller/validationHelpers.js";
 import { createCustomer, createCustomerAddress, getCustomer } from "../tools/database/tblCustomerProcedures.js";
 
 const customerNameRegex = /^[a-zA-Z]+$/
@@ -96,7 +96,7 @@ export async function api_createCustomer(req, res) {
 
         let anyAddressErrors = false;
         for (let addressError of errJson.addressErrors) {
-            if (addressError) {
+            if (Object.keys(addressError).length > 0) {
                 anyAddressErrors = true;
                 break;
             }
@@ -121,7 +121,7 @@ export async function api_createCustomer(req, res) {
 
         let anyContactErrors = false;
         for (let contactError of errJson.contactErrors) {
-            if (contactError) {
+            if (Object.keys(contactError).length > 0) {
                 anyContactErrors = true;
                 break;
             }
@@ -142,6 +142,7 @@ export async function api_createCustomer(req, res) {
         await createCustomer(clientId, customerFirstName, customerMiddleName, customerLastName, dateAdded);
     }
     catch (err) {
+        console.log("Error inserting new Customer into the database", err)
         return res.status(500).json({ databaseError: "Error inserting new Customer into the database" });
     }
 
@@ -198,7 +199,7 @@ export async function api_updateCustomerAddress(req, res) {
 
 function getAddressErrJson(addressObj) {
 
-    const { address, zip, town } = addressObj;
+    let { address, zip, town } = addressObj;
 
     const addressErrorJson = {};
 
@@ -218,11 +219,10 @@ function getAddressErrJson(addressObj) {
     if (!zip) {
         addressErrorJson.zipError = "This field is required"
     }
-    else if (typeof zip !== "string" && typeof zip !== "number") {
+    else if (typeof zip !== "string") {
         addressErrorJson.zipError = "This must be a string or number"
     }
     else {
-        zip = String(zip); // They can supply it as a number but we will convert it to a string for the database
         if (zip.length !== 5) {
             addressErrorJson.zipError = "Must be 5 characters"
         }
@@ -238,10 +238,6 @@ function getAddressErrJson(addressObj) {
         if (town.length < 3 || town.length > 24) {
             addressErrorJson.townError = "Must 3-24 characters"
         }
-    }
-
-    if (Object.keys(addressErrorJson).length === 0) {
-        return null;
     }
 
     return addressErrorJson;
@@ -266,9 +262,15 @@ function getContactErrJson(contactObj) {
         contactErrJson.contactTypeError = "This must be a string"
     }
     else {
-        contactType = capitalizeFirstLetter(contactType.toLowerCase());
+        let isValid = false;
+        for (let validType of contactTypes) {
+            if (validType.toLowerCase() === contactType.trim().toLowerCase()) {
+                contactType = validType;
+                isValid = true;
+            }
+        }
 
-        if (!contactTypes.includes(contactType)) {
+        if (!isValid) {
             contactErrJson.contactTypeError = "Contact type must be either 'Email' 'Cell Phone' or 'Home Phone'"
         }
     }
@@ -284,10 +286,6 @@ function getContactErrJson(contactObj) {
         if (contactValue.length < 3 || contactValue.length > 48) {
             contactErrJson.contactValueError = "Must 3-24 characters"
         }
-    }
-
-    if (Object.keys(contactErrJson).length === 0) {
-        return null;
     }
 
     return contactErrJson;

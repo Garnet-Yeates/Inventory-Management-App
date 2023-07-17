@@ -52,7 +52,7 @@ const ItemInstancesView = (props) => {
 
     return (
         <div className="item-instance-management-sub-page">
-            <h2 className="sub-page-heading">Item Instance Managementt</h2>
+            <h2 className="sub-page-heading">Item Instance Management</h2>
             <div className="item-instances-display-container">
                 {itemInstances.map((itemInstance) => <SimpleItemInstanceDisplay
                     key={itemInstance.itemInstanceId}

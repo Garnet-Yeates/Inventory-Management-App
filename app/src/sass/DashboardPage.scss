@@ -173,7 +173,7 @@ nav.mobile-navigation {
 
     .sub-page-heading {
         text-align: center;
-        margin-bottom: 24px;
+        @include rfs(24px, margin-bottom)
     }
 
     .messages-box {

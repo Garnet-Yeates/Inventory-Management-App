@@ -27,7 +27,7 @@ const getOnChangeFunction = (type, state, setState) => {
     }
 }
 
-export const AdornedFormInput = ({ label, size, state, setState, fullWidth, adornment, type, helperText, errorText, disabled, placeholder }) => {
+export const AdornedFormInput = ({ label, size, state, setState, fullWidth, adornment, type, helperText, errorText, minErrorText, disabled, placeholder, value, onChange }) => {
     const error = errorText ? true : false;
     return (
         <FormControl size={size} error={error} fullWidth={fullWidth} variant="outlined">
@@ -37,23 +37,23 @@ export const AdornedFormInput = ({ label, size, state, setState, fullWidth, ador
                 placeholder={placeholder}
                 size={size}
                 error={error}
-                value={state}
-                onChange={getOnChangeFunction(type, state, setState)}
+                value={value ?? state}
+                onChange={onChange ?? getOnChangeFunction(type, state, setState)}
                 label={label}
                 startAdornment={<InputAdornment position="start">{adornment}</InputAdornment>}
             />
-            <FormHelperText error={error}>{errorText || helperText || " "}</FormHelperText>
+            <FormHelperText error={error}>{errorText || helperText || (minErrorText ? "" : " ")}</FormHelperText>
         </FormControl>
     )
 }
 
-export const FormInput = ({ state, setState, type, errorText, helperText, ...rest }) => {
+export const FormInput = ({ state, setState, type, errorText, helperText, minErrorText, onChange, value, ...rest }) => {
     return (
         <TextField
-            value={state}
-            onChange={getOnChangeFunction(type, state, setState)}
+            value={value ?? state}
+            onChange={onChange ?? getOnChangeFunction(type, state, setState)}
             error={errorText ? true : false}
-            helperText={errorText || helperText || " "}
+            helperText={errorText || helperText || (minErrorText ? "" : " ")}
             {...rest}
         />
     )
