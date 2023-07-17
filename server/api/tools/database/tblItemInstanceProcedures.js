@@ -2,7 +2,7 @@ import { getDateAsSQLString } from "../controller/validationHelpers.js";
 import { Table, throwIfAnyKeyIsNullish } from "./driverAbstractions.js";
 import { getItemType } from "./tblItemTypeProcedures.js";
 
-export async function createItemInstance(clientId, itemTypeId, datePurchased, dateAdded = null, quantity, buyPrice = null, sellPrice = null) {
+export async function createItemInstance(clientId, itemTypeId, datePurchased = null, dateAdded = null, quantity, buyPrice = null, sellPrice = null) {
 
     throwIfAnyKeyIsNullish({ itemTypeId, datePurchased, quantity });
 
@@ -19,6 +19,7 @@ export async function createItemInstance(clientId, itemTypeId, datePurchased, da
     }
 
     dateAdded ??= getDateAsSQLString(new Date())
+    datePurchased ??= getDateAsSQLString(new Date())
     buyPrice ??= existingItemType.defaultBuyPrice
     sellPrice ??= existingItemType.defaultSellPrice
 

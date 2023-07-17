@@ -1,6 +1,5 @@
 import axios from "axios";
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { mountAbortSignal } from "../../tools/axiosTools";
 import { SERVER_URL } from "../App";
 import "../../sass/ManageItemTypesSubPage.scss"
@@ -10,6 +9,7 @@ import CreateItemTypePage from "./CreateItemTypePage";
 
 const ItemTypeManagementPage = (props) => {
 
+    // Inherited props
     const { selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage } = props;
 
     // Props that can exist when props for this page are overriden
@@ -35,9 +35,7 @@ const ItemTypeManagementPage = (props) => {
 const ItemsViewPage = (props) => {
 
     // Inherited props
-    const {
-        selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage,
-    } = props;
+    const { selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage } = props;
 
     const [itemTypes, setItemTypes] = useState([]);
 
@@ -79,9 +77,7 @@ const ItemsViewPage = (props) => {
 const ViewItemTypePage = (props) => {
 
     // Inherited props
-    const {
-        selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage,
-    } = props;
+    const { selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage } = props;
 
     // Specific props
     const { itemTypeId } = props;
@@ -91,8 +87,6 @@ const ViewItemTypePage = (props) => {
 }
 
 export const SimpleItemTypeDisplay = (props) => {
-
-    const { setViewingSpecificItemType, setEditingSpecificItemType } = props;
 
     const {
         itemType: {
@@ -121,7 +115,7 @@ export const SimpleItemTypeDisplay = (props) => {
                 {itemDescription || "No Description Provided"}
             </p>
             <span className="buy-sell">
-                Buy Price: {formatToUSCurrency(Number(defaultBuyPrice))} | Sell Price: {formatToUSCurrency(Number(defaultSellPrice))}
+                Buy Price: {formatToUSCurrency(defaultBuyPrice)} | Sell Price: {formatToUSCurrency(defaultSellPrice)}
             </span>
             <div className="button-group Mui-ButtonCompression">
                 <Button
@@ -131,7 +125,6 @@ export const SimpleItemTypeDisplay = (props) => {
                         trySelectNode("createNewItemInstance", {
                             programmatic: true,
                             overrideProps: {
-                                preSetItemTypeId: itemTypeId,
                                 preSetItemCode: itemCode,
                             }
                         })
@@ -154,21 +147,6 @@ export const SimpleItemTypeDisplay = (props) => {
                     endIcon={<Edit />}
                     variant="contained">
                     <span>Edit</span>
-                </Button>
-                <Button
-                    size="small"
-                    color="secondary"
-                    onClick={() => {
-                        trySelectNode("manageItemTypes", {
-                            programmatic: true,
-                            overrideProps: {
-                                viewingSpecificItemType: itemTypeId,
-                            }
-                        })
-                    }}
-                    endIcon={<Visibility />}
-                    variant="contained">
-                    <span>View</span>
                 </Button>
             </div>
         </div>

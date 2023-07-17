@@ -80,7 +80,7 @@ const CreateItemTypePage = (props) => {
 
         try {
             const config = { signal: submitSignalRef.current.signal };
-            const postData = {
+            const data = {
                 itemName,
                 itemCode,
                 itemDescription,
@@ -89,11 +89,11 @@ const CreateItemTypePage = (props) => {
             }
 
             if (!editingId) {
-                await axios.post(`${SERVER_URL}/itemType/createItemType`, postData, config);
+                await axios.post(`${SERVER_URL}/itemType/createItemType`, data, config);
             }
             else {
-                postData.itemTypeId = editingId;
-                await axios.put(`${SERVER_URL}/itemType/updateItemType`, postData, config);
+                data.itemTypeId = editingId;
+                await axios.put(`${SERVER_URL}/itemType/updateItemType`, data, config);
             }
 
             unlockExit();

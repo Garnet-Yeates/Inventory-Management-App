@@ -12,6 +12,8 @@ import AuthTestPage from './AuthTestPage';
 import { blue, green, pink, purple } from '@mui/material/colors';
 import { createTheme } from '@mui/material';
 import { ThemeProvider } from '@emotion/react';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
+import { LocalizationProvider } from '@mui/x-date-pickers';
 
 export const SERVER_URL = "http://localhost:4000"
 
@@ -47,19 +49,21 @@ const theme = createTheme({
 function App() {
     return (
         <div id='app-wrapper'>
-            <ThemeProvider theme={theme}>
-                <Router>
-                    <AuthAxiosInterceptor />
-                    <Routes>
-                        <Route path='/' element={<HomePage />} />
-                        <Route path='/register' element={<RegisterPage />} />
-                        <Route path='/dashboard' element={<DashboardPage />} />
-                        <Route path='/authTest' element={<AuthTestPage />} />
-                        <Route path='/login' element={<LoginPage />} />
-                        <Route path='*' element={<NotFoundPage />} />
-                    </Routes>
-                </Router>
-            </ThemeProvider>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <ThemeProvider theme={theme}>
+                    <Router>
+                        <AuthAxiosInterceptor />
+                        <Routes>
+                            <Route path='/' element={<HomePage />} />
+                            <Route path='/register' element={<RegisterPage />} />
+                            <Route path='/dashboard' element={<DashboardPage />} />
+                            <Route path='/authTest' element={<AuthTestPage />} />
+                            <Route path='/login' element={<LoginPage />} />
+                            <Route path='*' element={<NotFoundPage />} />
+                        </Routes>
+                    </Router>
+                </ThemeProvider>
+            </LocalizationProvider>
         </div>
     )
 }

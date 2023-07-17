@@ -1,20 +1,16 @@
 @import "./App.scss";
 
-.item-type-management-sub-page {
-
+.item-instance-management-sub-page {
     height: 100%;
     width: 100%;
-
-
-
 }
 
-.item-types-display-container {
+.item-instances-display-container {
 
     padding: 0.5rem;
     width: 100%;
 
-    .item-type-display-container {
+    .item-instance-display-container {
 
         box-shadow: 0px 0px 8px -2px rgba(0, 0, 0, 0.25);
         padding: 8px;
@@ -58,7 +54,7 @@
             }
         }
 
-        p.item-description {
+        .date {
             @include rfs(1.125rem, font-size);
         }
 

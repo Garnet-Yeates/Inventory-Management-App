@@ -2,7 +2,7 @@ import { FormControl, FormHelperText, InputAdornment, InputLabel, OutlinedInput,
 
 // All of these are built upon the MaterialUI library
 
-const integerRegex = /^-?\d+$/;
+const integerRegex = /^(?:\d+|)$/
 const decimalRegex = /^-?(?:\d+(?:\.\d*)?|\.\d+)?$/;
 
 const getRegexForType = (type) => {
@@ -27,12 +27,14 @@ const getOnChangeFunction = (type, state, setState) => {
     }
 }
 
-export const AdornedFormInput = ({ label, size, state, setState, fullWidth, adornment, type, helperText, errorText }) => {
+export const AdornedFormInput = ({ label, size, state, setState, fullWidth, adornment, type, helperText, errorText, disabled, placeholder }) => {
     const error = errorText ? true : false;
     return (
         <FormControl size={size} error={error} fullWidth={fullWidth} variant="outlined">
             <InputLabel size={size} error={error} variant="outlined">{label}</InputLabel>
             <OutlinedInput
+                disabled={disabled}
+                placeholder={placeholder}
                 size={size}
                 error={error}
                 value={state}

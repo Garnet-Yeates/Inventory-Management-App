@@ -1,6 +1,7 @@
 import { clearErrJson, countDecimalPlaces, numDigits as countDigits, getSQLDateStringAsDateObject, isValidDateString, isDateStringFormat, getDateAsSQLString } from "../tools/controller/validationHelpers.js";
 import { createItemInstance, getItemInstances, getItemInstance, updateItemInstances } from "../tools/database/tblItemInstanceProcedures.js";
 import { getItemType, getItemTypes, createItemType, updateItemType } from "../tools/database/tblItemTypeProcedures.js";
+import { itemCodeRegex } from "./itemTypeController.js";
 
 export async function api_createItemInstance(req, res) {
     createOrUpdateItemInstance(req, res)
@@ -18,7 +19,7 @@ async function createOrUpdateItemInstance(req, res, isUpdating) {
         },
         body: {
             itemInstanceId, // if updating
-            itemTypeId,
+            itemCode, // The item we are creating instance of
             datePurchased,
             quantity,
             buyPrice,
@@ -34,44 +35,54 @@ async function createOrUpdateItemInstance(req, res, isUpdating) {
         }
         else {
             if (!await getItemInstance(clientId, { itemInstanceId })) {
-                return res.status(404).json({ itemTypeIdError: "Could not find item instance with the specified id to update for this client" })
+                return res.status(404).json({ itemInstanceIdError: "Could not find item instance with the specified id to update for this client" })
             }
         }
     }
 
-    // Validate itemTypeId. Must be defined integer > 1, not NaN. It must also be the foreign key to an existing itemType owned by the client
-    if (isUpdating) {
-        if (itemTypeId === null || itemTypeId === undefined) {
-            errJson.itemTypeIdError = "This field is required";
-        } 
-        else if (typeof itemTypeId !== "number") {
-            errJson.itemTypeIdError = "This must be a number";
-        } 
-        else if (!Number.isInteger(itemTypeId) || itemTypeId <= 0) {
-            errJson.itemTypeIdError = "Item type must be an integer greater than 0";
-        } 
-        else {
-            try {    
-                if (!await getItemType(clientId, { itemTypeId })) {
-                    errJson.itemTypeIdError = "Could not find an itemType for this client with the specified itemTypeId";
-                }
-            } 
-            catch (err) {
-                console.log("Database error:", err);
-                errJson.databaseError = "Error querying database for existing itemType foreign key check";
+    // Validate itemCode
+
+    let itemTypeId;
+    if (!itemCode) {
+        errJson.itemCodeError = "This field is required"
+    }
+    else if (typeof itemCode !== "string") {
+        errJson.itemCodeError = "This must be a string"
+    }
+    else if (itemCode.length < 3 || itemCode.length > 24) {
+        errJson.itemCodeError = "Must be 5-32 characters"
+    }
+    else if (!itemCodeRegex.exec(itemCode)) {
+        errJson.itemCodeError = "Must be alphanumeric (underscore is allowed)"
+    }
+    else {
+        try {
+            const itemType = await getItemType(clientId, { itemCode })
+            if (!itemType) {
+                errJson.itemCodeError = "Could not find an itemType for this client with the specified itemCode";
+            }
+            else {
+                itemTypeId = itemType.itemTypeId;
             }
         }
+        catch (err) {
+            console.log("Database error:", err);
+            errJson.databaseError = "Error querying database for existing itemType foreign key check";
+        }
     }
-
+    
     // Validate datePurchased. Does not need to be defined (defaults to now), but if it is defined it must be:
     // a valid sql date string (YYYY-MM-DD), as well as a valid date
     if (datePurchased) {
         if (!isDateStringFormat(datePurchased)) {
             errJson.datePurchasedError = "Invalid date format. Must be YYYY-MM-DD";
         }
-        if (!isValidDateString(datePurchased)) {
-            errJson.datePurchasedError = "Date is formatted properly but it is an invalid date";
+        else if (!isValidDateString(datePurchased)) {
+            errJson.datePurchasedError = "Date does not exist";
         }
+    }
+    else {
+        datePurchased = getDateAsSQLString(new Date())
     }
 
     const dateAdded = getDateAsSQLString(new Date());
@@ -81,10 +92,10 @@ async function createOrUpdateItemInstance(req, res, isUpdating) {
     if (buyPrice !== null && buyPrice !== undefined) {
         if (typeof buyPrice !== "number") {
             errJson.buyPriceError = "This must be a number";
-        } 
+        }
         else if (Number.isNaN(buyPrice)) {
             errJson.buyPriceError = "Can not be NaN";
-        } 
+        }
         else {
             if (buyPrice < 0) {
                 errJson.buyPriceError = "Can not be negative";
@@ -102,10 +113,10 @@ async function createOrUpdateItemInstance(req, res, isUpdating) {
     if (sellPrice !== null && sellPrice !== undefined) {
         if (typeof sellPrice !== "number") {
             errJson.sellPriceError = "This must be a number";
-        } 
+        }
         else if (Number.isNaN(sellPrice)) {
             errJson.sellPriceError = "Can not be NaN";
-        } 
+        }
         else {
             if (sellPrice < 0) {
                 errJson.sellPriceError = "Can not be negative";
@@ -122,12 +133,12 @@ async function createOrUpdateItemInstance(req, res, isUpdating) {
     // Validate quantity. Must be an integer > 0
     if (quantity === null || quantity === undefined) {
         errJson.quantityError = "This field is required";
-    } 
+    }
     else if (typeof quantity !== "number") {
         errJson.quantityError = "This must be a number";
-    } 
+    }
     else if (!Number.isInteger(quantity) || quantity <= 0) {
-        errJson.quantityError = "Item type must be an integer greater than 0";
+        errJson.quantityError = "Must be an integer greater than 0";
     }
 
     // If any errors, return errJson
@@ -138,15 +149,16 @@ async function createOrUpdateItemInstance(req, res, isUpdating) {
     // One final error possibility here
     try {
         if (isUpdating) {
-            await createItemInstance(clientId, itemTypeId, datePurchased, dateAdded, quantity, buyPrice, sellPrice);
-        }
-        else {
             const updateMap = { datePurchased, quantity, buyPrice, sellPrice }
             const where = { itemInstanceId }
             await updateItemInstances(updateMap, where);
         }
-    } 
+        else {
+            await createItemInstance(clientId, itemTypeId, datePurchased, dateAdded, quantity, buyPrice, sellPrice);
+        }
+    }
     catch (err) {
+        console.log("Error inserting or updating ItemInstance into the database", err)
         return res.status(500).json({ databaseError: "Error inserting or updating ItemInstance into the database" });
     }
 
@@ -172,19 +184,47 @@ export async function api_getItemInstances(req, res) {
         query: {
             itemTypeId,
             itemCode,
+            groupByType,
         }
     } = req;
 
     try {
+        let result;
         if (itemTypeId) {
-            return await getItemInstances(clientId, { itemTypeId })
+            result = await getItemInstances(clientId, { itemTypeId })
         }
         else if (itemCode) {
-            return await getItemInstances(clientId, { itemCode })
+            result = await getItemInstances(clientId, { itemCode })
         }
         else {
-            return await getItemInstances(clientId)
+            result = await getItemInstances(clientId)
         }
+
+        if (groupByType) {
+            const typeMap = {}
+            for (let instance of result) {
+                const { itemTypeId, itemCode } = instance;
+                if (!(itemTypeId in typeMap)) {
+                    typeMap[itemTypeId] = { itemTypeId, itemCode, instances: [instance] }
+                    continue;
+                } 
+                typeMap[itemTypeId].instances.push(instance);
+            }
+
+            result = []
+
+            // Convert the map to an array
+            for (let key in typeMap) {
+                result.push(typeMap[key])
+            }
+
+            result.sort((groupingA, groupingB) => groupingA.itemTypeId - groupingB.itemTypeId)
+        }
+        else {
+            result.sort((a, b) => a.itemTypeId - b.itemTypeId);
+        }
+
+        return res.status(200).json({ itemInstances: result })
     }
     catch (err) {
         console.log("Database error (getItemInstances endpoint)", err)

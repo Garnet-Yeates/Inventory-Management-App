@@ -242,6 +242,8 @@ export async function login(req, res) {
  */
 export async function logout(req, res) {
 
+    console.log("logout")
+
     // If they didn't supply ANY credentials at all we don't need to run the auth check - we know they aren't logged in
     if (!userSuppliedAnyAuth(req)) {
         return res.status(200).json({ loggedOut: "You weren't even logged in" })

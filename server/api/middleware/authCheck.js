@@ -188,6 +188,7 @@ export async function authCheckHelper(req, res, options) {
 
     // Helper function
     function onAuthFailure(status, errorType, errorMessage) {
+        console.log("AUTH FAILURE:", errorMessage)
         deleteCookiesOnFail && res.clearCookie("auth_jwt")
         deleteCookiesOnFail && res.clearCookie("auth_csrf")
         sessionUUID && deleteSessionSoon(sessionUUID)

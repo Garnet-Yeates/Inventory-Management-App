@@ -12,7 +12,6 @@ export async function createItemType(clientId, itemName, itemCode, itemDescripti
         clientId,
         itemName,
         itemCode,
-        itemCodeIdentifier: itemCode.toLowerCase(),
         itemDescription,
         defaultBuyPrice,
         defaultSellPrice

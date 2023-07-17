@@ -1,7 +1,7 @@
 import { clearErrJson, countDecimalPlaces, numDigits as countDigits } from "../tools/controller/validationHelpers.js";
 import { getItemType, getItemTypes, createItemType, updateItemType } from "../tools/database/tblItemTypeProcedures.js";
 
-const itemCodeRegex = /^[a-zA-Z0-9_]+$/
+export const itemCodeRegex = /^[a-zA-Z0-9_]+$/
 
 /**
  * `POST` `/item/createItemType` 
@@ -97,27 +97,23 @@ async function createOrUpdateItemType(req, res, isUpdating) {
     else if (typeof itemCode !== "string") {
         errJson.itemCodeError = "This must be a string"
     }
+    else if (itemCode.length < 3 || itemCode.length > 24) {
+        errJson.itemCodeError = "Must be 5-32 characters"
+    }
+    else if (!itemCodeRegex.exec(itemCode)) {
+        errJson.itemCodeError = "Must be alphanumeric (underscore is allowed)"
+    }
     else {
-        if (itemCode.length < 3 || itemCode.length > 24) {
-            errJson.itemCodeError = "Must be 5-32 characters"
-        }
-
-        if (!itemCodeRegex.exec(itemCode)) {
-            errJson.itemCodeError = "Must be alphanumeric (underscore is allowed)"
-        }
-
-        if (itemCodeError.length === 0) {
-            let otherItem;
-            try {
-                otherItem = await getItemType(clientId, { itemCode });
-                if (otherItem && (!isUpdating || otherItem.itemTypeId !== itemTypeId)) {
-                    errJson.itemCodeError = "Item code is in use"
-                }
+        let otherItem;
+        try {
+            otherItem = await getItemType(clientId, { itemCode });
+            if (otherItem && (!isUpdating || otherItem.itemTypeId !== itemTypeId)) {
+                errJson.itemCodeError = "Item code is in use"
             }
-            catch (err) {
-                console.log("Database error:", err)
-                errJson.databaseError = "Error querying database for unique itemCode check"
-            }
+        }
+        catch (err) {
+            console.log("Database error:", err)
+            errJson.databaseError = "Error querying database for unique itemCode check"
         }
     }
 
@@ -190,7 +186,7 @@ async function createOrUpdateItemType(req, res, isUpdating) {
     // One final error possibility here
     try {
         if (isUpdating) {
-            await updateItemType(itemTypeId, clientId, { itemCode, itemName, itemDescription, defaultBuyPrice, defaultSellPrice });
+            await updateItemType(clientId, itemTypeId, { itemCode, itemName, itemDescription, defaultBuyPrice, defaultSellPrice });
         }
         else {
             await createItemType(clientId, itemName, itemCode, itemDescription, defaultBuyPrice, defaultSellPrice);
@@ -211,17 +207,18 @@ export async function api_getItemType(req, res) {
             clientId,
             sessionUUID
         },
-        query: {
-            itemTypeId,
-        }
+        query,
     } = req;
 
-    if (!itemTypeId) {
-        return res.status(400).json({ itemTypeIdError: "This field is required" })
+    console.log("queey", query)
+
+    if (!query.itemTypeId && !query.itemCode) {
+        return res.status(400).json({ errorMessage: "itemTypeId or itemCode is required" })
     }
 
     try {
-        const itemType = await getItemType(clientId, { itemTypeId });
+        const itemType = await getItemType(clientId, query);
+
         if (!itemType) {
             return res.status(404).json({ itemTypeIdError: "Could not find an item in the database with the specified itemTypeId for this client" })
         }

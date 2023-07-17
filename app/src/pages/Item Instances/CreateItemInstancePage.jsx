@@ -1,7 +1,15 @@
 // Used for creating new Item Types. No way to edit 'in-progress' ones since creation is very simple
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { AdornedFormInput, FormInput } from "../../components/FormComponents";
+import axios from "axios";
+import { mountAbortSignal, newAbortSignal } from "../../tools/axiosTools";
+import { SERVER_URL } from "../App";
+import { LoadingButton } from "@mui/lab";
+import { Send } from "@mui/icons-material";
+import { DatePicker } from "@mui/x-date-pickers";
+import { TextField } from "@mui/material";
 
 const CreateItemInstancePage = (props) => {
 
@@ -14,13 +22,11 @@ const CreateItemInstancePage = (props) => {
     } = props;
 
     // Page-specific props
-    const { preSetItemTypeId, preSetItemCode } = props;
+    const { preSetItemCode } = props;
 
-    // This is the one that is internally used when it is created
-    const [itemTypeId, setItemTypeId] = useState(preSetItemTypeId);
-
-    // This is the one you visibly see. When editing, and also when preSetItemTypeId is set, this should be disabled
-    const [itemCode, setItemCode] = useState(preSetItemCode);
+    // For now we change it by typing. Every time it changes it makes a GET though.. Later this will be done through a modal with search abilities
+    const [itemCode, setItemCode] = useState("");
+    const [itemCodeError, setItemCodeError] = useState("");
 
     const [datePurchased, setDatePurchased] = useState("")
     const [datePurchasedError, setDatePurchasedError] = useState("");
@@ -36,33 +42,26 @@ const CreateItemInstancePage = (props) => {
     const [sellPriceError, setSellPriceError] = useState("")
     const [defaultSellPrice, setDefaultSellPrice] = useState("")
 
-    // Abort the submit button signal if we happen to unmount
-    const submitSignalRef = useRef();
-    useEffect(() => () => submitSignalRef.current?.abort(), []);
-
-    // Whenever itemTypeId changes (or mount occurs), we see find the itemType to load its default values into our placeholders 
+    // Abort signals on unmount
+    const submitSignalRef = useRef(); // Submit button
+    const codeUpdateSignalRef = useRef(); // setTimeOut after itemCode changes
     useEffect(() => {
-
-        if (itemTypeId) {
-
-            const { controller, isCleanedUp, cleanup } = mountAbortSignal(5);
-            (async () => {
-                try {
-                    const { data: { itemType } } = await axios.get(`${SERVER_URL}/itemType/getItemType`, { params: { itemTypeId }, signal: controller.signal })
-                    setDefaultBuyPrice(itemType.defaultBuyPrice);
-                    setDefaultSellPrice(itemType.defaultSellPrice);
-                }
-                catch (err) {
-                    if (axios.isCancel(err)) return `Request canceled due to ${isCleanedUp() ? "timeout" : "cleanup"}`
-                    console.log("Error at GET /itemType/getItemType", err);
-                }
-            })()
-            return cleanup;
+        return function cleanup() { 
+            codeUpdateSignalRef.current?.abort();
+            submitSignalRef.current?.abort();
         }
-    }, [itemTypeId])
+     }, []);
+
+    // We also run this when preSetItemCode (override prop) changes, because they can click on the node again to re-select it and remove the overriden prop
+    useEffect(() => {
+        lockExitWith("Unsaved changes will be lost. Are you sure?")
+        setItemCode(preSetItemCode ?? "");
+    }, [preSetItemCode])
 
     // Whenever editingId changes (or mount occurs), we lock exit for unsaved data warning, and we also load up the data if we are editing
     useEffect(() => {
+
+        console.log("E2")
 
         lockExitWith("Unsaved changes will be lost. Are you sure?")
 
@@ -71,25 +70,59 @@ const CreateItemInstancePage = (props) => {
             const { controller, isCleanedUp, cleanup } = mountAbortSignal(5);
             (async () => {
                 try {
-                    const { data: { itemInstance } } = await axios.get(`${SERVER_URL}/itemType/getItemInstance`, { params: { itemInstanceId: editingId }, signal: controller.signal })
+                    const { data: { itemInstance } } = await axios.get(`${SERVER_URL}/itemInstance/getItemInstance`, { params: { itemInstanceId: editingId }, signal: controller.signal })
                     console.log("Loaded up the following item instance for editing:", itemInstance)
 
                     setDatePurchased(itemInstance.datePurchased);
                     setItemCode(itemInstance.itemCode); // Table is inner joined
-                    setItemTypeId(itemInstance.itemTypeId); // Table is inner joined
                     setQuantity(itemInstance.quantity);
                     setBuyPrice(itemInstance.buyPrice);
                     setSellPrice(itemInstance.sellPrice);
                 }
                 catch (err) {
                     if (axios.isCancel(err)) return `Request canceled due to ${isCleanedUp() ? "timeout" : "cleanup"}`
-                    console.log("Error at GET /itemType/getItemType", err);
+                    console.log("Error at GET /itemInstance/getItemInstance", err);
                 }
             })()
 
             return cleanup;
         }
     }, [editingId])
+
+    // Whenever itemCode changes (or mount occurs), we try to find the itemType to load its default values into our placeholders 
+    const itemCodeUpdateDelayRef = useRef(); // For now this happens via typing in the field and we must throttle it. Later it will have a search modal
+    // Request sent 250ms after changing them code. If it changes again before timeout occurs, previous timeout is canceled and it will try again in 200ms
+    // Cookie/header race conditions...
+    useEffect(() => {
+
+        if (itemCodeUpdateDelayRef.current) {
+            clearTimeout(itemCodeUpdateDelayRef.current);
+        }
+
+        codeUpdateSignalRef.current?.abort();
+        codeUpdateSignalRef.current = newAbortSignal(10);
+
+        setDefaultBuyPrice("");
+        setDefaultSellPrice("");
+
+        itemCodeUpdateDelayRef.current = setTimeout(() => {
+            if (itemCode) {
+                (async () => {
+                    try {
+                        const response = await axios.get(`${SERVER_URL}/itemType/getItemType`, { params: { itemCode }, signal: codeUpdateSignalRef.current.signal })
+                        const { data: { itemType } }  = response;
+                        console.log("Received the following from the server", response)
+                        setDefaultBuyPrice(itemType.defaultBuyPrice);
+                        setDefaultSellPrice(itemType.defaultSellPrice);
+                    }
+                    catch (err) {
+                        if (axios.isCancel(err)) return `Request canceled due to unmount or consecutive call (cancels previous request)`
+                        console.log("Error at GET /itemType/getItemType", err);
+                    }
+                })()
+            }
+        }, 250)
+    }, [itemCode])
 
     const [loading, setLoading] = useState(false);
 
@@ -99,22 +132,24 @@ const CreateItemInstancePage = (props) => {
         submitSignalRef.current?.abort();
         submitSignalRef.current = newAbortSignal(10);
 
+        const { $y: year, $M: month, $D: day } = datePurchased;
+
         try {
             const config = { signal: submitSignalRef.current.signal };
-            const postData = {
-                itemTypeId,
-                datePurchased,
-                quantity,
+            const data = {
+                itemCode,
+                datePurchased: convertDateFormat(month, day, year),
+                quantity: parseInt(quantity),
                 buyPrice: buyPrice ? parseFloat(buyPrice) : undefined,
                 sellPrice: sellPrice ? parseFloat(sellPrice) : undefined,
             }
 
             if (!editingId) {
-                await axios.post(`${SERVER_URL}/itemType/createItemInstance`, postData, config);
+                await axios.post(`${SERVER_URL}/itemInstance/createItemInstance`, data, config);
             }
             else {
-                postData.itemInstanceId = editingId;
-                await axios.put(`${SERVER_URL}/itemType/updateItemInstance`, postData, config);
+                data.itemInstanceId = editingId;
+                await axios.put(`${SERVER_URL}/itemInstance/updateItemInstance`, data, config);
             }
 
             unlockExit();
@@ -123,20 +158,22 @@ const CreateItemInstancePage = (props) => {
         }
         catch (err) {
             console.log("Error creating or updating item instance", err);
-            if (axios.isCancel(err)) return console.log("Request canceled due to timeout or unmount", err);
-            
+            if (axios.isCancel(err)) return console.log("Request canceled due to unmount consecutive call (cancels prev request)", err);
+
             // Validation errors
             if (err.response?.data) {
                 const {
-                    itemNameError,
-                    itemDescriptionError,
+                    quantityError,
+                    datePurchasedError,
+                    itemCodeError,
                     buyPriceError,
                     sellPriceError,
                 } = err.response.data;
-                setDatePurchasedError((itemNameError));
-                setQuantityError((itemDescriptionError));
-                setBuyPriceError((buyPriceError));
-                setSellPriceError((sellPriceError));
+                setDatePurchasedError(datePurchasedError);
+                setItemCodeError(itemCodeError);
+                setQuantityError(quantityError);
+                setBuyPriceError(buyPriceError);
+                setSellPriceError(sellPriceError);
             }
         }
         finally {
@@ -147,28 +184,41 @@ const CreateItemInstancePage = (props) => {
     return (
         <div className="create-item-type-sub-page">
             <h2 className="sub-page-heading">
-                {editingId ? "Edit" : "Create New"} Item Type
+                {editingId ? "Edit" : "Create New"} Item Instance
             </h2>
             <div className="create-item-type-form">
                 <div className="row gx-0">
+                    <div className="col-12">
+                        <div className="form-control">
+                            <FormInput
+                                fullWidth
+                                disabled={preSetItemCode ? true : false}
+                                label="Item Code"
+                                state={itemCode}
+                                errorText={itemCodeError}
+                                setState={setItemCode}>
+                            </FormInput>
+                        </div>
+                    </div>
                     <div className="col-lg-6">
                         <div className="form-control">
                             <FormInput
                                 fullWidth
-                                label="Item Name"
-                                state={datePurchased}
-                                setState={setDatePurchased}
-                                errorText={datePurchasedError}>
+                                type="integer"
+                                label="Quantity"
+                                state={quantity}
+                                setState={setQuantity}
+                                errorText={quantityError}>
                             </FormInput>
                         </div>
                         <div className="form-control">
-                            <FormInput
+                            <DatePicker
+                                value={datePurchased}
+                                onChange={(newValue) => setDatePurchased(newValue)}
                                 fullWidth
-                                label="Item Code"
-                                state={itemCode}
-                                setState={setItemCode}
-                                errorText={itemCodeError}>
-                            </FormInput>
+                                label="Date Purchased"
+                                slotProps={{ textField: { variant: 'outlined', fullWidth: true, error: datePurchasedError ? true : false, helperText: datePurchasedError || " " } }}>
+                            </DatePicker>
                         </div>
                     </div>
                     <div className="col-lg-6">
@@ -177,7 +227,8 @@ const CreateItemInstancePage = (props) => {
                                 fullWidth
                                 type="number"
                                 adornment="$"
-                                label="Default Buy Price"
+                                label="Buy Price"
+                                placeholder={String(defaultBuyPrice)}
                                 state={buyPrice}
                                 setState={setBuyPrice}
                                 errorText={buyPriceError}>
@@ -188,24 +239,12 @@ const CreateItemInstancePage = (props) => {
                                 fullWidth
                                 type="number"
                                 adornment="$"
-                                label="Default Sell Price"
+                                label="Sell Price"
+                                placeholder={String(defaultSellPrice)}
                                 state={sellPrice}
                                 setState={setSellPrice}
                                 errorText={sellPriceError}>
                             </AdornedFormInput>
-                        </div>
-                    </div>
-                    <div className="col">
-                        <div className="form-control">
-                            <FormInput
-                                fullWidth
-                                multiline
-                                rows={4}
-                                label="Item Description"
-                                state={quantity}
-                                setState={setQuantity}
-                                errorText={quantityError}>
-                            </FormInput>
                         </div>
                     </div>
                 </div>
@@ -214,17 +253,27 @@ const CreateItemInstancePage = (props) => {
                         fullWidth
                         size="large"
                         onClick={submitForm}
-                        endIcon={<SendIcon />}
+                        endIcon={<Send />}
                         loading={loading}
                         loadingPosition="end"
                         variant="contained">
-                        <span>{editingId ? "Edit" : "Create"} Item Type</span>
+                        <span>{editingId ? "Edit" : "Create"} Item Instance</span>
                     </LoadingButton>
                 </div>
             </div>
-        </div>
+        </div >
     )
 
+}
+
+function convertDateFormat(month, day, year) {
+    if (!month || !day || !year)
+        return;
+    const paddedMonth = String(Number(month) + 1).padStart(2, '0');
+    const paddedDay = String(day).padStart(2, '0');
+  
+    const formattedDate = `${year}-${paddedMonth}-${paddedDay}`;
+    return formattedDate;
 }
 
 export default CreateItemInstancePage;

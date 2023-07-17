@@ -59,7 +59,7 @@ CREATE TABLE CustomerContact (
 CREATE TABLE ChargedService (
 	clientId INT NOT NULL,
 	serviceId INT NOT NULL AUTO_INCREMENT,
-    defaultPricePerUnit DECIMAL(5, 2),
+    defaultPricePerUnit DECIMAL(7, 2),
     unitOfMeasure CHAR(48) NOT NULL, # Hours, Miles, etc
 	FOREIGN KEY (clientId) REFERENCES Client (clientId),
     PRIMARY KEY (serviceId, clientId)
@@ -70,14 +70,13 @@ CREATE TABLE ItemType (
 	itemTypeId INT NOT NULL AUTO_INCREMENT,
 	itemName CHAR(64) NOT NULL,
     itemCode CHAR (24) NOT NULL,
-	itemCodeIdentifier CHAR(24) NOT NULL,
     itemDescription TEXT(512) NULL,
-    defaultBuyPrice DECIMAL(4, 2) NOT NULL,
-    defaultSellPrice DECIMAL(4, 2) NOT NULL,
+    defaultBuyPrice DECIMAL(6, 2) NOT NULL,
+    defaultSellPrice DECIMAL(6, 2) NOT NULL,
     isActive BOOL NOT NULL DEFAULT TRUE,
     FOREIGN KEY (clientId) REFERENCES Client (clientId),
     PRIMARY KEY (itemTypeId),
-    CONSTRAINT UC_itemCode UNIQUE (itemCodeIdentifier, clientId)
+    CONSTRAINT UC_itemCode UNIQUE (itemCode, clientId)
 );
 
 # Many (ItemInstance) To One (ItemType)
@@ -87,8 +86,8 @@ CREATE TABLE ItemInstance (
     datePurchased DATE NOT NULL,
     dateAdded DATE NOT NULL,
     quantity INT NOT NULL,
-    buyPrice DECIMAL(4, 2) NOT NULL,
-	sellPrice DECIMAL(4, 2) NOT NULL,
+    buyPrice DECIMAL(6, 2) NOT NULL,
+	sellPrice DECIMAL(6, 2) NOT NULL,
     FOREIGN KEY (itemTypeId) REFERENCES ItemType (itemTypeId),
     PRIMARY KEY (itemInstanceId),
 	CONSTRAINT UC_itemType UNIQUE (itemTypeId, datePurchased, dateAdded, buyPrice, sellPrice)
@@ -104,9 +103,3 @@ CREATE TABLE Invoice (
 
 INSERT INTO Client (companyName, userName, userIdentifier, hashPassword)
 VALUES ("Garnet Well and Pump Service", "TestUser", "testuser", "$2b$10$laGVhlfiRlyC54AfV6LKLuuELeGlcX.ZTEvVSCOYebjtW4pPrzguS");
-
-INSERT INTO ItemType (clientId, itemCode, itemCodeIdentifier, itemName, defaultBuyPrice, defaultSellPrice)
-VALUES (1, "item1", "item1", "Item One", 2, 2.2);
-
-INSERT INTO ItemType (clientId, itemCode, itemCodeIdentifier, itemName, defaultBuyPrice, defaultSellPrice)
-VALUES (1, "item2", "item2", "Item Two", 2, 2.2);

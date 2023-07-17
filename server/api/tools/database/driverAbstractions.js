@@ -1,4 +1,5 @@
 import { db } from "../../../server.js";
+import { getDateAsSQLString } from "../controller/validationHelpers.js";
 
 export function Table(tableName) {
 
@@ -143,6 +144,10 @@ export class SelectQueryBuilder {
 
         let [results] = await db.query(sql);
 
+        for (let result of results) {
+            mutateSQLResult(result); // Convert dates to YYYY-MM-DD string so api endpoints dont have to. also converts string decimals to floats
+        }
+        
         if (this.limit == 1) {
             return results[0]
         }
@@ -195,6 +200,20 @@ export class SelectQueryBuilder {
             newMap[`${table1Name}.${key}`] = `${table2Name}.${val}`;
         }
         return newMap;
+    }
+}
+
+// Convert dates to YYYY-MM-DD string so api endpoints dont have to. also converts string decimals to floats
+export function mutateSQLResult(result) {
+    for (let key in result) {
+        const value = result[key];
+        if (value instanceof Date) {
+            result[key] = getDateAsSQLString(value)
+        }
+        const asFloat = parseFloat(value)
+        if (!Number.isNaN(asFloat)) {
+            result[key] =  asFloat;
+        }
     }
 }
 
