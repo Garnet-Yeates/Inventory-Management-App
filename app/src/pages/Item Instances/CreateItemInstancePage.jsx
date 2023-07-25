@@ -1,7 +1,6 @@
 // Used for creating new Item Types. No way to edit 'in-progress' ones since creation is very simple
 
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { AdornedFormInput, FormInput } from "../../components/FormComponents";
 import axios from "axios";
 import { mountAbortSignal, newAbortSignal } from "../../tools/axiosTools";
@@ -9,7 +8,6 @@ import { SERVER_URL } from "../App";
 import { LoadingButton } from "@mui/lab";
 import { Send } from "@mui/icons-material";
 import { DatePicker } from "@mui/x-date-pickers";
-import { TextField } from "@mui/material";
 
 const CreateItemInstancePage = (props) => {
 
@@ -60,8 +58,6 @@ const CreateItemInstancePage = (props) => {
 
     // Whenever editingId changes (or mount occurs), we lock exit for unsaved data warning, and we also load up the data if we are editing
     useEffect(() => {
-
-        console.log("E2")
 
         lockExitWith("Unsaved changes will be lost. Are you sure?")
 

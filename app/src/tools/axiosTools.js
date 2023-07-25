@@ -1,6 +1,18 @@
 import axios from "axios";
 import { useEffect, useRef } from "react";
 
+
+export function refreshSignal(signalRef, newSignalTimeout = 10) {
+    signalRef.current?.abort();
+    signalRef.current = newAbortSignal(newSignalTimeout);
+}
+
+export function useUnmountSignalCancel(signalRef) {
+    useEffect(() => function onUnmount() {
+        signalRef.current?.abort()
+    }, [])
+}
+
 export function newAbortSignal(timeoutS = 0) {
     const abortController = new AbortController();
     setTimeout(() => abortController.abort(), timeoutS * 1000);
@@ -10,7 +22,6 @@ export function newAbortSignal(timeoutS = 0) {
 
 export const mountAbortSignal = (timeoutS) => {
     let controller = newAbortSignal(timeoutS);
-
     let mounted = true;
     const isCleanedUp = () => mounted;
     const cleanup = () => {

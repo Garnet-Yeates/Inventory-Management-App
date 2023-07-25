@@ -3,7 +3,7 @@
 import axios from "axios";
 import { useEffect, useRef, useState } from "react";
 import { AdornedFormInput, FormInput } from "../../components/FormComponents";
-import { mountAbortSignal, newAbortSignal } from "../../tools/axiosTools";
+import { mountAbortSignal, newAbortSignal, refreshSignal, useUnmountSignalCancel } from "../../tools/axiosTools";
 import { SERVER_URL } from "../App";
 import { LoadingButton } from "@mui/lab";
 import { Send as SendIcon } from "@mui/icons-material";
@@ -16,14 +16,10 @@ const getKey = () => currKey++;
 const CreateCustomerPage = (props) => {
 
     // Inherited props
-    const {
-        selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage,
-    } = props;
+    const { selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage } = props;
 
     // Only inherited when composed by ItemTypeManagementPage
-    const {
-        editingId,
-    } = props;
+    const { editingId } = props;
 
     const [customerFirstName, setCustomerFirstName] = useState("")
     const [customerFirstNameError, setCustomerFirstNameError] = useState("");
@@ -38,11 +34,6 @@ const CreateCustomerPage = (props) => {
 
     const [contacts, setContacts] = useState([])
 
-    const submitSignalRef = useRef();
-
-    // This effect does nothing except return a cleanup (on unmount essentially) function that will abort the current controller
-    useEffect(() => () => submitSignalRef.current?.abort(), []);
-
     useEffect(() => {
 
         lockExitWith("Unsaved changes will be lost. Are you sure?")
@@ -53,11 +44,14 @@ const CreateCustomerPage = (props) => {
 
     const [loading, setLoading] = useState(false);
 
+    // Form submitting
+
+    const submitSignalRef = useRef();
+    useUnmountSignalCancel(submitSignalRef);
     const submitForm = async () => {
 
         setLoading(true);
-        submitSignalRef.current?.abort();
-        submitSignalRef.current = newAbortSignal(10);
+        refreshSignal(submitSignalRef);
 
         try {
             const config = { signal: submitSignalRef.current.signal };
