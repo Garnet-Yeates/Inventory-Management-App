@@ -219,6 +219,7 @@ export async function login(req, res) {
     }
 
     if (!await createSessionAndSetCookies(user, res)) {
+        console.log("fuck")
         return res.status(500).json({ databaseError: "Error inserting session into database" })
     }
 

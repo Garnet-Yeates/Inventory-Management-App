@@ -6,9 +6,9 @@ import { AdornedFormInput, FormInput } from "../../components/FormComponents";
 import { mountAbortSignal, newAbortSignal, refreshSignal, useUnmountSignalCancel } from "../../tools/axiosTools";
 import { SERVER_URL } from "../App";
 import { LoadingButton } from "@mui/lab";
-import { Send as SendIcon } from "@mui/icons-material";
+import { Close, DeleteOutline, Send as SendIcon, Undo } from "@mui/icons-material";
 import "../../sass/CreateCustomerSubPage.scss"
-import { Button } from "@mui/material";
+import { Button, IconButton } from "@mui/material";
 
 let currKey = 0;
 const getKey = () => currKey++;
@@ -33,6 +33,10 @@ const CreateCustomerPage = (props) => {
     const [addresses, setAddresses] = useState([]);
 
     const [contacts, setContacts] = useState([])
+
+    // This is a map that maps addressId to true. Only relevant when editing an existing customer
+    const [removingAddresses, setRemovingAddresses] = useState({});
+    const [removingContacts, setRemovingContacts] = useState({});
 
     useEffect(() => {
 
@@ -95,7 +99,7 @@ const CreateCustomerPage = (props) => {
                 setCustomerLastNameError(customerLastNameError);
 
                 // Clear array errors 
-                
+
                 for (let address of addresses) {
                     address.errors = {}
                 }
@@ -170,10 +174,13 @@ const CreateCustomerPage = (props) => {
                     </h3>
                     {addresses.length !== 0 && addresses.map((address, index) => (
                         <AddressCreationPanel
-                            key={address.myKey}
-                            setAddresses={setAddresses}
-                            addresses={addresses}
                             myIndex={index}
+                            key={address.myKey}
+                            myKey={address.myKey}
+                            addresses={addresses}
+                            setAddresses={setAddresses}
+                            removingAddresses={removingAddresses}
+                            setRemovingAddresses={setRemovingAddresses}
                             {...address}>
                         </AddressCreationPanel>
                     ))}
@@ -202,10 +209,13 @@ const CreateCustomerPage = (props) => {
                     </h3>
                     {contacts.length !== 0 && contacts.map((contact, index) => (
                         <ContactCreationPanel
-                            key={contact.myKey}
-                            setContacts={setContacts}
-                            contacts={contacts}
                             myIndex={index}
+                            key={contact.myKey}
+                            myKey={contact.myKey}
+                            contacts={contacts}
+                            setContacts={setContacts}
+                            removingContacts={removingContacts}
+                            setRemovingContacts={setRemovingContacts}
                             {...contact}>
                         </ContactCreationPanel>
                     ))}
@@ -244,11 +254,65 @@ const CreateCustomerPage = (props) => {
     )
 }
 
-const AddressCreationPanel = ({ myIndex, errors, setAddresses, addresses, address, zip, town }) => {
+// If addressId exists it is implied that this address already exists in the database
+const AddressCreationPanel = ({ myIndex, addressId, myKey, errors, setAddresses, addresses, address, zip, town, removingAddresses, setRemovingAddresses }) => {
+
+    const isEditing = addressId !== null && addressId !== undefined;
+
+    // Only relevant if isEditing is true
+    const willBeRemoved = removingAddresses[addressId];
+
+    let buttonJsx;
+    if (isEditing) {
+
+        if (willBeRemoved) {
+            const undoRemoveAddress = () => {
+                delete removingAddresses[addressId];
+                setRemovingAddresses({ ...removingAddresses });
+            }
+
+            buttonJsx = (
+                <IconButton size="medium" onClick={undoRemoveAddress}>
+                    <Undo fontSize="medium" />
+                </IconButton>
+            )
+        }
+        else {
+            const removeAddress = () => {
+                removingAddresses[addressId] = true;
+                setRemovingAddresses({ ...removingAddresses });
+            }
+
+            buttonJsx = (
+                <IconButton size="medium" onClick={removeAddress}>
+                    <DeleteOutline fontSize="medium" />
+                </IconButton>
+            )
+        }
+
+    }
+    else {
+
+        const cancelAddress = () => {
+            addresses = addresses.filter(a => a.myKey !== myKey);
+            setAddresses([...addresses]);
+        }
+
+        buttonJsx = (
+            <IconButton size="medium" onClick={cancelAddress}>
+                <Close fontSize="medium" />
+            </IconButton>
+        )
+    }
 
     return (
         <div className="individual-container">
-            <h5 className="individual-container-heading">Address {myIndex + 1}</h5>
+            <div className="individual-container-header">
+                <h5 className="individual-container-heading">Address {myIndex + 1}</h5>
+                <div className="individual-container-icon-button">
+                    {buttonJsx}
+                </div>
+            </div>
             <div className="row gx-0">
                 <div className="col-12">
                     <div className="form-control">
@@ -303,10 +367,64 @@ const AddressCreationPanel = ({ myIndex, errors, setAddresses, addresses, addres
     )
 }
 
-const ContactCreationPanel = ({ myIndex, errors, setContacts, contacts, contactType, contactValue }) => {
+const ContactCreationPanel = ({ myIndex, myKey, contactId, errors, setContacts, contacts, contactType, contactValue, removingContacts, setRemovingContacts }) => {
+
+    const isEditing = contactId !== null && contactId !== undefined;
+
+    // Only relevant if isEditing is true
+    const willBeRemoved = removingContacts[contactId];
+
+    let buttonJsx;
+    if (isEditing) {
+
+        if (willBeRemoved) {
+            const undoRemoveContact = () => {
+                delete removingContacts[contactId];
+                setRemovingContacts({ ...removingContacts });
+            }
+
+            buttonJsx = (
+                <IconButton size="medium" onClick={undoRemoveContact}>
+                    <Undo fontSize="medium" />
+                </IconButton>
+            )
+        }
+        else {
+            const removeContact = () => {
+                removingContacts[contactId] = true;
+                setRemovingContacts({ ...removingContacts });
+            }
+
+            buttonJsx = (
+                <IconButton size="medium" onClick={removeContact}>
+                    <DeleteOutline fontSize="medium" />
+                </IconButton>
+            )
+        }
+
+    }
+    else {
+
+        const cancelContact = () => {
+            contacts = contacts.filter(a => a.myKey !== myKey);
+            setContacts([...contacts]);
+        }
+
+        buttonJsx = (
+            <IconButton size="medium" onClick={cancelContact}>
+                <Close fontSize="medium" />
+            </IconButton>
+        )
+    }
+
     return (
         <div className="individual-container">
-            <h5 className="individual-container-heading">Contact {myIndex + 1}</h5>
+            <div className="individual-container-header">
+                <h5 className="individual-container-heading">Contact {myIndex + 1}</h5>
+                <div className="individual-container-icon-button">
+                    {buttonJsx}
+                </div>
+            </div>
             <div className="row gx-0">
                 <div className="col-lg-6">
                     <div className="form-control">

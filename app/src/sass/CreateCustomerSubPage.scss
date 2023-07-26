@@ -47,8 +47,16 @@
         flex-direction: column;
         margin-bottom: 12px;
 
+        .individual-container-header {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+        }
+
         .individual-container-heading {
-            padding-left: 8px;
+            margin-bottom: 0px;
+            padding-left: 10px;
             color: rgba(0, 0, 0, 0.5);
         }
 

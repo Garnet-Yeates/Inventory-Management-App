@@ -224,6 +224,7 @@ export async function createSessionAndSetCookies(client, res) {
         session = await newSession(client.clientId);
     }
     catch (err) {
+        console.log("Error at createSessionAndSetCookies", err);
         return false;
     }
 
