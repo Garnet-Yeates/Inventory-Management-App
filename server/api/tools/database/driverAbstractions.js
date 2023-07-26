@@ -270,7 +270,8 @@ export class InsertQueryBuilder {
 
         await db.query(sql);
 
-        return true;
+        // LAST_INSERT_ID will be 0 if it is not an auto_increment PK column
+        return (await db.query("SELECT LAST_INSERT_ID()"))[0][0]["LAST_INSERT_ID()"];
     }
 }
 

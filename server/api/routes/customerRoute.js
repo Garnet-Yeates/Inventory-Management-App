@@ -1,10 +1,8 @@
 import { 
     api_createCustomer, 
     api_updateCustomer, 
-    api_createCustomerAddress, 
-    api_updateCustomerAddress, 
-    api_createCustomerContact, 
-    api_updateCustomerContact 
+    api_getCustomers,
+    api_getCustomer,
 } from "../controllers/customerController.js";
 
 const configureCustomerRoute = (app) => {
@@ -12,14 +10,10 @@ const configureCustomerRoute = (app) => {
         .post(api_createCustomer)
     app.route('/customer/updateCustomer')
         .put(api_updateCustomer)
-    app.route('/customer/createCustomerAddress')
-        .get(api_createCustomerAddress)
-    app.route('/customer/updateCustomerAddress')
-        .put(api_updateCustomerAddress)
-    app.route('/customer/createCustomerContact')
-        .put(api_createCustomerContact)
-    app.route('/customer/updateCustomerContact')
-        .put(api_updateCustomerContact)
+    app.route('/customer/getCustomer')
+        .get(api_getCustomer)
+    app.route('/customer/getCustomers')
+        .put(api_getCustomers)
 }
 
 export default configureCustomerRoute;

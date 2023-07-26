@@ -37,23 +37,23 @@ CREATE TABLE Customer (
 # Many (CustomerAddress) To One (Customer)
 CREATE TABLE CustomerAddress (
 	customerId INT NOT NULL,
-	addressId INT AUTO_INCREMENT,
+	customerAddressId INT AUTO_INCREMENT,
 	address CHAR(64) NOT NULL,
     zip CHAR(5) NOT NULL,
     town CHAR(24) NOT NULL,
 	FOREIGN KEY (customerId) REFERENCES Customer (customerId),
-    PRIMARY KEY (addressId)
+    PRIMARY KEY (customerAddressId)
 );
 
 # Many (CustomerContact) To One (Customer)
 # Handles cases for many types of ways of contacting customers (email, phone, custom, etc)
 CREATE TABLE CustomerContact (
-	contactId INT AUTO_INCREMENT,
+	customerContactId INT AUTO_INCREMENT,
 	customerId INT NOT NULL,
 	contactType CHAR(16) NOT NULL, # Email/Cell/Home
     contactValue CHAR(48) NOT NULL,
     FOREIGN KEY (customerId) REFERENCES Customer (customerId),
-    PRIMARY KEY (contactId)
+    PRIMARY KEY (customerContactId)
 );
 
 CREATE TABLE ChargedService (

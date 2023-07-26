@@ -200,6 +200,7 @@ async function createOrUpdateItemType(req, res, isUpdating) {
     return res.status(200).json({ message: "Item Type operation successful" });
 }
 
+// Gets one specific item type based on query. Can only query by itemType or itemCode since they identify a single item
 export async function api_getItemType(req, res) {
 
     const {
@@ -210,10 +211,12 @@ export async function api_getItemType(req, res) {
         query,
     } = req;
 
-    console.log("queey", query)
-
     if (!query.itemTypeId && !query.itemCode) {
         return res.status(400).json({ errorMessage: "itemTypeId or itemCode is required" })
+    }
+
+    if (Object.keys(query).length > 1) {
+        return res.status(400).json({ errorMessage: "Only one query parameter may be supplied here"})
     }
 
     try {
@@ -231,21 +234,22 @@ export async function api_getItemType(req, res) {
     }
 }
 
-export async function api_getAllItemTypes(req, res) {
+export async function api_getItemTypes(req, res) {
 
     const {
         auth: {
             clientId,
             sessionUUID
         },
+        query,
     } = req;
 
     try {
-        const itemTypes = await getItemTypes(clientId);
+        const itemTypes = await getItemTypes(clientId, query);
         return res.status(200).json({ itemTypes })
     }
     catch (err) {
         console.log("Database error (getItemTypes endpoint)", err)
-        return res.status(500).json({ databaseError: "Error querying database to retrieve all item types for this client" }, err)
+        return res.status(500).json({ databaseError: "Error querying database to retrieve multiple item types for this client" }, err)
     }
 }

@@ -20,6 +20,10 @@ export async function createItemType(clientId, itemName, itemCode, itemDescripti
 
 export async function updateItemType(clientId, itemTypeId, columns) {
 
+    if (Object.keys(columns).length === 0) {
+        throw new Error("At least one column key-value-pair must be supplied in the columns object (updateItemType procedure)")
+    }
+
     throwIfAnyKeyIsNullish(columns);
 
     if (!clientId) {
@@ -28,10 +32,6 @@ export async function updateItemType(clientId, itemTypeId, columns) {
 
     if (!itemTypeId) {
         throw new Error("itemTypeId must be supplied (updateItemType procedure)")
-    }
-
-    if (Object.keys(columns).length === 0) {
-        throw new Error("At least one column key-value-pair must be supplied in the columns object (updateItemType procedure)")
     }
 
     await Table("ItemType")

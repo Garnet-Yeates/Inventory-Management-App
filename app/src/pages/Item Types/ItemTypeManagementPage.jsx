@@ -46,13 +46,13 @@ const ItemsViewPage = (props) => {
 
         (async () => {
             try {
-                let response = await axios.get(`${SERVER_URL}/itemType/getAllItemTypes`, { signal: controller.signal })
+                let response = await axios.get(`${SERVER_URL}/itemType/getItemTypes`, { signal: controller.signal })
                 console.log("got res", response);
                 setItemTypes(response.data.itemTypes);
             }
             catch (err) {
                 if (axios.isCancel(err)) return `Request canceled due to ${isCleanedUp() ? "timeout" : "unmount"}`
-                console.log("Error at GET /itemType/getAllItemTypes", err);
+                console.log("Error at GET /itemType/getItemTypes", err);
             }
         })()
 

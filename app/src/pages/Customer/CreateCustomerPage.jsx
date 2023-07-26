@@ -34,10 +34,6 @@ const CreateCustomerPage = (props) => {
 
     const [contacts, setContacts] = useState([])
 
-    // This is a map that maps addressId to true. Only relevant when editing an existing customer
-    const [removingAddresses, setRemovingAddresses] = useState({});
-    const [removingContacts, setRemovingContacts] = useState({});
-
     useEffect(() => {
 
         lockExitWith("Unsaved changes will be lost. Are you sure?")
@@ -176,11 +172,9 @@ const CreateCustomerPage = (props) => {
                         <AddressCreationPanel
                             myIndex={index}
                             key={address.myKey}
-                            myKey={address.myKey}
                             addresses={addresses}
                             setAddresses={setAddresses}
-                            removingAddresses={removingAddresses}
-                            setRemovingAddresses={setRemovingAddresses}
+                            self={address}
                             {...address}>
                         </AddressCreationPanel>
                     ))}
@@ -192,10 +186,10 @@ const CreateCustomerPage = (props) => {
                         onClick={() => {
                             addresses.push({
                                 myKey: getKey(),
+                                errors: {},
                                 address: "",
                                 zip: "",
                                 town: "",
-                                errors: {},
                             })
                             setAddresses([...addresses]);
 
@@ -214,8 +208,6 @@ const CreateCustomerPage = (props) => {
                             myKey={contact.myKey}
                             contacts={contacts}
                             setContacts={setContacts}
-                            removingContacts={removingContacts}
-                            setRemovingContacts={setRemovingContacts}
                             {...contact}>
                         </ContactCreationPanel>
                     ))}
@@ -254,37 +246,39 @@ const CreateCustomerPage = (props) => {
     )
 }
 
-// If addressId exists it is implied that this address already exists in the database
-const AddressCreationPanel = ({ myIndex, addressId, myKey, errors, setAddresses, addresses, address, zip, town, removingAddresses, setRemovingAddresses }) => {
+// If customerAddressId exists it is implied that this address already exists in the database
+const AddressCreationPanel = (props) => {
 
-    const isEditing = addressId !== null && addressId !== undefined;
+    // Identity/location props and setters
+    const { self, myKey, myIndex, addresses, setAddresses } = props;
 
-    // Only relevant if isEditing is true
-    const willBeRemoved = removingAddresses[addressId];
+    // State props and error handling for creating or editing
+    const { address, zip, town, errors } = props;
+
+    // For specifically editing
+    const { customerAddressId, flaggedForDeletion } = props;
+
+    const isEditing = customerAddressId !== null && customerAddressId !== undefined;
 
     let buttonJsx;
-    if (isEditing) {
+    if (isEditing) { 
 
-        if (willBeRemoved) {
-            const undoRemoveAddress = () => {
-                delete removingAddresses[addressId];
-                setRemovingAddresses({ ...removingAddresses });
-            }
-
+        if (flaggedForDeletion) {
             buttonJsx = (
-                <IconButton size="medium" onClick={undoRemoveAddress}>
+                <IconButton size="medium" onClick={() => {
+                    self.flaggedForDeletion = false;
+                    setAddresses([...addresses]);
+                }}>
                     <Undo fontSize="medium" />
                 </IconButton>
             )
         }
         else {
-            const removeAddress = () => {
-                removingAddresses[addressId] = true;
-                setRemovingAddresses({ ...removingAddresses });
-            }
-
             buttonJsx = (
-                <IconButton size="medium" onClick={removeAddress}>
+                <IconButton size="medium" onClick={() => {
+                    self.flaggedForDeletion = true;
+                    setAddresses([...addresses]);
+                }}>
                     <DeleteOutline fontSize="medium" />
                 </IconButton>
             )
@@ -292,14 +286,8 @@ const AddressCreationPanel = ({ myIndex, addressId, myKey, errors, setAddresses,
 
     }
     else {
-
-        const cancelAddress = () => {
-            addresses = addresses.filter(a => a.myKey !== myKey);
-            setAddresses([...addresses]);
-        }
-
         buttonJsx = (
-            <IconButton size="medium" onClick={cancelAddress}>
+            <IconButton size="medium" onClick={() => setAddresses(addresses.filter(a => a.myKey !== myKey))}>
                 <Close fontSize="medium" />
             </IconButton>
         )
@@ -321,8 +309,8 @@ const AddressCreationPanel = ({ myIndex, addressId, myKey, errors, setAddresses,
                             minErrorText
                             fullWidth
                             value={address}
-                            onChange={({ target: { value } }) => {
-                                addresses[myIndex].address = value;
+                            onChange={(e) => {
+                                self.address = e.target.value;
                                 setAddresses([...addresses]);
                             }}
                             errorText={errors.addressError}
@@ -337,8 +325,8 @@ const AddressCreationPanel = ({ myIndex, addressId, myKey, errors, setAddresses,
                             fullWidth
                             size="small"
                             value={town}
-                            onChange={({ target: { value } }) => {
-                                addresses[myIndex].town = value;
+                            onChange={(e) => {
+                                self.town = e.target.value;
                                 setAddresses([...addresses]);
                             }}
                             errorText={errors.townError}
@@ -353,8 +341,8 @@ const AddressCreationPanel = ({ myIndex, addressId, myKey, errors, setAddresses,
                             minErrorText
                             fullWidth
                             value={zip}
-                            onChange={({ target: { value } }) => {
-                                addresses[myIndex].zip = value;
+                            onChange={(e) => {
+                                self.zip = e.target.value;
                                 setAddresses([...addresses]);
                             }}
                             errorText={errors.zipError}
@@ -367,36 +355,38 @@ const AddressCreationPanel = ({ myIndex, addressId, myKey, errors, setAddresses,
     )
 }
 
-const ContactCreationPanel = ({ myIndex, myKey, contactId, errors, setContacts, contacts, contactType, contactValue, removingContacts, setRemovingContacts }) => {
+const ContactCreationPanel = (props) => {
 
-    const isEditing = contactId !== null && contactId !== undefined;
+    // Identity/location props and setters
+    const { self, myKey, myIndex, contacts, setContacts } = props;
 
-    // Only relevant if isEditing is true
-    const willBeRemoved = removingContacts[contactId];
+    // State props and error handling for creating or editing
+    const { contactType, contactValue, errors } = props;
+
+    // For specifically editing
+    const { customerContactId, flaggedForDeletion } = props;
+
+    const isEditing = customerContactId !== null && customerContactId !== undefined;
 
     let buttonJsx;
     if (isEditing) {
 
-        if (willBeRemoved) {
-            const undoRemoveContact = () => {
-                delete removingContacts[contactId];
-                setRemovingContacts({ ...removingContacts });
-            }
-
+        if (flaggedForDeletion) {
             buttonJsx = (
-                <IconButton size="medium" onClick={undoRemoveContact}>
+                <IconButton size="medium" onClick={() => {
+                    self.flaggedForDeletion = false;
+                    setContacts([...contacts]);
+                }}>
                     <Undo fontSize="medium" />
                 </IconButton>
             )
         }
         else {
-            const removeContact = () => {
-                removingContacts[contactId] = true;
-                setRemovingContacts({ ...removingContacts });
-            }
-
             buttonJsx = (
-                <IconButton size="medium" onClick={removeContact}>
+                <IconButton size="medium" onClick={() => {
+                    self.flaggedForDeletion = true;
+                    setContacts([...contacts]);
+                }}>
                     <DeleteOutline fontSize="medium" />
                 </IconButton>
             )
@@ -404,14 +394,8 @@ const ContactCreationPanel = ({ myIndex, myKey, contactId, errors, setContacts, 
 
     }
     else {
-
-        const cancelContact = () => {
-            contacts = contacts.filter(a => a.myKey !== myKey);
-            setContacts([...contacts]);
-        }
-
         buttonJsx = (
-            <IconButton size="medium" onClick={cancelContact}>
+            <IconButton size="medium" onClick={() => setContacts(contacts.filter(c => c.myKey !== myKey))}>
                 <Close fontSize="medium" />
             </IconButton>
         )
@@ -433,8 +417,8 @@ const ContactCreationPanel = ({ myIndex, myKey, contactId, errors, setContacts, 
                             minErrorText
                             fullWidth
                             value={contactType}
-                            onChange={({ target: { value } }) => {
-                                contacts[myIndex].contactType = value;
+                            onChange={(e) => {
+                                self.contactType = e.target.value;
                                 setContacts([...contacts]);
                             }}
                             errorText={errors.contactTypeError}
@@ -449,8 +433,8 @@ const ContactCreationPanel = ({ myIndex, myKey, contactId, errors, setContacts, 
                             fullWidth
                             size="small"
                             value={contactValue}
-                            onChange={({ target: { value } }) => {
-                                contacts[myIndex].contactValue = value;
+                            onChange={(e) => {
+                                self.contactValue = e.target.value;
                                 setContacts([...contacts]);
                             }}
                             errorText={errors.contactValueError}

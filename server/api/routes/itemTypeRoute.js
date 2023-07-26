@@ -1,4 +1,4 @@
-import { api_createItemType, api_updateItemType, api_getItemType, api_getAllItemTypes } from "../controllers/itemTypeController.js";
+import { api_createItemType, api_updateItemType, api_getItemType, api_getItemTypes } from "../controllers/itemTypeController.js";
 
 const configureItemTypeRoute = (app) => {
     app.route('/itemType/createItemType')
@@ -7,8 +7,8 @@ const configureItemTypeRoute = (app) => {
         .put(api_updateItemType)
     app.route('/itemType/getItemType')
         .get(api_getItemType)
-    app.route('/itemType/getAllItemTypes')
-        .get(api_getAllItemTypes)
+    app.route('/itemType/getItemTypes')
+        .get(api_getItemTypes)
 }
 
 export default configureItemTypeRoute;

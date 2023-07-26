@@ -48,9 +48,6 @@ export async function createItemInstance(clientId, itemTypeId, datePurchased = n
 
 export async function updateItemInstances(columns, where) {
 
-    throwIfAnyKeyIsNullish(where);
-    throwIfAnyKeyIsNullish(columns);
-
     if (Object.keys(columns).length === 0) {
         throw new Error("At least one column key-value-pair must be supplied in the columns object (updateItemInstances procedure)")
     }
@@ -58,6 +55,9 @@ export async function updateItemInstances(columns, where) {
     if (Object.keys(where).length === 0) {
         throw new Error("At least one column key-value-pair must be supplied in the where object (updateItemInstances procedure)")
     }
+
+    throwIfAnyKeyIsNullish(where);
+    throwIfAnyKeyIsNullish(columns);
 
     await Table("ItemInstance")
         .update({ ...columns })
