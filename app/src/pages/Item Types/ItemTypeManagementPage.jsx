@@ -2,10 +2,11 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { mountAbortSignal } from "../../tools/axiosTools";
 import { SERVER_URL } from "../App";
-import "../../sass/ManageItemTypesSubPage.scss"
+import "../../sass/ItemTypeManagement.scss"
 import { Button } from "@mui/material";
 import { Add, Edit, Visibility } from "@mui/icons-material";
 import CreateItemTypePage from "./CreateItemTypePage";
+import { formatToUSCurrency } from "../../tools/generalTools";
 
 const ItemTypeManagementPage = (props) => {
 
@@ -17,8 +18,6 @@ const ItemTypeManagementPage = (props) => {
 
     const passDownProps = {
         selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage,
-        viewingSpecificItemType,
-        editingSpecificItemType,
     }
 
     if (viewingSpecificItemType) {
@@ -29,10 +28,10 @@ const ItemTypeManagementPage = (props) => {
         return <CreateItemTypePage editingId={editingSpecificItemType} {...passDownProps} />
     }
 
-    return <ItemsViewPage {...passDownProps} />
+    return <ItemsView {...passDownProps} />
 }
 
-const ItemsViewPage = (props) => {
+const ItemsView = (props) => {
 
     // Inherited props
     const { selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage } = props;
@@ -47,12 +46,12 @@ const ItemsViewPage = (props) => {
         (async () => {
             try {
                 let response = await axios.get(`${SERVER_URL}/itemType/getItemTypes`, { signal: controller.signal })
-                console.log("got res", response);
+                console.log("ItemsView mount GET /itemType/getItemTypes", response);
                 setItemTypes(response.data.itemTypes);
             }
             catch (err) {
                 if (axios.isCancel(err)) return `Request canceled due to ${isCleanedUp() ? "timeout" : "unmount"}`
-                console.log("Error at GET /itemType/getItemTypes", err);
+                console.log("Error ItemsView mount GET /itemType/getItemTypes", err);
             }
         })()
 
@@ -151,11 +150,6 @@ export const SimpleItemTypeDisplay = (props) => {
             </div>
         </div>
     )
-}
-
-function formatToUSCurrency(number) {
-    const formattedNumber = number.toFixed(2); // Format the number to have 2 decimal places
-    return "$" + formattedNumber; // Add the dollar sign ($) prefix
 }
 
 export default ItemTypeManagementPage;

@@ -39,6 +39,11 @@ async function createOrUpdateItemInstance(req, res, isUpdating) {
             }
         }
     }
+    else {
+        if (itemInstanceId) {
+            return res.status(404).json({ itemInstanceIdError: "itemInstanceId is auto-generated and must not be supplied when creating new item instances" })
+        }
+    }
 
     // Validate itemCode
 

@@ -13,7 +13,7 @@ const configureCustomerRoute = (app) => {
     app.route('/customer/getCustomer')
         .get(api_getCustomer)
     app.route('/customer/getCustomers')
-        .put(api_getCustomers)
+        .get(api_getCustomers)
 }
 
 export default configureCustomerRoute;

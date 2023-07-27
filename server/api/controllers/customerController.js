@@ -1,5 +1,5 @@
 import { capitalizeFirstLetter, clearErrJson, getDateAsSQLString } from "../tools/controller/validationHelpers.js";
-import { createCustomer, createCustomerAddress, createCustomerContact, getCustomer, getCustomers, updateCustomerAddress, updateCustomerContact } from "../tools/database/tblCustomerProcedures.js";
+import { createCustomer, createCustomerAddress, createCustomerContact, getCustomer, getCustomerAddress, getCustomerContact, getCustomerFull, getCustomers, getCustomersFull, updateCustomer, updateCustomerAddress, updateCustomerContact } from "../tools/database/tblCustomerProcedures.js";
 
 const customerNameRegex = /^[a-zA-Z]+$/
 
@@ -21,6 +21,7 @@ export async function createOrUpdateCustomer(req, res, isUpdating) {
             sessionUUID
         },
         body: {
+            customerId,
             customerFirstName,
             customerMiddleName,
             customerLastName,
@@ -30,6 +31,27 @@ export async function createOrUpdateCustomer(req, res, isUpdating) {
     } = req;
 
     const errJson = {}
+
+    console.log("createOrUpdateCustomer request body:", req.body)
+
+    // customerId validation if we are updating a customer (not creating)
+    if (isUpdating) {
+
+        if (!customerId) {
+            return res.status(400).json({ customerIdError: "customerId must be supplied for updating customers" })
+        }
+        else {
+            const customerToUpdate = await getCustomer(clientId, { customerId });
+            if (!customerToUpdate) {
+                return res.status(404).json({ customerIdError: "Could not find a customer with the specified id to update for this client" })
+            }
+        }
+    }
+    else {
+        if (customerId) {
+            return res.status(400).json({ customerIdError: "customerId is auto-generated and must not be supplied when creating customers" })
+        }
+    }
 
     // Validate customerFirstName. Required, alphabetical, 3-64 characters. It is automatically put into proper noun format
 
@@ -100,7 +122,7 @@ export async function createOrUpdateCustomer(req, res, isUpdating) {
 
         errJson.addressErrors = [];
         for (let address of addresses) {
-            errJson.addressErrors.push(getAddressErrJson(address, isUpdating));
+            errJson.addressErrors.push(await getAddressErrJson(address, customerId));
         }
 
         let anyAddressErrors = false;
@@ -125,7 +147,7 @@ export async function createOrUpdateCustomer(req, res, isUpdating) {
 
         errJson.contactErrors = [];
         for (let contact of contacts) {
-            errJson.contactErrors.push(getContactErrJson(contact, isUpdating));
+            errJson.contactErrors.push(await getContactErrJson(contact, customerId));
         }
 
         let anyContactErrors = false;
@@ -141,62 +163,78 @@ export async function createOrUpdateCustomer(req, res, isUpdating) {
         }
     }
 
-    const dateAdded = getDateAsSQLString(new Date());
-
+    // If we had any errors with contacts, addresses, or the customer itself we will stop here
+    // Going past this return implies everything is ready for db operations, customer/addy/contact ids existences validated etc
     if (Object.keys(errJson).length > 0) {
         return res.status(errJson.databaseError ? 500 : 400).json(errJson);
     }
 
-    let customerId;
     try {
-        customerId = await createCustomer(clientId, customerFirstName, customerMiddleName, customerLastName, dateAdded);
+        if (isUpdating) {
+            await updateCustomer(clientId, customerId, { customerFirstName, customerMiddleName, customerLastName })
+        }
+        else {
+            customerId = await createCustomer(clientId, customerFirstName, customerMiddleName, customerLastName);
+        }
     }
     catch (err) {
         console.log("Error inserting new Customer into the database", err)
         return res.status(500).json({ databaseError: "Error inserting new Customer into the database" });
     }
 
-    if (addresses || contacts) {
-
-        if (addresses) {
-            try {
-                for (let customerAddress of addresses) {
-                    const { address, zip, town, customerAddressId } = customerAddress;
-                    if (isUpdating) {
+    if (addresses) {
+        try {
+            for (let customerAddress of addresses) {
+                const { address, zip, town, customerAddressId, flaggedForDeletion } = customerAddress;
+                if (customerAddressId) {
+                    if (flaggedForDeletion) {
+                        // TODO delete
+                    }
+                    else {
                         await updateCustomerAddress(customerAddressId, { address, zip, town })
                     }
-                    else {
-                        await createCustomerAddress(address, zip, town);
-                    }
+
                 }
-            }
-            catch (err) {
-                return res.status(500).json({ databaseError: "Error creating customerAddresses for newly created customer" });
+                else {
+                    await createCustomerAddress(customerId, address, zip, town);
+                }
             }
         }
+        catch (err) {
+            return res.status(500).json({ databaseError: "Error creating or updating customer addresses" });
+        }
+    }
 
-        if (contacts) {
-            try {
-                for (let customerContact of contacts) {
-                    const { contactType, contactValue, customerContactId } = customerContact;
-                    if (isUpdating) {
-                        await updateCustomerContact(customerContactId, { contactType, contactValue })
+    if (contacts) {
+        try {
+            for (let customerContact of contacts) {
+                const { contactType, contactValue, customerContactId, flaggedForDeletion } = customerContact;
+                if (customerContactId) {
+                    if (flaggedForDeletion) {
+                        // TODO delete
                     }
                     else {
-                        await createCustomerContact(contactType, contactValue);
+                        await updateCustomerContact(customerContactId, { contactType, contactValue })
                     }
                 }
+                else {
+                    await createCustomerContact(customerId, contactType, contactValue);
+                }
             }
-            catch (err) {
-                return res.status(500).json({ databaseError: "Error creating customerAddresses for newly created customer" });
-            }
+        }
+        catch (err) {
+            return res.status(500).json({ databaseError: "Error creating or updating customer contacts" });
         }
     }
 
     return res.status(200).json({ message: "Customer creation successful" });
 }
 
-function getAddressErrJson(addressObj, isUpdating) {
+async function getAddressErrJson(addressObj, customerId) {
+
+    if (!(addressObj && (typeof addressObj === "object"))) {
+        return { nullAddressError: "Addresses must be non-null objects" }
+    }
 
     let { address, zip, town } = addressObj;
 
@@ -205,21 +243,24 @@ function getAddressErrJson(addressObj, isUpdating) {
 
     const addressErrJson = {};
 
-    if (isUpdating) {
-        if (!customerAddressId) {
-            addressErrJson.customerAddressIdError = "customerAddressId must be supplied when updating a customer address"
-        }
-        if (!flaggedForDeletion) {
+    // Implies we are editing an existing address
+    if (customerAddressId) {
+        if (flaggedForDeletion === null || flaggedForDeletion === undefined) {
             addressErrJson.flaggedForDeletionErrpr = "flaggedForDeletion property must be supplied when updating a customer address"
+        }
+        if (!(await getCustomerAddress(customerId, { customerAddressId }))) {
+            addressErrJson.customerAddressIdError = "Could not find a customer address with the specified id to update for this client"
         }
     }
     else {
-        if (customerAddressId) {
-            addressErrJson.customerAddressIdError = "customerAddressId must not be supplied when creating a customer address"
-        }
-        if (flaggedForDeletion) {
+        if (flaggedForDeletion !== null && flaggedForDeletion !== undefined) {
             addressErrJson.flaggedForDeletionError = "flaggedForDeletion property must not be supplied when creating a customer address"
         }
+    }
+
+    // If flaggedForDeletion is true then we don't care about doing any more validation
+    if (flaggedForDeletion) {
+        return addressErrJson;
     }
 
     if (!address) {
@@ -239,7 +280,7 @@ function getAddressErrJson(addressObj, isUpdating) {
         addressErrJson.zipError = "This field is required"
     }
     else if (typeof zip !== "string") {
-        addressErrJson.zipError = "This must be a string or number"
+        addressErrJson.zipError = "This must be a string"
     }
     else {
         if (zip.length !== 5) {
@@ -264,7 +305,11 @@ function getAddressErrJson(addressObj, isUpdating) {
 
 const contactTypes = ["Email", "Cell Phone", "Home Phone"]
 
-function getContactErrJson(contactObj, isUpdating) {
+async function getContactErrJson(contactObj, customerId) {
+
+    if (!(contactObj && (typeof contactObj === "object"))) {
+        return { nullContactError: "Contacts must be non-null objects" }
+    }
 
     let { contactType, contactValue } = contactObj;
 
@@ -273,21 +318,24 @@ function getContactErrJson(contactObj, isUpdating) {
 
     const contactErrJson = {};
 
-    if (isUpdating) {
-        if (!customerContactId) {
-            contactErrJson.customerContactIdError = "customerContactId must be supplied when updating a customer contact"
-        }
-        if (!flaggedForDeletion) {
+    // Implies we are editing an existing contact
+    if (customerContactId) {
+        if (flaggedForDeletion === null || flaggedForDeletion === undefined) {
             contactErrJson.flaggedForDeletionErrpr = "flaggedForDeletion property must be supplied when updating a customer contact"
+        }
+        if (!(await getCustomerContact(customerId, { customerContactId }))) {
+            contactErrJson.customerContactIdError = "Could not find a customer address with the specified id to update for this client"
         }
     }
     else {
-        if (customerContactId) {
-            contactErrJson.customerContactIdError = "customerContactId must not be supplied when creating a customer contact"
-        }
-        if (flaggedForDeletion) {
+        if (flaggedForDeletion !== null && flaggedForDeletion !== undefined) {
             contactErrJson.flaggedForDeletionError = "flaggedForDeletion property must not be supplied when creating a customer contact"
         }
+    }
+
+    // If flaggedForDeletion is true then we don't care about doing any more validation
+    if (flaggedForDeletion) {
+        return contactErrJson;
     }
 
     if (!contactType) {
@@ -306,7 +354,7 @@ function getContactErrJson(contactObj, isUpdating) {
         }
 
         if (!isValid) {
-            contactErrJson.contactTypeError = "Contact type must be either 'Email' 'Cell Phone' or 'Home Phone'"
+            contactErrJson.contactTypeError = "Must be either 'Email' 'Cell Phone' or 'Home Phone'"
         }
     }
 
@@ -329,6 +377,8 @@ function getContactErrJson(contactObj, isUpdating) {
 // Gets one specific customer based on query. Can only query by customerId
 export async function api_getCustomer(req, res) {
 
+    console.log("api_getCustomer request body:", req.body)
+
     const {
         auth: {
             clientId,
@@ -346,7 +396,7 @@ export async function api_getCustomer(req, res) {
     }
 
     try {
-        const customer = await getCustomer(clientId, query);
+        const customer = await getCustomerFull(clientId, query);
 
         if (!customer) {
             return res.status(404).json({ customerIdError: "Could not find a customer in the database with the specified customerId for this client" })
@@ -367,15 +417,18 @@ export async function api_getCustomers(req, res) {
             clientId,
             sessionUUID
         },
-        query,
     } = req;
 
+    console.log("api_getCustomers request body:", req.body)
+
     try {
-        const customers = await getCustomers(clientId, query);
-        return res.status(200).json({ customers })
+        const customers = await getCustomersFull(clientId);
+        return res.status(200).json({ customers, todaysDate: new Date() })
     }
     catch (err) {
         console.log("Database error (getCustomers endpoint)", err)
         return res.status(500).json({ databaseError: "Error querying database to retrieve multiple customers for this client" }, err)
     }
 }
+
+

@@ -1,16 +1,17 @@
 @import "./App.scss";
 
-.item-instance-management-sub-page {
+.customer-management-sub-page {
+
     height: 100%;
     width: 100%;
 }
 
-.item-instances-display-container {
+.customers-display-container {
 
-    padding: 0.5rem;
+    padding: 8px;
     width: 100%;
 
-    .item-instance-display-container {
+    .customer-display-container {
 
         box-shadow: 0px 0px 8px -2px rgba(0, 0, 0, 0.25);
         padding: 8px;
@@ -25,23 +26,29 @@
             margin-bottom: 0px;
         }
 
-        .name-code-group {
+        .name-date-group {
             display: flex;
             flex-direction: row;
             justify-content: space-between;
+            align-items: start;
 
-            .item-name {
+            .customer-name {
                 @include rfs(1.375rem, font-size);
                 font-weight: 600;
-                margin-right: 4px;
             }
 
-            .item-code {
+            .date-added {
                 @include rfs(1.125rem, font-size);
                 font-weight: 500;
                 color: rgba(0, 0, 0, 0.4)
             }
+        }
 
+        .address-count, 
+        .contact-count {
+            @include rfs(1.125rem, font-size);
+            color: rgba(0, 0, 0, 0.55);
+            font-style: italic;
         }
 
         .button-group {
@@ -49,16 +56,12 @@
             flex-direction: row;
             margin-top: 4px;
 
-            & > * {
+            &>* {
                 margin-right: 3px;
             }
         }
 
-        .date {
-            @include rfs(1.125rem, font-size);
-        }
-
-        .buy-sell {
+        p.customer-description {
             @include rfs(1.125rem, font-size);
         }
     }

@@ -29,7 +29,6 @@ CREATE TABLE Customer (
 	customerMiddleName CHAR(32) NULL,
     customerLastName CHAR(32) NOT NULL,
     dateAdded DATE NOT NULL,
-	CONSTRAINT UC_customerIdentifier UNIQUE (customerFirstName, customerMiddleName, customerLastName, dateAdded),
     FOREIGN KEY (clientId) REFERENCES Client (clientId),
     PRIMARY KEY (customerId)
 );

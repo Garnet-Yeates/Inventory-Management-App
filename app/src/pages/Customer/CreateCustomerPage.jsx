@@ -9,6 +9,7 @@ import { LoadingButton } from "@mui/lab";
 import { Close, DeleteOutline, Send as SendIcon, Undo } from "@mui/icons-material";
 import "../../sass/CreateCustomerSubPage.scss"
 import { Button, IconButton } from "@mui/material";
+import { deleteUndefined } from "../../tools/generalTools";
 
 let currKey = 0;
 const getKey = () => currKey++;
@@ -39,6 +40,37 @@ const CreateCustomerPage = (props) => {
         lockExitWith("Unsaved changes will be lost. Are you sure?")
 
         if (editingId) {
+
+            const { controller, isCleanedUp, cleanup } = mountAbortSignal(5);
+
+            (async () => {
+                try {
+                    const { data: { customer } } = await axios.get(`${SERVER_URL}/customer/getCustomer`, { params: { customerId: editingId }, signal: controller.signal })
+                    console.log("Loaded up the following customer for editing:", customer)
+
+                    setCustomerFirstName(customer.customerFirstName);
+                    setCustomerMiddleName(customer.customerMiddleName);
+                    setCustomerLastName(customer.customerLastName);
+                    setAddresses(customer.addresses.map(address => ({
+                        ...address,
+                        myKey: getKey(),
+                        errors: {},
+                        flaggedForDeletion: false
+                    })))
+                    setContacts(customer.contacts.map(contact => ({
+                        ...contact,
+                        myKey: getKey(),
+                        errors: {},
+                        flaggedForDeletion: false
+                    })))
+                }
+                catch (err) {
+                    if (axios.isCancel(err)) return `Request canceled due to ${isCleanedUp() ? "timeout" : "cleanup"}`
+                    console.log("Error at GET /itemType/getItemType", err);
+                }
+            })()
+
+            return cleanup;
         }
     }, [editingId])
 
@@ -59,8 +91,19 @@ const CreateCustomerPage = (props) => {
                 customerFirstName,
                 customerMiddleName,
                 customerLastName,
-                addresses: addresses.map(({ address, town, zip }) => ({ address, town, zip })),
-                contacts: contacts.map(({ contactType, contactValue }) => ({ contactType, contactValue })),
+                addresses: addresses.map(a => deleteUndefined({
+                    customerAddressId: a.customerAddressId,
+                    flaggedForDeletion: a.flaggedForDeletion,
+                    address: a.address,
+                    town: a.town,
+                    zip: a.zip,
+                })),
+                contacts: contacts.map(c => deleteUndefined({
+                    customerContactId: c.customerContactId,
+                    flaggedForDeletion: c.flaggedForDeletion,
+                    contactType: c.contactType,
+                    contactValue: c.contactValue,
+                })),
             }
 
             console.log("Sending the following to server:", data);
@@ -69,7 +112,7 @@ const CreateCustomerPage = (props) => {
                 await axios.post(`${SERVER_URL}/customer/createCustomer`, data, config);
             }
             else {
-                data.itemTypeId = editingId;
+                data.customerId = editingId;
                 await axios.put(`${SERVER_URL}/customer/updateCustomer`, data, config);
             }
 
@@ -78,7 +121,7 @@ const CreateCustomerPage = (props) => {
             trySelectNode("manageCustomers", { programmatic: true })
         }
         catch (err) {
-            console.log("Error creating or updating item type", err);
+            console.log("Error creating or updating customer", err);
             if (axios.isCancel(err)) return console.log("Request canceled due to timeout or unmount", err);
 
             // Validation errors
@@ -208,6 +251,7 @@ const CreateCustomerPage = (props) => {
                             myKey={contact.myKey}
                             contacts={contacts}
                             setContacts={setContacts}
+                            self={contact}
                             {...contact}>
                         </ContactCreationPanel>
                     ))}
@@ -261,7 +305,7 @@ const AddressCreationPanel = (props) => {
     const isEditing = customerAddressId !== null && customerAddressId !== undefined;
 
     let buttonJsx;
-    if (isEditing) { 
+    if (isEditing) {
 
         if (flaggedForDeletion) {
             buttonJsx = (
@@ -293,8 +337,10 @@ const AddressCreationPanel = (props) => {
         )
     }
 
+    const additionalClasses = flaggedForDeletion ? " flaggedForDeletion" : "";
+
     return (
-        <div className="individual-container">
+        <div className={"individual-container" + additionalClasses}>
             <div className="individual-container-header">
                 <h5 className="individual-container-heading">Address {myIndex + 1}</h5>
                 <div className="individual-container-icon-button">
@@ -401,8 +447,10 @@ const ContactCreationPanel = (props) => {
         )
     }
 
+    const additionalClasses = flaggedForDeletion ? " flaggedForDeletion" : "";
+
     return (
-        <div className="individual-container">
+        <div className={"individual-container" + additionalClasses}>
             <div className="individual-container-header">
                 <h5 className="individual-container-heading">Contact {myIndex + 1}</h5>
                 <div className="individual-container-icon-button">

@@ -210,10 +210,6 @@ export function mutateSQLResult(result) {
         if (value instanceof Date) {
             result[key] = getDateAsSQLString(value)
         }
-        const asFloat = parseFloat(value)
-        if (!Number.isNaN(asFloat)) {
-            result[key] =  asFloat;
-        }
     }
 }
 

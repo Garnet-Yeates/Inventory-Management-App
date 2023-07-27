@@ -60,17 +60,20 @@ async function createOrUpdateItemType(req, res, isUpdating) {
     const errJson = {};
 
     // itemTypeId validation if we are updating an item (not creating)
-    let itemToUpdate;
     if (isUpdating) {
 
         if (!itemTypeId) {
             return res.status(404).json({ itemTypeIdError: "itemTypeId must be supplied for updating item types" })
         }
         else {
-            itemToUpdate = await getItemType(clientId, { itemTypeId });
-            if (!itemToUpdate) {
+            if (!(await getItemType(clientId, { itemTypeId }))) {
                 return res.status(404).json({ itemTypeIdError: "Could not find item with the specified id to update for this client" })
             }
+        }
+    }
+    else {
+        if (itemTypeId) {
+            return res.status(404).json({ itemTypeIdError: "itemTypeId is auto-generated and must not be supplied when creating new item types" })
         }
     }
 
@@ -216,7 +219,7 @@ export async function api_getItemType(req, res) {
     }
 
     if (Object.keys(query).length > 1) {
-        return res.status(400).json({ errorMessage: "Only one query parameter may be supplied here"})
+        return res.status(400).json({ errorMessage: "Only one query parameter may be supplied here" })
     }
 
     try {

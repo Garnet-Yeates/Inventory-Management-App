@@ -40,6 +40,31 @@ export async function updateCustomer(clientId, customerId, columns) {
         .execute();
 }
 
+export async function getCustomerFull(clientId, where = {}) {
+    return (await getCustomersFull(clientId, where))[0]
+}
+
+// Where only applies to the customer, not to addr or cont
+export async function getCustomersFull(clientId, where = {}) {
+
+    throwIfAnyKeyIsNullish(where);
+
+    if (!clientId) {
+        throw new Error("clientId must be supplied (updateCustomer procedure)")
+    }
+
+    const customerList = await getCustomers(clientId, where);
+
+    for (let customer of customerList) {
+        const customerId = customer.customerId;
+        customer.addresses = await getCustomerAddresses(customerId);
+        customer.contacts = await getCustomerContacts(customerId);
+    }
+
+    return customerList;
+}
+
+
 /**
  * Finds the first Customer for this client that matches the specified where clause (if supplied). 
  * @returns the first found Customer, or null if it could not find one
@@ -97,17 +122,13 @@ export async function updateCustomerAddress(customerAddressId, columns) {
         .execute();
 }
 
-export async function getCustomerAddress(clientId, where = {}) {
-    return (await getCustomerAddresses(clientId, where))[0]
+export async function getCustomerAddress(customerId, where = {}) {
+    return (await getCustomerAddresses(customerId, where))[0]
 }
 
 export async function getCustomerAddresses(customerId, where = {}) {
 
     throwIfAnyKeyIsNullish(where);
-    
-    if (!customerId) {
-        throw new Error("customerId must be supplied (getCustomerAddresses procedure)")
-    }
     
     return await Table("CustomerAddress")
         .where({ customerId, ...where })
@@ -144,17 +165,13 @@ export async function updateCustomerContact(customerContactId, columns) {
         .execute();
 }
 
-export async function getCustomerContact(clientId, where = {}) {
-    return (await getCustomerContacts(clientId, where))[0]
+export async function getCustomerContact(customerId, where = {}) {
+    return (await getCustomerContacts(customerId, where))[0]
 }
 
 export async function getCustomerContacts(customerId, where = {}) {
 
     throwIfAnyKeyIsNullish(where);
-
-    if (!customerId) {
-        throw new Error("customerId must be supplied (getCustomerContacts procedure)")
-    }
 
     return await Table("CustomerContact")
         .where({ customerId, ...where })

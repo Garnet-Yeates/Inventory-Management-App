@@ -2,7 +2,8 @@ import axios from "axios";
 import { useEffect, useState } from "react";
 import { mountAbortSignal } from "../../tools/axiosTools";
 import { SERVER_URL } from "../App";
-import "../../sass/ManageItemInstancesSubPage.scss"
+import "../../sass/ItemInstanceManagement.scss"
+import { formatToUSCurrency } from "../../tools/generalTools";
 
 const ItemInstanceManagementPage = (props) => {
 
@@ -33,16 +34,12 @@ const ItemInstancesView = (props) => {
         (async () => {
             try {
                 let response = await axios.get(`${SERVER_URL}/itemInstance/getItemInstances`, { signal: controller.signal })
-                console.log("got res", response);
+                console.log("ItemInstancesView mount GET /itemInstance/getItemInstances", response);
                 setItemInstances(response.data.itemInstances);
-
-                let response2 = await axios.get(`${SERVER_URL}/itemInstance/getItemInstances`, { params: { groupByType: true }, signal: controller.signal })
-                console.log("got res2", response2);
-
             }
             catch (err) {
                 if (axios.isCancel(err)) return `Request canceled due to ${isCleanedUp() ? "timeout" : "unmount"}`
-                console.log("ItemInstancesView: error with API call to: /itemInstance/getItemInstances", err);
+                console.log("Error ItemsView mount GET /itemInstance/getItemInstances", err);
             }
         })()
 
@@ -102,14 +99,6 @@ export const SimpleItemInstanceDisplay = (props) => {
             </span>
         </div>
     )
-}
-
-function formatToUSCurrency(number) {
-    if (!(typeof number === "number")) {
-        return "NaN";
-    }
-    const formattedNumber = number.toFixed(2); // Format the number to have 2 decimal places
-    return "$" + formattedNumber; // Add the dollar sign ($) prefix
 }
 
 export default ItemInstanceManagementPage;

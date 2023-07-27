@@ -69,6 +69,7 @@ const CreateItemInstancePage = (props) => {
                     const { data: { itemInstance } } = await axios.get(`${SERVER_URL}/itemInstance/getItemInstance`, { params: { itemInstanceId: editingId }, signal: controller.signal })
                     console.log("Loaded up the following item instance for editing:", itemInstance)
 
+                    // TODO { $y: year, $M: month, $D: day } format for datepurchased which is returned as a sql string
                     setDatePurchased(itemInstance.datePurchased);
                     setItemCode(itemInstance.itemCode); // Table is inner joined
                     setQuantity(itemInstance.quantity);

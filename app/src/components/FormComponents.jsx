@@ -37,7 +37,7 @@ export const AdornedFormInput = ({ label, size, state, setState, fullWidth, ador
                 placeholder={placeholder}
                 size={size}
                 error={error}
-                value={value ?? state}
+                value={value ?? state ?? ""}
                 onChange={onChange ?? getOnChangeFunction(type, state, setState)}
                 label={label}
                 startAdornment={<InputAdornment position="start">{adornment}</InputAdornment>}
@@ -50,7 +50,7 @@ export const AdornedFormInput = ({ label, size, state, setState, fullWidth, ador
 export const FormInput = ({ state, setState, type, errorText, helperText, minErrorText, onChange, value, ...rest }) => {
     return (
         <TextField
-            value={value ?? state}
+            value={value ?? state ?? ""}
             onChange={onChange ?? getOnChangeFunction(type, state, setState)}
             error={errorText ? true : false}
             helperText={errorText || helperText || (minErrorText ? "" : " ")}

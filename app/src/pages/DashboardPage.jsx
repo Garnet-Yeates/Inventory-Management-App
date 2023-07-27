@@ -46,8 +46,8 @@ export default function DashboardPage(props) {
     const [navInfo, refreshNavInfo] = useGETNavInfo();
 
     const selectNextRefreshRef = useRef();
-    const selectNodeNextRefresh = useCallback((nodeId) => {
-        selectNextRefreshRef.current = nodeId;
+    const selectNodeNextRefresh = useCallback((nodeId, config) => {
+        selectNextRefreshRef.current = { nodeId, config };
     }, [])
 
     // Select initial node on mount and ONLY on mount (0 dependencies, we don't care to re-select initialNode if the prop changes after mounting)
@@ -80,7 +80,7 @@ export default function DashboardPage(props) {
     const unlockExit = useCallback(() => blockExitRef.current = null, []);
 
     // Gets set when the user attempts to select a new page when blockExitRef.current exists. If set, the data loss warning modal renders
-    const [triedToSelect, setTriedToSelect] = useState();
+    const [triedToSelect, setTriedToSelect] = useState(); // Stores { nodeId, config } of their selection attempt. If they click continue it will re-do their selection
 
     const [messages, setMessages] = useState({})
     const addDashboardMessage = useCallback((messageKey, message) => {
@@ -109,7 +109,6 @@ export default function DashboardPage(props) {
         // blockExitRef and then it will call trySelectNode, preserving their initial nodeId selection and selection config
         if (blockExitRef.current && (node.page || (node.onSelected && node.pageLossOnSelect))) {
             setTriedToSelect({ nodeId, config })
-            setMobilePanelShown(false);
             return;
         }
 
@@ -177,8 +176,9 @@ export default function DashboardPage(props) {
     // Whenever dashboardTreeItems updates to a non empty object, we will programatically select the node stored in the ref
     useEffect(() => {
         if (Object.keys(dashboardTreeItems).length > 0 && selectNextRefreshRef.current) {
-            console.log("[dashboardTreeItems effect]: trySelectNode(selectNextRefreshRef.current)")
-            trySelectNode(selectNextRefreshRef.current, { programmatic: true })
+            const { nodeId, config } = selectNextRefreshRef.current;
+            console.log("[dashboardTreeItems effect]: auto selecting node after refresh. selectNextRefreshRef data:", selectNextRefreshRef.current)
+            trySelectNode(nodeId, { config })
             selectNextRefreshRef.current = null;
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps    
