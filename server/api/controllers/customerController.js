@@ -185,18 +185,12 @@ export async function createOrUpdateCustomer(req, res, isUpdating) {
     if (addresses) {
         try {
             for (let customerAddress of addresses) {
-                const { address, zip, town, customerAddressId, flaggedForDeletion } = customerAddress;
+                const { address, town, zip, state, customerAddressId, flaggedForDeletion } = customerAddress;
                 if (customerAddressId) {
-                    if (flaggedForDeletion) {
-                        // TODO delete
-                    }
-                    else {
-                        await updateCustomerAddress(customerAddressId, { address, zip, town })
-                    }
-
+                    await updateCustomerAddress(customerAddressId, { address, town, zip, state, deleted: flaggedForDeletion })
                 }
                 else {
-                    await createCustomerAddress(customerId, address, zip, town);
+                    await createCustomerAddress(customerId, address, town, zip, state);
                 }
             }
         }
@@ -210,12 +204,7 @@ export async function createOrUpdateCustomer(req, res, isUpdating) {
             for (let customerContact of contacts) {
                 const { contactType, contactValue, customerContactId, flaggedForDeletion } = customerContact;
                 if (customerContactId) {
-                    if (flaggedForDeletion) {
-                        // TODO delete
-                    }
-                    else {
-                        await updateCustomerContact(customerContactId, { contactType, contactValue })
-                    }
+                    await updateCustomerContact(customerContactId, { contactType, contactValue, deleted: flaggedForDeletion })
                 }
                 else {
                     await createCustomerContact(customerId, contactType, contactValue);
@@ -230,13 +219,21 @@ export async function createOrUpdateCustomer(req, res, isUpdating) {
     return res.status(200).json({ message: "Customer creation successful" });
 }
 
+const stateAbbreviations = [
+    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+    "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+    "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+    "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+    "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
+];
+
 async function getAddressErrJson(addressObj, customerId) {
 
     if (!(addressObj && (typeof addressObj === "object"))) {
         return { nullAddressError: "Addresses must be non-null objects" }
     }
 
-    let { address, zip, town } = addressObj;
+    let { address, town, zip, state } = addressObj;
 
     // Should only be present (and must be present) when isUpdating is true
     const { customerAddressId, flaggedForDeletion } = addressObj;
@@ -276,6 +273,18 @@ async function getAddressErrJson(addressObj, customerId) {
         }
     }
 
+    if (!town) {
+        addressErrJson.townError = "This field is required"
+    }
+    else if (typeof town !== "string") {
+        addressErrJson.townError = "This must be a string"
+    }
+    else {
+        if (town.length < 3 || town.length > 24) {
+            addressErrJson.townError = "Must 3-24 characters"
+        }
+    }
+
     if (!zip) {
         addressErrJson.zipError = "This field is required"
     }
@@ -288,15 +297,24 @@ async function getAddressErrJson(addressObj, customerId) {
         }
     }
 
-    if (!town) {
-        addressErrJson.townError = "This field is required"
+    if (!state) {
+        addressErrJson.stateError = "This field is required"
     }
-    else if (typeof town !== "string") {
-        addressErrJson.townError = "This must be a string"
+    else if (typeof state !== "string") {
+        addressErrJson.stateError = "This must be a string"
     }
     else {
-        if (town.length < 3 || town.length > 24) {
-            addressErrJson.townError = "Must 3-24 characters"
+        let isValid = false;
+        for (let validState of stateAbbreviations) {
+            if (validState.toLowerCase() === state.trim().toLowerCase()) {
+                state = validState;
+                isValid = true;
+                break;
+            }
+        }
+
+        if (!isValid) {
+            addressErrJson.stateError = "Invalid state"
         }
     }
 
@@ -350,6 +368,7 @@ async function getContactErrJson(contactObj, customerId) {
             if (validType.toLowerCase() === contactType.trim().toLowerCase()) {
                 contactType = validType;
                 isValid = true;
+                break;
             }
         }
 
@@ -385,6 +404,7 @@ export async function api_getCustomer(req, res) {
             sessionUUID
         },
         query,
+        query: { customerId }
     } = req;
 
     if (!query.customerId) {
@@ -396,7 +416,7 @@ export async function api_getCustomer(req, res) {
     }
 
     try {
-        const customer = await getCustomerFull(clientId, query);
+        const customer = await getCustomerFull(clientId, { customerId, deleted: false });
 
         if (!customer) {
             return res.status(404).json({ customerIdError: "Could not find a customer in the database with the specified customerId for this client" })

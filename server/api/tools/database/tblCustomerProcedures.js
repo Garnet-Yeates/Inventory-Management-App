@@ -45,6 +45,7 @@ export async function getCustomerFull(clientId, where = {}) {
 }
 
 // Where only applies to the customer, not to addr or cont
+// Addresses/contacts that are deleted are not included
 export async function getCustomersFull(clientId, where = {}) {
 
     throwIfAnyKeyIsNullish(where);
@@ -57,8 +58,8 @@ export async function getCustomersFull(clientId, where = {}) {
 
     for (let customer of customerList) {
         const customerId = customer.customerId;
-        customer.addresses = await getCustomerAddresses(customerId);
-        customer.contacts = await getCustomerContacts(customerId);
+        customer.addresses = await getCustomerAddresses(customerId, { deleted: false });
+        customer.contacts = await getCustomerContacts(customerId, { deleted: false});
     }
 
     return customerList;
@@ -92,15 +93,16 @@ export async function getCustomers(clientId, where = {}) {
         .execute();
 }
 
-export async function createCustomerAddress(customerId, address, zip, town) {
+export async function createCustomerAddress(customerId, address, town, zip, state) {
 
-    throwIfAnyKeyIsNullish({ customerId, address, zip, town });
+    throwIfAnyKeyIsNullish({ customerId, address, town, zip, state });
     
     await Table("CustomerAddress").insert({
         customerId,
         address,
-        zip,
         town,
+        zip,
+        state,
     }).execute();
 }
 

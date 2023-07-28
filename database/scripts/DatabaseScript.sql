@@ -29,6 +29,7 @@ CREATE TABLE Customer (
 	customerMiddleName CHAR(32) NULL,
     customerLastName CHAR(32) NOT NULL,
     dateAdded DATE NOT NULL,
+	deleted BOOL NULL DEFAULT FALSE,
     FOREIGN KEY (clientId) REFERENCES Client (clientId),
     PRIMARY KEY (customerId)
 );
@@ -38,8 +39,10 @@ CREATE TABLE CustomerAddress (
 	customerId INT NOT NULL,
 	customerAddressId INT AUTO_INCREMENT,
 	address CHAR(64) NOT NULL,
-    zip CHAR(5) NOT NULL,
     town CHAR(24) NOT NULL,
+	zip CHAR(5) NOT NULL,
+	state CHAR(2) NOT NULL,
+    deleted BOOL NULL DEFAULT FALSE,
 	FOREIGN KEY (customerId) REFERENCES Customer (customerId),
     PRIMARY KEY (customerAddressId)
 );
@@ -51,6 +54,7 @@ CREATE TABLE CustomerContact (
 	customerId INT NOT NULL,
 	contactType CHAR(16) NOT NULL, # Email/Cell/Home
     contactValue CHAR(48) NOT NULL,
+	deleted BOOL NULL DEFAULT FALSE,
     FOREIGN KEY (customerId) REFERENCES Customer (customerId),
     PRIMARY KEY (customerContactId)
 );

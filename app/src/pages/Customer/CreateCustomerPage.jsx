@@ -2,14 +2,14 @@
 
 import axios from "axios";
 import { useEffect, useRef, useState } from "react";
-import { AdornedFormInput, FormInput } from "../../components/FormComponents";
+import { AdornedFormInput, FormInput, FormSelectInput } from "../../components/FormComponents";
 import { mountAbortSignal, newAbortSignal, refreshSignal, useUnmountSignalCancel } from "../../tools/axiosTools";
 import { SERVER_URL } from "../App";
 import { LoadingButton } from "@mui/lab";
 import { Close, DeleteOutline, Send as SendIcon, Undo } from "@mui/icons-material";
 import "../../sass/CreateCustomerSubPage.scss"
 import { Button, IconButton } from "@mui/material";
-import { deleteUndefined } from "../../tools/generalTools";
+import { deleteUndefined, stateAbbreviations } from "../../tools/generalTools";
 
 let currKey = 0;
 const getKey = () => currKey++;
@@ -92,15 +92,16 @@ const CreateCustomerPage = (props) => {
                 customerMiddleName,
                 customerLastName,
                 addresses: addresses.map(a => deleteUndefined({
-                    customerAddressId: a.customerAddressId,
-                    flaggedForDeletion: a.flaggedForDeletion,
+                    customerAddressId: a.customerAddressId, // Will be deleted if this is a new address
+                    flaggedForDeletion: a.flaggedForDeletion, // Ditto
                     address: a.address,
                     town: a.town,
                     zip: a.zip,
+                    state: a.state,
                 })),
                 contacts: contacts.map(c => deleteUndefined({
-                    customerContactId: c.customerContactId,
-                    flaggedForDeletion: c.flaggedForDeletion,
+                    customerContactId: c.customerContactId, // Will be deleted if this is a new address
+                    flaggedForDeletion: c.flaggedForDeletion, // Ditto
                     contactType: c.contactType,
                     contactValue: c.contactValue,
                 })),
@@ -126,6 +127,7 @@ const CreateCustomerPage = (props) => {
 
             // Validation errors
             if (err.response?.data) {
+
                 const {
                     customerFirstNameError,
                     customerMiddleNameError,
@@ -133,31 +135,32 @@ const CreateCustomerPage = (props) => {
                     addressErrors = [],
                     contactErrors = [],
                 } = err.response.data;
+
+                // Update customer errors
                 setCustomerFirstNameError(customerFirstNameError);
                 setCustomerMiddleNameError(customerMiddleNameError);
                 setCustomerLastNameError(customerLastNameError);
 
-                // Clear array errors 
-
-                for (let address of addresses) {
-                    address.errors = {}
+                // Update address errors
+                if (addressErrors.length > 0) {
+                    for (let i = 0; i < addressErrors.length; i++)
+                        addresses[i].errors = addressErrors[i];
                 }
-
-                for (let contact of contacts) {
-                    contact.errors = {}
+                else {
+                    for (let address of addresses)
+                        address.errors = {};
                 }
-
-                // Update array errors. Not that if there are 0 errors nothing happens here
-
-                for (let i = 0; i < addressErrors.length; i++) {
-                    addresses[i].errors = addressErrors[i];
-                }
-
-                for (let i = 0; i < contactErrors.length; i++) {
-                    contacts[i].errors = contactErrors[i];
-                }
-
                 setAddresses([...addresses]);
+
+                // Update contact errors
+                if (contactErrors.length > 0) {
+                    for (let i = 0; i < contactErrors.length; i++)
+                        contacts[i].errors = contactErrors[i];
+                }
+                else {
+                    for (let contact of contacts)
+                        contact.errors = {};
+                }
                 setContacts([...contacts]);
             }
         }
@@ -178,7 +181,7 @@ const CreateCustomerPage = (props) => {
                             <FormInput
                                 fullWidth
                                 label="First Name"
-                                state={customerFirstName}
+                                value={customerFirstName}
                                 setState={setCustomerFirstName}
                                 errorText={customerFirstNameError}>
                             </FormInput>
@@ -189,7 +192,7 @@ const CreateCustomerPage = (props) => {
                             <FormInput
                                 fullWidth
                                 label="Middle Name"
-                                state={customerMiddleName}
+                                value={customerMiddleName}
                                 setState={setCustomerMiddleName}
                                 errorText={customerMiddleNameError}>
                             </FormInput>
@@ -200,7 +203,7 @@ const CreateCustomerPage = (props) => {
                             <FormInput
                                 fullWidth
                                 label="Last Name"
-                                state={customerLastName}
+                                value={customerLastName}
                                 setState={setCustomerLastName}
                                 errorText={customerLastNameError}>
                             </FormInput>
@@ -231,8 +234,9 @@ const CreateCustomerPage = (props) => {
                                 myKey: getKey(),
                                 errors: {},
                                 address: "",
-                                zip: "",
                                 town: "",
+                                zip: "",
+                                state: "",
                             })
                             setAddresses([...addresses]);
 
@@ -297,7 +301,7 @@ const AddressCreationPanel = (props) => {
     const { self, myKey, myIndex, addresses, setAddresses } = props;
 
     // State props and error handling for creating or editing
-    const { address, zip, town, errors } = props;
+    const { address, town, zip, state, errors } = props;
 
     // For specifically editing
     const { customerAddressId, flaggedForDeletion } = props;
@@ -352,7 +356,7 @@ const AddressCreationPanel = (props) => {
                     <div className="form-control">
                         <FormInput
                             size="small"
-                            minErrorText
+                            minHelperText
                             fullWidth
                             value={address}
                             onChange={(e) => {
@@ -367,7 +371,7 @@ const AddressCreationPanel = (props) => {
                 <div className="col-lg-6">
                     <div className="form-control">
                         <FormInput
-                            minErrorText
+                            minHelperText
                             fullWidth
                             size="small"
                             value={town}
@@ -380,11 +384,11 @@ const AddressCreationPanel = (props) => {
                         </FormInput>
                     </div>
                 </div>
-                <div className="col-lg-6">
+                <div className="col-6 col-lg-3">
                     <div className="form-control">
                         <FormInput
                             size="small"
-                            minErrorText
+                            minHelperText
                             fullWidth
                             value={zip}
                             onChange={(e) => {
@@ -394,6 +398,24 @@ const AddressCreationPanel = (props) => {
                             errorText={errors.zipError}
                             label="Zip">
                         </FormInput>
+                    </div>
+                </div>
+                <div className="col-6 col-lg-3">
+                    <div className="form-control">
+                        <FormSelectInput
+                            className="max-height-select"
+                            size="small"
+                            minHelperText
+                            fullWidth
+                            value={state}
+                            onChange={(e) => {
+                                self.state = e.target.value;
+                                setAddresses([...addresses]);
+                            }}
+                            values={stateAbbreviations}
+                            errorText={errors.stateError}
+                            label="State">
+                        </FormSelectInput>
                     </div>
                 </div>
             </div>
@@ -462,7 +484,7 @@ const ContactCreationPanel = (props) => {
                     <div className="form-control">
                         <FormInput
                             size="small"
-                            minErrorText
+                            minHelperText
                             fullWidth
                             value={contactType}
                             onChange={(e) => {
@@ -477,7 +499,7 @@ const ContactCreationPanel = (props) => {
                 <div className="col-lg-6">
                     <div className="form-control">
                         <FormInput
-                            minErrorText
+                            minHelperText
                             fullWidth
                             size="small"
                             value={contactValue}

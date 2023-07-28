@@ -56,7 +56,7 @@ const CreateItemTypePage = (props) => {
 
                     setItemName(itemType.itemName);
                     setItemCode(itemType.itemCode);
-                    setItemDescription(itemType.itemDescription ?? "");
+                    setItemDescription(itemType.itemDescription);
                     setDefaultBuyPrice(itemType.defaultBuyPrice);
                     setDefaultSellPrice(itemType.defaultSellPrice);
                 }
@@ -137,7 +137,7 @@ const CreateItemTypePage = (props) => {
                             <FormInput
                                 fullWidth
                                 label="Item Name"
-                                state={itemName}
+                                value={itemName}
                                 setState={setItemName}
                                 errorText={itemNameError}>
                             </FormInput>
@@ -146,7 +146,7 @@ const CreateItemTypePage = (props) => {
                             <FormInput
                                 fullWidth
                                 label="Item Code"
-                                state={itemCode}
+                                value={itemCode}
                                 setState={setItemCode}
                                 errorText={itemCodeError}>
                             </FormInput>
@@ -159,7 +159,7 @@ const CreateItemTypePage = (props) => {
                                 type="number"
                                 adornment="$"
                                 label="Default Buy Price"
-                                state={defaultBuyPrice}
+                                value={defaultBuyPrice}
                                 setState={setDefaultBuyPrice}
                                 errorText={defaultBuyPriceError}>
                             </AdornedFormInput>
@@ -170,7 +170,7 @@ const CreateItemTypePage = (props) => {
                                 type="number"
                                 adornment="$"
                                 label="Default Sell Price"
-                                state={defaultSellPrice}
+                                value={defaultSellPrice}
                                 setState={setDefaultSellPrice}
                                 errorText={defaultSellPriceError}>
                             </AdornedFormInput>
@@ -183,7 +183,7 @@ const CreateItemTypePage = (props) => {
                                 multiline
                                 rows={4}
                                 label="Item Description"
-                                state={itemDescription}
+                                value={itemDescription}
                                 setState={setItemDescription}
                                 errorText={itemDescriptionError}>
                             </FormInput>

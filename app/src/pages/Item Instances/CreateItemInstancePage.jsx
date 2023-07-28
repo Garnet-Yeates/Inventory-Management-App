@@ -191,7 +191,7 @@ const CreateItemInstancePage = (props) => {
                                 fullWidth
                                 disabled={preSetItemCode ? true : false}
                                 label="Item Code"
-                                state={itemCode}
+                                value={itemCode}
                                 errorText={itemCodeError}
                                 setState={setItemCode}>
                             </FormInput>
@@ -203,7 +203,7 @@ const CreateItemInstancePage = (props) => {
                                 fullWidth
                                 type="integer"
                                 label="Quantity"
-                                state={quantity}
+                                value={quantity}
                                 setState={setQuantity}
                                 errorText={quantityError}>
                             </FormInput>
@@ -226,7 +226,7 @@ const CreateItemInstancePage = (props) => {
                                 adornment="$"
                                 label="Buy Price"
                                 placeholder={String(defaultBuyPrice)}
-                                state={buyPrice}
+                                value={buyPrice}
                                 setState={setBuyPrice}
                                 errorText={buyPriceError}>
                             </AdornedFormInput>
@@ -238,7 +238,7 @@ const CreateItemInstancePage = (props) => {
                                 adornment="$"
                                 label="Sell Price"
                                 placeholder={String(defaultSellPrice)}
-                                state={sellPrice}
+                                value={sellPrice}
                                 setState={setSellPrice}
                                 errorText={sellPriceError}>
                             </AdornedFormInput>

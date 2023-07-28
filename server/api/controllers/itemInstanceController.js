@@ -210,10 +210,11 @@ export async function api_getItemInstances(req, res) {
             for (let instance of result) {
                 const { itemTypeId, itemCode } = instance;
                 if (!(itemTypeId in typeMap)) {
-                    typeMap[itemTypeId] = { itemTypeId, itemCode, instances: [instance] }
+                    typeMap[itemTypeId] = { itemTypeId, itemCode, totalQuantity: instance.quantity, instances: [instance] }
                     continue;
                 } 
                 typeMap[itemTypeId].instances.push(instance);
+                typeMap[itemTypeId].totalQuantity += instance.quantity;
             }
 
             result = []
