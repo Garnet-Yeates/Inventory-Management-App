@@ -11,6 +11,16 @@
 
 }
 
+.customer-button {
+    width: 300px;
+}
+
+@include media-breakpoint-down(sm) {
+    .customer-button {
+        width: 100%;
+    }
+}
+
 .addresses-or-contacts-container {
 
     display: flex;

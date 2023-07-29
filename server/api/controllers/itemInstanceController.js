@@ -75,7 +75,7 @@ async function createOrUpdateItemInstance(req, res, isUpdating) {
             errJson.databaseError = "Error querying database for existing itemType foreign key check";
         }
     }
-    
+
     // Validate datePurchased. Does not need to be defined (defaults to now), but if it is defined it must be:
     // a valid sql date string (YYYY-MM-DD), as well as a valid date
     if (datePurchased) {
@@ -208,11 +208,11 @@ export async function api_getItemInstances(req, res) {
         if (groupByType) {
             const typeMap = {}
             for (let instance of result) {
-                const { itemTypeId, itemCode } = instance;
+                const { itemTypeId, itemCode, itemName } = instance;
                 if (!(itemTypeId in typeMap)) {
-                    typeMap[itemTypeId] = { itemTypeId, itemCode, totalQuantity: instance.quantity, instances: [instance] }
+                    typeMap[itemTypeId] = { itemTypeId, itemCode, itemName, totalQuantity: instance.quantity, instances: [instance] }
                     continue;
-                } 
+                }
                 typeMap[itemTypeId].instances.push(instance);
                 typeMap[itemTypeId].totalQuantity += instance.quantity;
             }
@@ -225,12 +225,14 @@ export async function api_getItemInstances(req, res) {
             }
 
             result.sort((groupingA, groupingB) => groupingA.itemTypeId - groupingB.itemTypeId)
+
+            return res.status(200).json({ itemInstanceGroups: result })
         }
         else {
             result.sort((a, b) => a.itemTypeId - b.itemTypeId);
-        }
 
-        return res.status(200).json({ itemInstances: result })
+            return res.status(200).json({ itemInstances: result })
+        }
     }
     catch (err) {
         console.log("Database error (getItemInstances endpoint)", err)

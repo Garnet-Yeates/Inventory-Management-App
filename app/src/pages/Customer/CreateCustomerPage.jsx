@@ -214,7 +214,7 @@ const CreateCustomerPage = (props) => {
                     <h3 className="heading">
                         Addresses
                     </h3>
-                    {addresses.length !== 0 && addresses.map((address, index) => (
+                    {addresses.length !== 0 && addresses.map((address, index) => 
                         <AddressCreationPanel
                             myIndex={index}
                             key={address.myKey}
@@ -223,9 +223,10 @@ const CreateCustomerPage = (props) => {
                             self={address}
                             {...address}>
                         </AddressCreationPanel>
-                    ))}
+                    )}
                     {addresses.length === 0 && <p className="none-yet">This customer does not have any addresses</p>}
                     <Button
+                        className="customer-button"
                         color="primary"
                         size="large"
                         variant="contained"
@@ -248,7 +249,7 @@ const CreateCustomerPage = (props) => {
                     <h3 className="heading">
                         Contacts
                     </h3>
-                    {contacts.length !== 0 && contacts.map((contact, index) => (
+                    {contacts.length !== 0 && contacts.map((contact, index) => 
                         <ContactCreationPanel
                             myIndex={index}
                             key={contact.myKey}
@@ -258,9 +259,10 @@ const CreateCustomerPage = (props) => {
                             self={contact}
                             {...contact}>
                         </ContactCreationPanel>
-                    ))}
+                    )}
                     {contacts.length === 0 && <p className="none-yet">This customer does not have any contacts</p>}
                     <Button
+                        className="customer-button"
                         color="primary"
                         size="large"
                         variant="contained"
@@ -273,13 +275,13 @@ const CreateCustomerPage = (props) => {
                             })
                             setContacts([...contacts]);
                         }}>
-                        <span>Add Customer Contact</span>
+                        <span>Add Customer Contactssss</span>
                     </Button>
                 </div>
-                <div className="form-control">
+                <div className="form-control d-flex justify-content-center">
                     <LoadingButton
+                        className="customer-button"
                         color="error"
-                        fullWidth
                         size="large"
                         onClick={submitForm}
                         endIcon={<SendIcon />}
@@ -403,7 +405,6 @@ const AddressCreationPanel = (props) => {
                 <div className="col-6 col-lg-3">
                     <div className="form-control">
                         <FormSelectInput
-                            className="max-height-select"
                             size="small"
                             minHelperText
                             fullWidth

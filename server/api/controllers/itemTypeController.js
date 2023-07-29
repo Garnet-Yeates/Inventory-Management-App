@@ -122,8 +122,10 @@ async function createOrUpdateItemType(req, res, isUpdating) {
 
     // Validate item description if they supplied it
 
-    itemDescription = itemDescription?.trim();
+    
     if (itemDescription) {
+
+        itemDescription = itemDescription.trim();
 
         if (typeof itemDescription !== "string") {
             errJson.itemDescriptionError = "This must be a string"
@@ -133,6 +135,9 @@ async function createOrUpdateItemType(req, res, isUpdating) {
                 errJson.itemDescriptionError = "Must be at most 512 characters"
             }
         }
+    }
+    else {
+        itemDescription = "" // If they supplied it as null/undefined
     }
 
     // Validate default buy price

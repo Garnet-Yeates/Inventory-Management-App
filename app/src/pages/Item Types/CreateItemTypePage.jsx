@@ -16,7 +16,7 @@ const CreateItemTypePage = (props) => {
         selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage,
     } = props;
 
-    // Only inherited when composed by ItemTypeManagementPage
+    // Override prop, only inherited when composed by ItemTypeManagementPage
     const {
         editingId,
     } = props;

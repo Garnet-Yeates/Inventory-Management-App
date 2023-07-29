@@ -4,7 +4,7 @@ import { mountAbortSignal } from "../../tools/axiosTools";
 import { SERVER_URL } from "../App";
 import "../../sass/ItemTypeManagement.scss"
 import { Button } from "@mui/material";
-import { Add, Edit, Visibility } from "@mui/icons-material";
+import { Add, Edit, EditOutlined, Visibility, VisibilityOutlined } from "@mui/icons-material";
 import CreateItemTypePage from "./CreateItemTypePage";
 import { formatToUSCurrency } from "../../tools/generalTools";
 
@@ -78,7 +78,7 @@ const ViewItemTypePage = (props) => {
     // Inherited props
     const { selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage } = props;
 
-    // Specific props
+    // Specific props (overridden)
     const { itemTypeId } = props;
 
     return <div>What a view</div>
@@ -129,7 +129,7 @@ export const SimpleItemTypeDisplay = (props) => {
                         })
                     }}
                     endIcon={<Add />}
-                    variant="contained">
+                    variant="outlined">
                     <span>New</span>
                 </Button>
                 <Button
@@ -143,9 +143,24 @@ export const SimpleItemTypeDisplay = (props) => {
                             }
                         })
                     }}
-                    endIcon={<Edit />}
-                    variant="contained">
+                    endIcon={<EditOutlined />}
+                    variant="outlined">
                     <span>Edit</span>
+                </Button>
+                <Button
+                    size="small"
+                    color="secondary"
+                    onClick={() => {
+                        trySelectNode("manageItemInstances", {
+                            programmatic: true,
+                            overrideProps: {
+                                viewingInstancesOf: itemCode,
+                            }
+                        })
+                    }}
+                    endIcon={<VisibilityOutlined />}
+                    variant="outlined">
+                    <span>View Instances</span>
                 </Button>
             </div>
         </div>

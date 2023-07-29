@@ -2,7 +2,7 @@ import { Table, throwIfAnyKeyIsNullish } from "./driverAbstractions.js";
 
 export async function createItemType(clientId, itemName, itemCode, itemDescription, defaultBuyPrice, defaultSellPrice) {
 
-    throwIfAnyKeyIsNullish({ itemName, itemCode, defaultBuyPrice, defaultSellPrice });
+    throwIfAnyKeyIsNullish({ itemName, itemDescription, itemCode, defaultBuyPrice, defaultSellPrice });
 
     if (!clientId) {
         throw new Error("clientId must be supplied (createItemType procedure)")

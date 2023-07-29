@@ -35,7 +35,7 @@ const useGETNavInfo = () => {
             // For now we do this
             data = {
 
-                customers: 3,
+                customers: 8,
 
                 invoices: 4,
                 inProgressInvoices: [

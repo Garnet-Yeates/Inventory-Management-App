@@ -1,4 +1,4 @@
-import { FormControl, FormHelperText, InputAdornment, InputLabel, MenuItem, OutlinedInput, Select, TextField } from "@mui/material";
+import { FilledInput, FormControl, FormHelperText, Input, InputAdornment, InputBase, InputLabel, MenuItem, OutlinedInput, Select, TextField } from "@mui/material";
 
 // All of these are built upon the MaterialUI library
 
@@ -29,17 +29,18 @@ const getOnChangeFunction = (type, state, setState) => {
 
 export const FormSelectInput = (props) => {
 
-    const {
+    let {
         sx,
+        variant = "outlined",
         className,
         fullWidth,
         disabled,
         label,
         helperText, errorText, minHelperText,
         values,
-        size,
+        size = "medium",
         displayToValueMap,
-        displayNullOption = true,
+        includeNullOption = false,
         value, onChange, setState, // setState or onChange should be defined, not both
         nullOptionText = "None"
     } = props;
@@ -70,8 +71,8 @@ export const FormSelectInput = (props) => {
     const errored = errorText ? true : false;
     
     return (
-        <FormControl sx={sx} disabled={disabled} error={errored} fullWidth={fullWidth} size={size}>
-            <InputLabel>{label}</InputLabel>
+        <FormControl sx={sx} disabled={disabled} error={errored} fullWidth={fullWidth} size={size} variant={variant}>
+            <InputLabel variant={variant}>{label}</InputLabel>
             <Select
                 className={className}
                 size={size}
@@ -79,11 +80,12 @@ export const FormSelectInput = (props) => {
                 onChange={onChange ? onChange : (e) => setState(e.target.value)}
                 label={label}
                 disabled={disabled}
+                variant={variant}
             >
-                {displayNullOption && <MenuItem><em>{nullOptionText}</em></MenuItem>}
-                {values.map((value, index) => <MenuItem value={value}>{displays[index]}</MenuItem>)}
+                {includeNullOption && <MenuItem><em>{nullOptionText}</em></MenuItem>}
+                {values.map((value, index) => <MenuItem key={value} value={value}>{displays[index]}</MenuItem>)}
             </Select>
-            <FormHelperText error={errored}>{errorText || helperText || (minHelperText ? "" : " ")}</FormHelperText>
+            <FormHelperText variant={variant} error={errored}>{errorText || helperText || (minHelperText ? "" : " ")}</FormHelperText>
         </FormControl>
     )
 }
@@ -91,8 +93,9 @@ export const FormSelectInput = (props) => {
 export const AdornedFormInput = (props) => {
     
     const { 
-        label, 
-        size, 
+        label,
+        variant = "outlined",
+        size = "medium", 
         fullWidth, 
         adornment, 
         type, 
@@ -111,10 +114,13 @@ export const AdornedFormInput = (props) => {
     
     const errored = errorText ? true : false;
 
+    const InputType = variant === "filled" ? FilledInput : variant === "outlined" ? OutlinedInput : Input
+
     return (
-        <FormControl disabled={disabled} size={size} fullWidth={fullWidth} error={errored} variant="outlined">
-            <InputLabel size={size} error={errored} variant="outlined">{label}</InputLabel>
-            <OutlinedInput
+        <FormControl disabled={disabled} size={size} fullWidth={fullWidth} error={errored} variant={variant}>
+            <InputLabel size={size} error={errored} variant={variant}>{label}</InputLabel>
+            <InputType
+                variant={variant}
                 disabled={disabled}
                 size={size}
                 error={errored}
@@ -124,7 +130,7 @@ export const AdornedFormInput = (props) => {
                 startAdornment={<InputAdornment position="start">{adornment}</InputAdornment>}
                 {...rest}
             />
-            <FormHelperText error={errored}>{errorText || helperText || (minHelperText ? "" : " ")}</FormHelperText>
+            <FormHelperText variant={variant} error={errored}>{errorText || helperText || (minHelperText ? "" : " ")}</FormHelperText>
         </FormControl>
     )
 }
@@ -133,6 +139,7 @@ export const FormInput = (props) => {
     
     const { 
         type, 
+        variant = "outlined",
         errorText, helperText, minHelperText, 
         value, onChange, setState,
         ...rest 
@@ -148,6 +155,7 @@ export const FormInput = (props) => {
     return (
         <TextField
             value={value ?? ""}
+            variant={variant}
             onChange={onChange ?? getOnChangeFunction(type, value, setState)}
             error={errorText ? true : false}
             helperText={errorText || helperText || (minHelperText ? "" : " ")}
