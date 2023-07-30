@@ -18,7 +18,7 @@ export async function createOrUpdateCustomer(req, res, isUpdating) {
     let {
         auth: {
             clientId,
-            sessionUUID
+            loginSessionUUID
         },
         body: {
             customerId,
@@ -401,7 +401,7 @@ export async function api_getCustomer(req, res) {
     const {
         auth: {
             clientId,
-            sessionUUID
+            loginSessionUUID
         },
         query,
         query: { customerId }
@@ -435,7 +435,7 @@ export async function api_getCustomers(req, res) {
     const {
         auth: {
             clientId,
-            sessionUUID
+            loginSessionUUID
         },
     } = req;
 

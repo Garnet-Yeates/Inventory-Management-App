@@ -102,6 +102,24 @@ const CreateItemInstancePage = (props) => {
         setDefaultBuyPrice("");
         setDefaultSellPrice("");
 
+        if (itemCode) {
+            (async () => {
+                try {
+                    const response = await axios.get(`${SERVER_URL}/itemType/getItemType`, { params: { itemCode }, signal: codeUpdateSignalRef.current.signal })
+                    const { data: { itemType } }  = response;
+                    console.log("Received the following from the server", response)
+                    setDefaultBuyPrice(itemType.defaultBuyPrice);
+                    setDefaultSellPrice(itemType.defaultSellPrice);
+                }
+                catch (err) {
+                    if (axios.isCancel(err)) return `Request canceled due to unmount or consecutive call (cancels previous request)`
+                    console.log("Error at GET /itemType/getItemType", err);
+                }
+            })()
+        }
+
+        return;
+
         itemCodeUpdateDelayRef.current = setTimeout(() => {
             if (itemCode) {
                 (async () => {

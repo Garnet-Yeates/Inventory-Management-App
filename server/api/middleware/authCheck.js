@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
 import { currentTimeSeconds } from "../../utilities.js";
-import { deleteSession, findSession, newSession } from "../tools/database/tblSessionProcedures.js";
+import { deleteCSRFSession, deleteLoginSession, findCSRFSession, findLoginSession, newSession } from "../tools/database/tblSessionProcedures.js";
 import { getClient } from "../tools/database/tblClientProcedures.js";
 
 /*
@@ -32,7 +32,7 @@ export default async function authCheck(req, res, next) {
         return; // Simply return here becasuse we told authCheckHelper to send error responses for us
     }
 
-    const { clientId, sessionUUID } = authCheckResult;
+    const { clientId, loginSessionUUID, csrfSessionUUID } = authCheckResult;
 
     // Wait 15 seconds before deleting the session upon refresh. This is so that if a chain of auth requests occur all using the 
     // same cookie (i.e, they all send before one of them resolves sets the new cookie in the browser), the other requests'
@@ -46,7 +46,8 @@ export default async function authCheck(req, res, next) {
     // cookies via JS to set the header, cookies C and D come in from a request that just completed, so the header is set to a more recent csrf.
     // Since csrf validation would be tied to old cookies A and B (it is validated thru signed jwt in cookie A), we get an auth rejection because csrf read from c 
     // cookie D and it does not match. So we need to not tie csrf to the session and instead use tables for csrf. 
-    deleteSessionSoon(sessionUUID) // <-- also should delete sessionCSRFUUID which we will get from authCheckHelper (authCheckHelper will return the csrfUUID of the table used to validate their csrf cookie)
+    deleteLoginSessionSoon(loginSessionUUID) // <-- also should delete sessionCSRFUUID which we will get from authCheckHelper (authCheckHelper will return the csrfUUID of the table used to validate their csrf cookie)
+    deleteCSRFSessionSoon(csrfSessionUUID);
 
     res.clearCookie("auth_csrf")
     res.clearCookie("auth_jwt")
@@ -70,11 +71,10 @@ export default async function authCheck(req, res, next) {
         return res.status(500).json({ authRejected: { errorType: "database", errorMessage: "Error inserting new session into database upon session refresh" } })
     }
 
-    // Next middleware if all is good 
-
     // Attach user to request
-    req.auth = { clientId, sessionUUID };
+    req.auth = { clientId, loginSessionUUID };
 
+    // Next middleware if all is good 
     next();
 }
 
@@ -102,14 +102,14 @@ export function userSuppliedAnyAuth(req) {
  * If `deleteCookiesOnFail` it will also delete cookies on failure (on top of returning false)
  * 
  * @param {{sendResOnFail: boolean, deleteCookiesOnFail: boolean }} options 
- * @returns object containing SessionUUID and clientID upon success, or false upon failure
+ * @returns object containing loginSessionUUID, csrfSessionUUID and clientID upon success, or false upon failure
  */
 export async function authCheckHelper(req, res, options) {
 
     const { sendResOnFail, deleteCookiesOnFail } = options;
 
-    // Initialize these here so our first call to onAuthFailure can access sessionUUID
-    let sessionUUID, sessionCSRF = null;
+    // Initialize these before our first call to onAuthFailure since it needs to access them
+    let loginSessionUUID, csrfSessionUUID = null;
 
     const authJWTCookie = req.cookies["auth_jwt"];
     const authCSRFCookie = req.cookies["auth_csrf"];
@@ -120,26 +120,25 @@ export async function authCheckHelper(req, res, options) {
         return false; // No need to clear cookies we know they're not set here
     }
 
-    // Down here implies that user suppiest at least one of: jwtCookie, csrfCookie, or csrfHeader supplied
+    // Down here implies that user suppied at least one of: jwtCookie, csrfCookie, or csrfHeader
 
-    // decode token ASAP because we can trust the tokens signed by the server and we can trust the sessionID in there.
-    // we want to get the sessionID as early as possible so we can delete the session on auth failure
+    // decode token ASAP because we can trust the tokens signed by the server and we can trust the loginSessionUUID in there.
+    // we want to get the loginSessionUUID as early as possible so we can delete the session on auth failure
     let decodedToken;
     if (authJWTCookie) {
         try {
             decodedToken = jwt.verify(authJWTCookie, process.env.JWT_SECRET);
         }
         catch {
-            return onAuthFailure(401, "verification", "AUTH_JWT cookie could not be verified")
+            return await onAuthFailure(401, "verification", "AUTH_JWT cookie could not be verified")
         }
     }
 
-    // These will all be undefined if authJWTCookie is not set.
-    // We can trust the integrity of these values since they are signed in a JWT token by us
-    ({ sessionUUID, sessionCSRF } = decodedToken ?? { }); 
+    // Undefined if authJWTCookie is not set. We can trust its value if defined since it is signed by us
+    loginSessionUUID = decodedToken?.loginSessionUUID;
 
     // If we have some pieces of auth info but any are missing, auth fails
-    if ((!authJWTCookie || !authCSRFCookie || !authCSRFHeader)) {
+    if (!authJWTCookie || !authCSRFCookie || !authCSRFHeader) {
 
         const errors = []
 
@@ -148,75 +147,142 @@ export async function authCheckHelper(req, res, options) {
         !authCSRFHeader && (errors.push("AUTH_CSRF header"));
 
         const s = errors.length == 1 ? "" : "s";
-        sessionUUID && deleteSessionSoon(sessionUUID);
-        return onAuthFailure(401, "incompleteAuth", `Incomplete authentication. Missing ${errors.length} form${s} of authentication: ${errors.join(", ")}`);
+        return await onAuthFailure(401, "incompleteAuth", `Incomplete authentication. Missing ${errors.length} form${s} of authentication: ${errors.join(", ")}`);
     }
 
     // Down here it is now implied that authJWTCookie, authCSRFCookie, authCSRFHeader are set
-    // Implied that sessionUUID and sessionCSRF are set here AND that we can trust their values since they come from the JWT
+    // Implied that loginSessionUUID is set here AND that we can trust its value since it came from our signed token
 
-    // This covers the case where they try to steal your authCSRF cookie but they cannot read its value (since it's cross-site), and 
-    // therefore they won't be able to set the right value for authCSRFHeader
-    if (authCSRFCookie !== authCSRFHeader) 
-        return onAuthFailure(401, "verification", "CSRF_AUTH header is not equivalent to the value of AUTH_CSRF cookie")
-    
-    // Implied that authCSRFCookie === authCSRFHeader here and below
+    // Find their login session in the database
 
-    // This covers they case where they try to send a random CSRF header and make their own CSRF cookie that matches it.
-    // However even though they match, they don't match with the trusted (signed) sessionCSRF stored in the HTTPOnly cookie
-    if (sessionCSRF !== authCSRFCookie) 
-        return onAuthFailure(401, "verification", "CSRF cookie and CSRF header have been tampered with")
-
-    // Find their session in the database
-    let session;
-    try { 
-        session = await findSession(sessionUUID) 
+    let loginSession;
+    try {
+        loginSession = await findLoginSession(loginSessionUUID)
     }
-    catch { 
-        return onAuthFailure(500, "database", "Error querying database for session") 
+    catch (err) {
+        console.log("authCheckHelper: Error querying database for Login Session", err)
+        return await onAuthFailure(500, "database", "Error querying database for Login Session")
     }
 
     // Session not found
-    if (!session) 
-        return onAuthFailure(401, "sessionNotFound", "Could not find session")
+    if (!loginSession) {
+        return await onAuthFailure(401, "loginSessionNotFound", "Could not find Login Session")
+    }
 
     // It is implied that these exist here
-    const { clientId, isCanceled, expiresAt } = session;
+    const { clientId, isCanceled: loginSessionIsCanceled, expiresAt: loginSessionExpiresAt } = loginSession;
 
-    // Session manually canceled. Probs remove this tbh and just delete it to cancel it
-    if (isCanceled) 
-        return onAuthFailure(401, "sessionCanceled", "Session was manually canceled")
+    // Login Session expired
+    if (currentTimeSeconds() >= loginSessionExpiresAt) {
+        return await onAuthFailure(401, "sessionExpired", "Login Session expired")
+    }
 
-    // Session expired
-    if (currentTimeSeconds() >= expiresAt) 
-        return onAuthFailure(401, "sessionExpired", "Session expired")
+    // Login Session manually canceled. Probs remove this tbh and just delete it to cancel it
+    if (loginSessionIsCanceled) {
+        return await onAuthFailure(401, "sessionCanceled", "Session was manually canceled")
+    }
 
-    return { clientId, sessionUUID: sessionUUID }
+    // Find their CSRF session in the database
+
+    // Notice how we search with the header (not cookie). The cookie can be stolen, but this makes it worthless
+    // to steal because they have to actually be able to read it. We actually don't even do any validation
+    // with the cookie itself; we just make sure it exists. The whole point is that they must be able to read
+    // the cookie via putting its value into a header. Before I actually made sure they match, but axios interceptor
+    // created race conditions where the cookie being sent doesn't match the header being sent, because the header
+    // sometimes updates to a 'newer' cookie value while the request is being sent out (but the cookie being used in the
+    // request is not updated). It has to do with using a separate library to grab the cookie value inside the interceptor
+    // function
+    let csrfSession;
+    try {
+        csrfSession = await findCSRFSession(authCSRFHeader)
+    }
+    catch (err) {
+        console.log("authCheckHelper: Error querying database for CSRF Session", err)
+        return await onAuthFailure(500, "database", "Error querying database for CSRF Session")
+    }
+
+    if (!csrfSession) {
+        return await onAuthFailure(401, "csrfSessionNotFound", "Could not find CSRF Session")
+    }
+
+    const { clientId: csrfSessionClientId, expiresAt: csrfSessionExpiresAt } = csrfSession;
+
+    csrfSessionUUID = csrfSession.csrfSessionUUID;
+
+    // CSRF Session expired
+    if (currentTimeSeconds() >= csrfSessionExpiresAt) {
+        return await onAuthFailure(401, "sessionExpired", "CSRF Session expired")
+    }
+
+    if (csrfSessionClientId !== clientId) {
+        return await onAuthFailure(401, "verification", "CSRF_AUTH header being used is not for the client that you claim to be")
+    }
+
+    return { clientId, loginSessionUUID, csrfSessionUUID }
 
     // Helper function
-    function onAuthFailure(status, errorType, errorMessage) {
+    async function onAuthFailure(status, errorType, errorMessage) {
+
         console.log("AUTH FAILURE:", errorMessage)
-        deleteCookiesOnFail && res.clearCookie("auth_jwt")
-        deleteCookiesOnFail && res.clearCookie("auth_csrf")
-        sessionUUID && deleteSessionSoon(sessionUUID)
-        sendResOnFail && res.status(status).json({ authRejected: { errorType, errorMessage } })
+
+        if (deleteCookiesOnFail) {
+            res.clearCookie("auth_jwt")
+            res.clearCookie("auth_csrf")
+        }
+
+        if (loginSessionUUID) {
+            try {
+                await deleteLoginSession(loginSessionUUID)
+            }
+            catch (err) {
+                console.log("onAuthFailure: error deleting login session", err)
+            }
+        }
+
+        if (csrfSessionUUID) {
+            try {
+                await deleteCSRFSession(csrfSessionUUID)
+            }
+            catch (err) {
+                console.log("onAuthFailure: error deleting csrf session", err)
+            }
+        }
+
+        if (sendResOnFail) {
+            res.status(status).json({ authRejected: { errorType, errorMessage } })
+        }
+
         return false;
     }
 }
 
-// Deletes session in 15 seconds
-export function deleteSessionSoon(sessionUUID) {
+// Deletes Login Session in 15 seconds
+export function deleteLoginSessionSoon(loginSessionUUID) {
     setTimeout(async () => {
         try {
-            await deleteSession(sessionUUID)
+            await deleteLoginSession(loginSessionUUID)
         }
         catch (err) {
-            console.log("WARN: call to deleteSession 'deleteSessionSoon' failed", err);
+            console.log("WARN: call to deleteLoginSession failed", err);
         }
     }, 15 * 1000)
 }
 
-// Returns { token, decoded } or false if there was an sql error
+// Deletes CSRF session in 15 seconds
+export function deleteCSRFSessionSoon(csrfSessionUUID) {
+    setTimeout(async () => {
+        try {
+            await deleteCSRFSession(csrfSessionUUID)
+        }
+        catch (err) {
+            console.log("WARN: call to deleteCSRFSession failed", err);
+        }
+    }, 15 * 1000)
+}
+
+/**
+ * Returns false if there was an error
+ */
 export async function createSessionAndSetCookies(client, res) {
 
     let session;
@@ -228,8 +294,7 @@ export async function createSessionAndSetCookies(client, res) {
         return false;
     }
 
-    // Session returns [ token, decodedToken: { sessionUUID, sessionCSRF } ]. We only destructure CSRF out of decodedToken here
-    const [token, { sessionCSRF }] = session;
+    const [token, csrfSessionUUID] = session;
 
     // Session cookie lasts 3 hours while session in database lasts 15 minutes
     // If cookie exists but session expires they will get "Session Expired" modal
@@ -238,7 +303,7 @@ export async function createSessionAndSetCookies(client, res) {
     // If they come back after 15 mins of their last request, but also within 3 hours of their last request they get "Session Expired modal"
     // If they come back after 3 hours it will simply tell them they aren't logged in
     res.cookie("auth_jwt", token, { httpOnly: true, maxAge: 1000 * 60 * (180) });
-    res.cookie("auth_csrf", sessionCSRF, { httpOnly: false, maxAge: 1000 * 60 * (180) });
+    res.cookie("auth_csrf", csrfSessionUUID, { httpOnly: false, maxAge: 1000 * 60 * (180) });
 
     return true;
 }

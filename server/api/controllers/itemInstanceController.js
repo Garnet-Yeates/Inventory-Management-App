@@ -15,7 +15,7 @@ async function createOrUpdateItemInstance(req, res, isUpdating) {
     let {
         auth: {
             clientId,
-            sessionUUID
+            loginSessionUUID
         },
         body: {
             itemInstanceId, // if updating
@@ -184,7 +184,7 @@ export async function api_getItemInstances(req, res) {
     const {
         auth: {
             clientId,
-            sessionUUID
+            loginSessionUUID
         },
         query: {
             itemTypeId,
@@ -245,7 +245,7 @@ export async function api_getItemInstance(req, res) {
     const {
         auth: {
             clientId,
-            sessionUUID
+            loginSessionUUID
         },
         query: {
             itemInstanceId,

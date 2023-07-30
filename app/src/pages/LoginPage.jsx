@@ -78,9 +78,13 @@ function SessionExpiredModal({ authError }) {
             headingText = "Session Verification Error";
             description = `${errorMessage}. Please log back in to continue.`
             break;
-        case "sessionNotFound":
+        case "loginSessionNotFound":
             headingText = "Session Not Found";
             description = `Your session cookie is valid but the session no longer exists. Please log back in to continue.`
+            break;
+        case "csrfSessionNotFound":
+            headingText = "CSRF Session Not Found";
+            description = `Could not find a cross-site-request-forgery session for this client.`
             break;
         case "sessionCanceled":
             headingText = "Session Canceled";

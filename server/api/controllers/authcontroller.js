@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt'
-import { authCheckHelper, createSessionAndSetCookies, deleteSessionSoon, userSuppliedAnyAuth } from '../middleware/authCheck.js';
+import { authCheckHelper, createSessionAndSetCookies, deleteLoginSessionSoon, userSuppliedAnyAuth } from '../middleware/authCheck.js';
 import { createClient, getClient } from '../tools/database/tblClientProcedures.js';
 import { clearErrJson } from '../tools/controller/validationHelpers.js';
 
@@ -170,19 +170,19 @@ export async function register(req, res) {
  * 
  * ---
  * 
- * Attempts to log in a user. If login is successful, it will insert a new session into the database and set two session cookies in the user's
- * user's browser. 
+ * Attempts to log in a user. If login is successful, it will insert a new login session as well as a new csrf session
+ * into the database and set two session cookies in the user's user's browser. 
  * 
- * One cookie is the `auth_jwt` cookie, which is `HTTPOnly`. This cookie contains a signed token from the server whose payload has properties:
- * `sessionUUID` and `sessionCSRF`. This token claims that the user has a session in the database with the supplied UUID and also links this UUID
- * to the `sessionCSRF` (which is another unique identifier). 
+ * One cookie is the `auth_jwt` cookie, which is `HTTPOnly`. This cookie contains a signed token from the server whose payload has the property:
+ * `loginSessionUUID`. This token claims that the user has a session in the database with the supplied UUID.
  * 
  * The other cookie is the `auth_csrf` cookie, which is *not* `HTTPOnly` (can be read by browser). Since cross site scripts cannot read cookies from
  * different domains, this cookie should only be able to be read from the web app domain. We leverage this to add another layer of authentication
  * where the user must prove that they are able to read the `auth_csrf` cookie. We make it so that on every request, the user must read the `auth_csrf`
- * cookie and send a header, `headers.auth_csrf` containing the value of the cookie. If their sent header matches the `auth_csrf` cookie and also matches
- * the `sessionCSRF` signed in the `auth_jwt` cookie, then they are considered to have 'valid authentication' (note that this does not solely constitute authorization
- * success as it is possible for the session to be expired, canceled, or gone from the database, or a database error can occur)
+ * cookie and send a header, `headers.auth_csrf` containing the value of the cookie. If their sent header matches one of their csrf sessions in the database,
+ * then they are considered to have 'valid authentication'. Note how it says "one of their csrf sessions". After making a valid request
+ * and validating a login/csrf session they will be deleted 15 seconds later. Due to race conditions with axios as well as with requests in general, sessions
+ * last for 15 seconds after they are 'used' (i.e: validated). This is the case for both login sessions and csrf sessions. 
  * 
  * ---
  * 
@@ -199,6 +199,7 @@ export async function register(req, res) {
  * This endpoint will return a `500` if it runs into an SQL errror querying the user or inserting the new session
  */
 export async function login(req, res) {
+
     // Possibly deny request if they already have a session
     const { userName, password } = req.body;
 
@@ -219,7 +220,6 @@ export async function login(req, res) {
     }
 
     if (!await createSessionAndSetCookies(user, res)) {
-        console.log("fuck")
         return res.status(500).json({ databaseError: "Error inserting session into database" })
     }
 
@@ -252,7 +252,7 @@ export async function logout(req, res) {
 
     // With these options: authCheckHelper does not do much, besides returning existing session if it exists.
     // Clearing cookies and responding is up to us. 
-    // Note that sessions are ALWAYS deleted on auth fail (if auth fail contained a JWT cookie with a sessionID)
+    // Note that sessions are ALWAYS deleted on auth fail (if auth fail contained a JWT cookie with a loginSessionUUID)
     const authCheckResult = await authCheckHelper(req, res, { sendResOnFail: false, deleteCookiesOnFail: false });
 
     res.clearCookie("auth_jwt")
@@ -266,11 +266,13 @@ export async function logout(req, res) {
         return res.status(200).json({ loggedOut: "You have successfully logged out (you had bad auth btw)" });
     }
 
-    const { sessionUUID } = authCheckResult;
+    const { loginSessionUUID, csrfSessionUUID } = authCheckResult;
 
-    // Even if deleteSession has an SQL error we will still return 200 OK because sessions are auto deleted
+    // No error caching for session deletions (they are deleted 15s after we return anyways)
+    // Even if deleting sessions throws an SQL error we will still return 200 OK because sessions are auto deleted
     // whenever the server restarts anyways so we don't care if it failed
-    deleteSessionSoon(sessionUUID)
+    deleteLoginSessionSoon(loginSessionUUID)
+    deleteCSRFSessionSoon(csrfSessionUUID)
 
     return res.status(200).json({ loggedOut: "You have successfully logged out" })
 }

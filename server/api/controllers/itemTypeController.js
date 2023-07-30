@@ -45,7 +45,7 @@ async function createOrUpdateItemType(req, res, isUpdating) {
     let {
         auth: {
             clientId,
-            sessionUUID
+            loginSessionUUID
         },
         body: {
             itemTypeId, // if updating
@@ -214,7 +214,7 @@ export async function api_getItemType(req, res) {
     const {
         auth: {
             clientId,
-            sessionUUID
+            loginSessionUUID
         },
         query,
     } = req;
@@ -247,7 +247,7 @@ export async function api_getItemTypes(req, res) {
     const {
         auth: {
             clientId,
-            sessionUUID
+            loginSessionUUID
         },
         query,
     } = req;

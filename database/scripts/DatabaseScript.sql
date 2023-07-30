@@ -3,10 +3,16 @@ DROP DATABASE TrackIt;
 CREATE DATABASE TrackIt;
 USE TrackIt;
 
-CREATE TABLE Session (
-	sessionUUID CHAR(36) NOT NULL PRIMARY KEY,
+CREATE TABLE LoginSession (
+	loginSessionUUID CHAR(36) NOT NULL PRIMARY KEY,
     clientId INT NOT NULL,
     isCanceled BOOL NOT NULL,
+    expiresAt BIGINT NOT NULL
+);
+
+CREATE TABLE CSRFSession (
+	csrfSessionUUID CHAR(36) NOT NULL PRIMARY KEY,
+    clientId INT NOT NULL,
     expiresAt BIGINT NOT NULL
 );
 
