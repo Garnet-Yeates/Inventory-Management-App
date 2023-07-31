@@ -1,5 +1,5 @@
 import bcrypt from 'bcrypt'
-import { authCheckHelper, createSessionAndSetCookies, deleteLoginSessionSoon, userSuppliedAnyAuth } from '../middleware/authCheck.js';
+import { authCheckHelper, createSessionAndSetCookies, deleteCSRFSessionSoon, deleteLoginSessionSoon, userSuppliedAnyAuth } from '../middleware/authCheck.js';
 import { createClient, getClient } from '../tools/database/tblClientProcedures.js';
 import { clearErrJson } from '../tools/controller/validationHelpers.js';
 
@@ -243,7 +243,7 @@ export async function login(req, res) {
  */
 export async function logout(req, res) {
 
-    console.log("logout")
+    console.log("logout putting error here for keyword") // not actually an error
 
     // If they didn't supply ANY credentials at all we don't need to run the auth check - we know they aren't logged in
     if (!userSuppliedAnyAuth(req)) {
@@ -257,6 +257,7 @@ export async function logout(req, res) {
 
     res.clearCookie("auth_jwt")
     res.clearCookie("auth_csrf")
+    console.log("cookies cleared (logout)")
 
     // We do not need to do anything else if authCheck fails due to db error, auth rejection, session expired
     // Since we are logging out anyways. We only use authCheck to get sessionId so we can delete it manually

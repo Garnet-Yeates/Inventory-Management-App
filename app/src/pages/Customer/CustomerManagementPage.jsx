@@ -4,7 +4,7 @@ import { effectAbortSignal } from "../../tools/axiosTools";
 import { SERVER_URL } from "../App";
 import "../../sass/CustomerManagement.scss"
 import { Button } from "@mui/material";
-import { Add, Edit, Visibility } from "@mui/icons-material";
+import { Add, Edit, EditOutlined, Visibility, VisibilityOutlined } from "@mui/icons-material";
 import CreateCustomerPage from "./CreateCustomerPage";
 import { formatToUSCurrency, getCustomerFullName } from "../../tools/generalTools";
 import { FormInput, FormSelectInput } from "../../components/FormComponents";
@@ -243,6 +243,7 @@ export const SimpleCustomerDisplay = (props) => {
                 <Button
                     size="small"
                     color="secondary"
+                    variant="outlined"
                     onClick={() => {
                         trySelectNode("manageCustomers", {
                             programmatic: true,
@@ -251,13 +252,13 @@ export const SimpleCustomerDisplay = (props) => {
                             }
                         })
                     }}
-                    endIcon={<Visibility />}
-                    variant="contained">
+                    endIcon={<VisibilityOutlined />}>
                     <span>View</span>
                 </Button>
                 <Button
                     size="small"
                     color="primary"
+                    variant="outlined"
                     onClick={() => {
                         trySelectNode("manageCustomers", {
                             programmatic: true,
@@ -266,8 +267,7 @@ export const SimpleCustomerDisplay = (props) => {
                             }
                         })
                     }}
-                    endIcon={<Edit />}
-                    variant="contained">
+                    endIcon={<EditOutlined />}>
                     <span>Edit</span>
                 </Button>
             </div>

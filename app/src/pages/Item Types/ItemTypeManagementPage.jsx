@@ -4,7 +4,7 @@ import { effectAbortSignal } from "../../tools/axiosTools";
 import { SERVER_URL } from "../App";
 import "../../sass/ItemTypeManagement.scss"
 import { Button } from "@mui/material";
-import { Add, Edit, EditOutlined, Visibility, VisibilityOutlined } from "@mui/icons-material";
+import { Add, AddOutlined, Edit, EditOutlined, Visibility, VisibilityOutlined } from "@mui/icons-material";
 import CreateItemTypePage from "./CreateItemTypePage";
 import { formatToUSCurrency } from "../../tools/generalTools";
 import { FormInput, FormSelectInput } from "../../components/FormComponents";
@@ -249,7 +249,7 @@ export const SimpleItemTypeDisplay = (props) => {
                             }
                         })
                     }}
-                    endIcon={<Add />}
+                    endIcon={<AddOutlined />}
                     variant="outlined">
                     <span>New</span>
                 </Button>

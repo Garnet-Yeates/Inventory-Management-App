@@ -37,6 +37,23 @@ const CreateInvoicePage = (props) => {
 
     const [invoiceEntries, setInvoiceEntries] = useState([]);
 
+  /*  useEffect(() => {
+
+        const intId = setInterval(() => {
+
+            (async () => {
+                let res = await axios.get(`${SERVER_URL}/customer/getCustomers`)
+                let res2 = await axios.get(`${SERVER_URL}/customer/getCustomers`)
+                let res3 = await axios.get(`${SERVER_URL}/customer/getCustomers`)
+                console.log("Res x3");
+            })()
+        }, 100)
+
+        return () => clearInterval(intId);
+
+    }, [])
+*/
+
     useEffect(() => {
         const { controller, isCleanedUp, cleanup } = effectAbortSignal(5);
         (async () => {
@@ -46,6 +63,7 @@ const CreateInvoicePage = (props) => {
 
                 const newCustomerChoices = {};
                 for (let customer of res.data.customers) {
+                    customer.selectKey = customer.customerId;
                     const display = getCustomerFullName(customer);
                     const internalValue = customer;
                     newCustomerChoices[display] = internalValue;
@@ -64,6 +82,7 @@ const CreateInvoicePage = (props) => {
     useEffect(() => {
         const newAddressChoices = {}
         for (let customerAddress of customerChoice?.addresses ?? []) {
+            customerAddress.selectKey = customerAddress.customerAddressId;
             const display = `${customerAddress.address}, ${customerAddress.town}, ${customerAddress.state}, ${customerAddress.zip}`
             const internalValue = customerAddress;
             newAddressChoices[display] = internalValue;
@@ -118,6 +137,7 @@ const CreateInvoicePage = (props) => {
                                 fullWidth
                                 value={customerChoice}
                                 setState={setCustomerChoice}
+                                includeNullOption
                                 displayToValueMap={customerChoices}
                                 label="Customer">
                             </FormSelectInput>
@@ -126,7 +146,7 @@ const CreateInvoicePage = (props) => {
                     <div className="col-lg-6">
                         <div className="form-control">
                             {true && <FormSelectInput
-                                includeNullOption={true}
+                                includeNullOption
                                 fullWidth
                                 value={customerAddressChoice}
                                 setState={setCustomerAddressChoice}
@@ -188,6 +208,7 @@ const EntryAdditionsContainer = (props) => {
 
                 const newItemTypeChoices = {};
                 for (let itemType of res.data.itemTypes) {
+                    itemType.selectKey = itemType.itemCode;
                     const display = itemType.itemName;
                     const internalValue = itemType;
                     newItemTypeChoices[display] = internalValue;
@@ -236,60 +257,62 @@ const EntryAdditionsContainer = (props) => {
     else {
         invoiceJsx = (
             <table className="entry-additions-table">
-                <tr>
-                    <th className="item">Product</th>
-                    <th className="price">Price</th>
-                    <th className="quantity">Quantity</th>
-                    <th className="total">Total</th>
-                </tr>
-                {invoiceEntries.map((entry, index) =>
-                    <InvoiceEntry
-                        myIndex={index}
-                        key={entry.myKey}
-                        invoiceEntries={invoiceEntries}
-                        setInvoiceEntries={setInvoiceEntries}
-                        itemTypeChoices={itemTypeChoices}
-                        self={entry}
-                        {...entry}>
-                    </InvoiceEntry>
-                )}
-                <tr>
-                    <td colSpan={4}>
-                        <div className="w-100">
-                            <Button
-                                fullWidth
-                                color="success"
-                                size="small"
-                                variant="text"
-                                onClick={() => {
-                                    invoiceEntries.push({
-                                        myKey: getKey(),
-                                        errors: {},
-                                        itemType: null,
-                                        quantity: "",
-                                        price: "",
-                                    })
-                                    setInvoiceEntries([...invoiceEntries]);
-                                }}>
-                                <span>Add Invoice Entry</span>
-                            </Button>
-                        </div>
-                    </td>
-                </tr>
-                <tr className="first-aggregate">
-                    <td className="none">
+                <tbody>
+                    <tr>
+                        <th className="item">Product</th>
+                        <th className="price">Price</th>
+                        <th className="quantity">Quantity</th>
+                        <th className="total">Total</th>
+                    </tr>
+                    {invoiceEntries.map((entry, index) =>
+                        <InvoiceEntry
+                            myIndex={index}
+                            key={entry.myKey}
+                            invoiceEntries={invoiceEntries}
+                            setInvoiceEntries={setInvoiceEntries}
+                            itemTypeChoices={itemTypeChoices}
+                            self={entry}
+                            {...entry}>
+                        </InvoiceEntry>
+                    )}
+                    <tr>
+                        <td colSpan={4}>
+                            <div className="w-100">
+                                <Button
+                                    fullWidth
+                                    color="success"
+                                    size="small"
+                                    variant="text"
+                                    onClick={() => {
+                                        invoiceEntries.push({
+                                            myKey: getKey(),
+                                            errors: {},
+                                            itemType: null,
+                                            quantity: "",
+                                            price: "",
+                                        })
+                                        setInvoiceEntries([...invoiceEntries]);
+                                    }}>
+                                    <span>Add Invoice Entry</span>
+                                </Button>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr className="first-aggregate">
+                        <td className="none">
 
-                    </td>
-                    <td className="none">
+                        </td>
+                        <td className="none">
 
-                    </td>
-                    <td className="total-description">
-                        Sub Total
-                    </td>
-                    <td className="total-value">
-                        {subTotal}
-                    </td>
-                </tr>
+                        </td>
+                        <td className="total-description">
+                            Sub Total
+                        </td>
+                        <td className="total-value">
+                            {subTotal}
+                        </td>
+                    </tr>
+                </tbody>
             </table>
         )
     }

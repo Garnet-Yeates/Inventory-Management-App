@@ -43,6 +43,7 @@ export default async function authCheck(req, res, next) {
 
     res.clearCookie("auth_csrf")
     res.clearCookie("auth_jwt")
+    console.log("cookies cleared (refresh)")
 
     // Cookies already gone down here so authRejections do not need to remove them
 
@@ -50,19 +51,22 @@ export default async function authCheck(req, res, next) {
     try {
         user = await getClient({ clientId });
         if (!user) {
+            console.log("Error: could not find user associated with clientId")
             return res.status(500).json({ authRejected: { errorType: "noUser", errorMessage: "Could not find user associated with the clientId tied to the session being updated" } })
         }
     }
     catch (err) {
-        console.log(err)
+        console.log("Error querying database for user", err)
         return res.status(500).json({ authRejected: { errorType: "database", errorMessage: "Error querying database for user associated with the clientId tied to the session being updated" } })
     }
 
     if (!await createSessionAndSetCookies(user, res)) {
+        console.log("Error: createSessionAndSetCookies failed")
         // Send authFailed here so that our interceptor brings them to the login page and displays error
         return res.status(500).json({ authRejected: { errorType: "database", errorMessage: "Error inserting new session into database upon session refresh" } })
     }
 
+    console.log("auth check done (cookie shldd be back)")
     // Attach user to request
     req.auth = { clientId, loginSessionUUID };
 
@@ -108,6 +112,7 @@ export async function authCheckHelper(req, res, options) {
     const authCSRFHeader = req.headers["auth_csrf"];
 
     if (!userSuppliedAnyAuth(req)) {
+        console.log("user supplied no auth")
         sendResOnFail && res.status(401).json({ authRejected: { errorType: "notLoggedIn", errorMessage: "You must be logged in to view this data" } })
         return false; // No need to clear cookies we know they're not set here
     }
@@ -221,6 +226,7 @@ export async function authCheckHelper(req, res, options) {
         if (deleteCookiesOnFail) {
             res.clearCookie("auth_jwt")
             res.clearCookie("auth_csrf")
+            console.log("cookies deleted (fail)")
         }
 
         if (loginSessionUUID) {
@@ -261,7 +267,7 @@ export async function authCheckHelper(req, res, options) {
         catch (err) {
             console.log("WARN: call to deleteLoginSession failed", err);
         }
-    }, 15 * 1000)
+    }, 5 * 1000)
 }
 
 /**
@@ -277,7 +283,7 @@ export function deleteCSRFSessionSoon(csrfSessionUUID) {
         catch (err) {
             console.log("WARN: call to deleteCSRFSession failed", err);
         }
-    }, 15 * 1000)
+    }, 5 * 1000)
 }
 
 /**
@@ -304,6 +310,7 @@ export async function createSessionAndSetCookies(client, res) {
     // If they come back after 3 hours it will simply tell them they aren't logged in
     res.cookie("auth_jwt", token, { httpOnly: true, maxAge: 1000 * 60 * (180) });
     res.cookie("auth_csrf", csrfSessionUUID, { httpOnly: false, maxAge: 1000 * 60 * (180) });
+    console.log("cookie set")
 
     return true;
 }

@@ -40,9 +40,8 @@ export const FormSelectInput = (props) => {
         values,
         size = "medium",
         displayToValueMap,
-        includeNullOption = false,
+        includeNullOption = false, nullOptionText, nullOptionValue,
         value, onChange, setState, // setState or onChange should be defined, not both
-        nullOptionText = "None"
     } = props;
 
     if (!setState && !onChange) {
@@ -73,20 +72,31 @@ export const FormSelectInput = (props) => {
     const displayingHelperText = errorText || helperText || (minHelperText ? "" : " ");
     const helperTextJsx = displayingHelperText ? <FormHelperText size={size} variant={variant} error={errored}>{displayingHelperText}</FormHelperText> : undefined
 
+    if ((nullOptionValue || nullOptionText ) && !includeNullOption) {
+        throw new Error("No No No No No No No");
+    }
+
+    nullOptionText ??= "None"
+    nullOptionValue ??= ""
+
+    if (value === "") {
+        value = null;
+    }
+
     return (
         <FormControl sx={sx} disabled={disabled} error={errored} fullWidth={fullWidth} size={size} variant={variant}>
             <InputLabel variant={variant}>{label}</InputLabel>
             <Select
                 className={className}
                 size={size}
-                value={value ?? ""}
+                value={value || nullOptionValue}
                 onChange={onChange ? onChange : (e) => setState(e.target.value)}
                 label={label}
                 disabled={disabled}
                 variant={variant}
             >
-                {includeNullOption && <MenuItem><em>{nullOptionText}</em></MenuItem>}
-                {values.map((value, index) => <MenuItem key={value} value={value}>{displays[index]}</MenuItem>)}
+                {includeNullOption && <MenuItem value={nullOptionValue}><em>{nullOptionText}</em></MenuItem>}
+                {values.map((value, index) => <MenuItem key={value.selectKey ?? value} value={value}>{displays[index]}</MenuItem>)}
             </Select>
             {helperTextJsx}
         </FormControl>

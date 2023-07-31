@@ -10,10 +10,10 @@ import bcrypt from 'bcrypt';
 export async function getClient({ userName, clientId }) {
 
     if (clientId) {
-        return Table("Client").where({ clientId }).first().execute();
+        return await Table("Client").where({ clientId }).first().execute();
     }
     else {
-        return Table("Client").where({ userIdentifier: userName.toLowerCase() }).first().execute();
+        return await Table("Client").where({ userIdentifier: userName.toLowerCase() }).first().execute();
     }
 }
 
@@ -26,5 +26,5 @@ export async function createClient(companyName, userName, password) {
     const userIdentifier = userName.toLowerCase();
     const hashPassword = await bcrypt.hash(password, 10)
 
-    return Table("Client").insert({ companyName, userName, userIdentifier, hashPassword }).execute();
+    return await Table("Client").insert({ companyName, userName, userIdentifier, hashPassword }).execute();
 }
