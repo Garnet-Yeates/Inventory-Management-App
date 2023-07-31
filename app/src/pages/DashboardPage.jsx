@@ -465,7 +465,7 @@ const getDashboardTreeItemsFromNavInfo = (navInfo, navigate, refreshNavInfo) => 
             ...Node("inventory", "Inventory", WarehouseIcon, ""),
             nodeChildren: [
                 {
-                    ...Node("itemTypes", "Item Types", Category, "", orangeFg, orangeBg),
+                    ...Node("itemTypes", "Item Types", Category, navInfo.itemTypes, orangeFg, orangeBg),
                     nodeChildren: [
                         {
                             ...Node("createNewItemType", "Define New Item Type", AddBox, "", greenFg, greenBg),

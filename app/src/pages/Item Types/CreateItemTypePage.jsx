@@ -3,7 +3,7 @@
 import axios from "axios";
 import { useEffect, useRef, useState } from "react";
 import { AdornedFormInput, FormInput } from "../../components/FormComponents";
-import { mountAbortSignal, newAbortSignal } from "../../tools/axiosTools";
+import { effectAbortSignal, newAbortSignal } from "../../tools/axiosTools";
 import { SERVER_URL } from "../App";
 import { LoadingButton } from "@mui/lab";
 import { Send as SendIcon } from "@mui/icons-material";
@@ -11,15 +11,11 @@ import "../../sass/CreateItemTypeSubPage.scss"
 
 const CreateItemTypePage = (props) => {
 
-    // Inherited props
-    const {
-        selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage,
-    } = props;
+    // Inherited props from dashboard
+    const { selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage } = props;
 
     // Override prop, only inherited when composed by ItemTypeManagementPage
-    const {
-        editingId,
-    } = props;
+    const { editingId } = props;
 
     const [itemName, setItemName] = useState("")
     const [itemNameError, setItemNameError] = useState("");
@@ -47,7 +43,7 @@ const CreateItemTypePage = (props) => {
 
         if (editingId) {
 
-            const { controller, isCleanedUp, cleanup } = mountAbortSignal(5);
+            const { controller, isCleanedUp, cleanup } = effectAbortSignal(5);
 
             (async () => {
                 try {
@@ -99,6 +95,7 @@ const CreateItemTypePage = (props) => {
             unlockExit();
             addDashboardMessage("itemTypeSuccess", { type: "success", text: `Item Type has been successfully ${editingId ? "updated" : "created"}` })
             trySelectNode("manageItemTypes", { programmatic: true })
+            refreshNavInfo();
         }
         catch (err) {
             console.log("Error creating or updating item type", err);

@@ -29,6 +29,14 @@
 
     .auth-rejected-modal {
 
+        width: 85%;
+        max-width: 650px;
+
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+
         .auth-rejected-image {
             object-fit: contain;
             width: calc(rfs-fluid-value(3.5rem) + 0.25rem);

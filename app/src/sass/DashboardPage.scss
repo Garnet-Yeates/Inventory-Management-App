@@ -222,6 +222,14 @@ nav.mobile-navigation {
 
 .page-change-warning-modal {
 
+    width: 85%;
+    max-width: 650px;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
     .page-change-warning-heading {
         margin: 0;
         text-align: center;

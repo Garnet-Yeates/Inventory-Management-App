@@ -3,7 +3,7 @@ import Cookies from "js-cookie";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SERVER_URL } from "../pages/App";
-import { mountAbortSignal } from "../tools/axiosTools.js";
+import { effectAbortSignal } from "../tools/axiosTools.js";
 
 console.log("middleware init")
 
@@ -122,7 +122,7 @@ export function mountAuthDetector(Component, redirectInfo, safe = true) {
 
         useEffect(() => {
 
-            const { controller, isCleanedUp, cleanup } = mountAbortSignal(5);
+            const { controller, isCleanedUp, cleanup } = effectAbortSignal(5);
 
             const fetchData = async () => {
 
@@ -148,7 +148,7 @@ export function mountAuthDetector(Component, redirectInfo, safe = true) {
 
             return cleanup;
 
-        }, [navigate])
+        }, [])
 
         return <Component {...props} loggedIn={loggedIn} />
     }

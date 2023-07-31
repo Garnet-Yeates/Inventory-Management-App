@@ -116,18 +116,10 @@ ul {
         overflow: hidden;
 
         .fixed-info-modal {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        
-            width: 85%;
-            max-width: 650px;
-        
+
             background-color: white;
-        
             user-select: none;
-        
+            
             box-shadow: 0 0 8px 0 rgb(0 0 0 / 30%);
             border-radius: 8px;
             padding: 24px 32px;

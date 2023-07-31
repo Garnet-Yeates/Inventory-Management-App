@@ -3,16 +3,13 @@
 import axios from "axios";
 import { useEffect, useRef, useState } from "react";
 import { AdornedFormInput, FormInput, FormSelectInput } from "../../components/FormComponents";
-import { mountAbortSignal, newAbortSignal, refreshSignal, useUnmountSignalCancel } from "../../tools/axiosTools";
+import { effectAbortSignal, newAbortSignal, refreshSignal, useUnmountSignalCancel } from "../../tools/axiosTools";
 import { SERVER_URL } from "../App";
 import { LoadingButton } from "@mui/lab";
 import { Close, DeleteOutline, Send as SendIcon, Undo } from "@mui/icons-material";
 import "../../sass/CreateCustomerSubPage.scss"
 import { Button, IconButton } from "@mui/material";
-import { deleteUndefined, stateAbbreviations } from "../../tools/generalTools";
-
-let currKey = 0;
-const getKey = () => currKey++;
+import { deleteUndefined, getKey, stateAbbreviations } from "../../tools/generalTools";
 
 const CreateCustomerPage = (props) => {
 
@@ -41,7 +38,7 @@ const CreateCustomerPage = (props) => {
 
         if (editingId) {
 
-            const { controller, isCleanedUp, cleanup } = mountAbortSignal(5);
+            const { controller, isCleanedUp, cleanup } = effectAbortSignal(5);
 
             (async () => {
                 try {
@@ -120,6 +117,7 @@ const CreateCustomerPage = (props) => {
             unlockExit();
             addDashboardMessage("itemTypeSuccess", { type: "success", text: `Customer has been successfully ${editingId ? "updated" : "created"}` })
             trySelectNode("manageCustomers", { programmatic: true })
+            refreshNavInfo();
         }
         catch (err) {
             console.log("Error creating or updating customer", err);
@@ -210,11 +208,11 @@ const CreateCustomerPage = (props) => {
                         </div>
                     </div>
                 </div>
-                <div className="addresses-or-contacts-container">
+                <div className="creation-panel-group">
                     <h3 className="heading">
                         Addresses
                     </h3>
-                    {addresses.length !== 0 && addresses.map((address, index) => 
+                    {addresses.length !== 0 && addresses.map((address, index) =>
                         <AddressCreationPanel
                             myIndex={index}
                             key={address.myKey}
@@ -245,11 +243,11 @@ const CreateCustomerPage = (props) => {
                         <span>Add Customer Address</span>
                     </Button>
                 </div>
-                <div className="addresses-or-contacts-container">
+                <div className="creation-panel-group">
                     <h3 className="heading">
                         Contacts
                     </h3>
-                    {contacts.length !== 0 && contacts.map((contact, index) => 
+                    {contacts.length !== 0 && contacts.map((contact, index) =>
                         <ContactCreationPanel
                             myIndex={index}
                             key={contact.myKey}
@@ -275,7 +273,7 @@ const CreateCustomerPage = (props) => {
                             })
                             setContacts([...contacts]);
                         }}>
-                        <span>Add Customer Contactssss</span>
+                        <span>Add Customer Contact</span>
                     </Button>
                 </div>
                 <div className="form-control d-flex justify-content-center">
@@ -346,10 +344,10 @@ const AddressCreationPanel = (props) => {
     const additionalClasses = flaggedForDeletion ? " flaggedForDeletion" : "";
 
     return (
-        <div className={"individual-container" + additionalClasses}>
-            <div className="individual-container-header">
-                <h5 className="individual-container-heading">Address {myIndex + 1}</h5>
-                <div className="individual-container-icon-button">
+        <div className={"creation-panel" + additionalClasses}>
+            <div className="creation-panel-header">
+                <h5 className="creation-panel-heading">Address {myIndex + 1}</h5>
+                <div className="creation-panel-icon-button">
                     {buttonJsx}
                 </div>
             </div>
@@ -388,22 +386,6 @@ const AddressCreationPanel = (props) => {
                 </div>
                 <div className="col-6 col-lg-3">
                     <div className="form-control">
-                        <FormInput
-                            size="small"
-                            minHelperText
-                            fullWidth
-                            value={zip}
-                            onChange={(e) => {
-                                self.zip = e.target.value;
-                                setAddresses([...addresses]);
-                            }}
-                            errorText={errors.zipError}
-                            label="Zip">
-                        </FormInput>
-                    </div>
-                </div>
-                <div className="col-6 col-lg-3">
-                    <div className="form-control">
                         <FormSelectInput
                             size="small"
                             minHelperText
@@ -417,6 +399,22 @@ const AddressCreationPanel = (props) => {
                             errorText={errors.stateError}
                             label="State">
                         </FormSelectInput>
+                    </div>
+                </div>
+                <div className="col-6 col-lg-3">
+                    <div className="form-control">
+                        <FormInput
+                            size="small"
+                            minHelperText
+                            fullWidth
+                            value={zip}
+                            onChange={(e) => {
+                                self.zip = e.target.value;
+                                setAddresses([...addresses]);
+                            }}
+                            errorText={errors.zipError}
+                            label="Zip">
+                        </FormInput>
                     </div>
                 </div>
             </div>
@@ -473,17 +471,17 @@ const ContactCreationPanel = (props) => {
     const additionalClasses = flaggedForDeletion ? " flaggedForDeletion" : "";
 
     return (
-        <div className={"individual-container" + additionalClasses}>
-            <div className="individual-container-header">
-                <h5 className="individual-container-heading">Contact {myIndex + 1}</h5>
-                <div className="individual-container-icon-button">
+        <div className={"creation-panel" + additionalClasses}>
+            <div className="creation-panel-header">
+                <h5 className="creation-panel-heading">Contact {myIndex + 1}</h5>
+                <div className="creation-panel-icon-button">
                     {buttonJsx}
                 </div>
             </div>
             <div className="row gx-0">
                 <div className="col-lg-6">
                     <div className="form-control">
-                        <FormInput
+                        <FormSelectInput
                             size="small"
                             minHelperText
                             fullWidth
@@ -492,9 +490,9 @@ const ContactCreationPanel = (props) => {
                                 self.contactType = e.target.value;
                                 setContacts([...contacts]);
                             }}
-                            errorText={errors.contactTypeError}
-                            label="Contact type">
-                        </FormInput>
+                            values={["Email", "Cell Phone", "Home Phone"]}
+                            label="Contact Type">
+                        </FormSelectInput>
                     </div>
                 </div>
                 <div className="col-lg-6">

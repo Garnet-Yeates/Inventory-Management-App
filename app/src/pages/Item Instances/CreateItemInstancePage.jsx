@@ -3,23 +3,22 @@
 import { useEffect, useRef, useState } from "react";
 import { AdornedFormInput, FormInput } from "../../components/FormComponents";
 import axios from "axios";
-import { mountAbortSignal, newAbortSignal } from "../../tools/axiosTools";
+import { effectAbortSignal, newAbortSignal } from "../../tools/axiosTools";
 import { SERVER_URL } from "../App";
 import { LoadingButton } from "@mui/lab";
 import { Send } from "@mui/icons-material";
 import { DatePicker } from "@mui/x-date-pickers";
+import { convertDateFormat } from "../../tools/generalTools";
 
 const CreateItemInstancePage = (props) => {
 
     // Inherited from dashboard
     const { selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage } = props;
 
-    // Only inherited when composed by ItemTypeManagementPage
-    const {
-        editingId,
-    } = props;
+    // Only inherited when composed by ItemInstanceManagementPage (editing item instances is not actually I thing yet btw...)
+    const { editingId } = props;
 
-    // Page-specific props
+    // Override prop, only inherited when composed by ItemTypeManagementPage
     const { preSetItemCode } = props;
 
     // For now we change it by typing. Every time it changes it makes a GET though.. Later this will be done through a modal with search abilities
@@ -63,7 +62,7 @@ const CreateItemInstancePage = (props) => {
 
         if (editingId) {
 
-            const { controller, isCleanedUp, cleanup } = mountAbortSignal(5);
+            const { controller, isCleanedUp, cleanup } = effectAbortSignal(5);
             (async () => {
                 try {
                     const { data: { itemInstance } } = await axios.get(`${SERVER_URL}/itemInstance/getItemInstance`, { params: { itemInstanceId: editingId }, signal: controller.signal })
@@ -169,7 +168,14 @@ const CreateItemInstancePage = (props) => {
 
             unlockExit();
             addDashboardMessage("itemInstanceSuccess", { type: "success", text: `Item Instance has been successfully ${editingId ? "updated" : "created"}` })
-            trySelectNode("manageItemInstances", { programmatic: true })
+
+            // Right now preSetItemCode is only used when props are overridden by ItemTypeManagement page, so we will redirect back to there in this case
+            if (preSetItemCode) {
+                trySelectNode("manageItemTypes", { programmatic: true })
+            }
+            else {
+                trySelectNode("manageItemInstances", { programmatic: true })
+            }
         }
         catch (err) {
             console.log("Error creating or updating item instance", err);
@@ -279,16 +285,6 @@ const CreateItemInstancePage = (props) => {
         </div >
     )
 
-}
-
-function convertDateFormat(month, day, year) {
-    if (!month || !day || !year)
-        return;
-    const paddedMonth = String(Number(month) + 1).padStart(2, '0');
-    const paddedDay = String(day).padStart(2, '0');
-  
-    const formattedDate = `${year}-${paddedMonth}-${paddedDay}`;
-    return formattedDate;
 }
 
 export default CreateItemInstancePage;

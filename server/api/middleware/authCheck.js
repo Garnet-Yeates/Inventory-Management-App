@@ -177,13 +177,14 @@ export async function authCheckHelper(req, res, options) {
     // Find their CSRF session in the database
 
     // Notice how we search with the header (not cookie). The cookie can be stolen, but this makes it worthless
-    // to steal because they have to actually be able to read it. We actually don't even do any validation
-    // with the cookie itself; we just make sure it exists. The whole point is that they must be able to read
-    // the cookie via putting its value into a header. Before I actually made sure they match, but axios interceptor
-    // created race conditions where the cookie being sent doesn't match the header being sent, because the header
-    // sometimes updates to a 'newer' cookie value while the request is being sent out (but the cookie being used in the
-    // request is not updated). It has to do with using a separate library to grab the cookie value inside the interceptor
-    // function
+    // to steal because they have to actually be able to read it. We don't even do any validation with the cookie, we just
+    // use the cookie as a means of transporting the sensitive data so the user can then prove that they can read it by sending
+    // back the header. In the past we made sure the header being used matched the exact js cookie being used (which also had to
+    // match the exact httponly cookie token csrfId as well) We stopped this practice because our axios request interceptor on the client
+    // created race conditions where the cookie being sent didn't match the header being sent. The header
+    // sometimes updates to a 'newer' cookie value while the interceptor function is being called, but the cookie being used in the
+    // request has already been established. It has to do with using a separate library to grab the cookie value inside the interceptor
+    // function. And also axios fault for not giving direct access to the request cookies being used for the intercepted request.
     let csrfSession;
     try {
         csrfSession = await findCSRFSession(authCSRFHeader)
@@ -248,8 +249,11 @@ export async function authCheckHelper(req, res, options) {
     }
 }
 
-// Deletes Login Session in 15 seconds
-export function deleteLoginSessionSoon(loginSessionUUID) {
+/**
+ * Deletes Login Session in 15 seconds. Since this is a timeout and will occur after its calling function has terminated,
+ * any errors that happen are automatically caught and treated as a warning.
+ * @param {} csrfSessionUUID 
+ */export function deleteLoginSessionSoon(loginSessionUUID) {
     setTimeout(async () => {
         try {
             await deleteLoginSession(loginSessionUUID)
@@ -260,7 +264,11 @@ export function deleteLoginSessionSoon(loginSessionUUID) {
     }, 15 * 1000)
 }
 
-// Deletes CSRF session in 15 seconds
+/**
+ * Deletes CSRF Session in 15 seconds. Since this is a timeout and will occur after its calling function has terminated,
+ * any errors that happen are automatically caught and treated as a warning.
+ * @param {} csrfSessionUUID 
+ */
 export function deleteCSRFSessionSoon(csrfSessionUUID) {
     setTimeout(async () => {
         try {

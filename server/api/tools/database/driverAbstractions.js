@@ -308,11 +308,24 @@ function keyValueEquality(whereClause, separator, convertValueToSQLString = true
 function getValueAsSQLString(str) {
     switch (typeof str) {
         case "string":
-            return `'${str}'`;
+            return `'${escapeString(str)}'`;
         default:
             return `${str}`
     }
 }
+
+function escapeString(str) {
+    return str.replace(/['"\\]/g, match => {
+      switch (match) {
+        case "'":
+          return "\\'";
+        case '"':
+          return '\\"';
+        case "\\":
+          return "\\\\";
+      }
+    });
+  }
 
 function printSql(sql) {
     console.log("\nSQL Generated: ", `\n${sql}\n`)

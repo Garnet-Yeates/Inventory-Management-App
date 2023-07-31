@@ -4,7 +4,6 @@ import { newAbortSignal } from '../tools/axiosTools'
 import axios from 'axios'
 import { SERVER_URL } from '../pages/App'
 
-let times = 1;
 /**
  * My function description.
  * @returns {[Object, () => void]} An array containing an object as the first element and a function as the second element.
@@ -30,7 +29,7 @@ const useGETNavInfo = () => {
         refreshNavInfoController.current = controller;
 
         try {
-            let { data } = await axios.get(`${SERVER_URL}/dashboard/navInfo`, { signal: controller.signal })
+            let { data } = await axios.get(`${SERVER_URL}/dashboard/navInfo`, { signal: controller.signal })            
 
             // For now we do this
             data = {
@@ -65,14 +64,13 @@ const useGETNavInfo = () => {
                 ],
             }
 
-            for (let i = 0; i < times; i++) {
-                data.inProgressInvoices.push({
-                    invoiceId: 1000 + i,
-                    customerName: "Jo",
-                })
-            }
+            // Jerry rig
+            let custResponse = await axios.get(`${SERVER_URL}/customer/getCustomers`, { signal: controller.signal })
+            data.customers = custResponse.data.customers.length;
 
-            times++;
+            let itemTypesResponse = await axios.get(`${SERVER_URL}/itemType/getItemTypes`, { signal: controller.signal })
+            data.itemTypes = itemTypesResponse.data.itemTypes.length;
+
             console.log("refreshNavInfo: Calling setNavInfo which will re-render dashboard")
             setNavInfo(data);
         }

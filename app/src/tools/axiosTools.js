@@ -20,7 +20,7 @@ export function newAbortSignal(timeoutS = 0) {
     return abortController;
 }
 
-export const mountAbortSignal = (timeoutS) => {
+export const effectAbortSignal = (timeoutS) => {
     let controller = newAbortSignal(timeoutS);
     let mounted = true;
     const isCleanedUp = () => mounted;

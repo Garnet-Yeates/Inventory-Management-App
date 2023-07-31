@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { mountAbortSignal } from "../../tools/axiosTools";
+import { effectAbortSignal } from "../../tools/axiosTools";
 import { SERVER_URL } from "../App";
 import "../../sass/ItemInstanceManagement.scss"
 import { formatToUSCurrency } from "../../tools/generalTools";
@@ -78,11 +78,12 @@ const ItemInstancesView = (props) => {
 
     // Loaded upon mount
     const [itemInstanceGroups, setItemInstanceGroups] = useState([]);
+    const [loaded, setLoaded] = useState(false);
 
     // Upon mount we use a GET request to get a list of all item instances so we can display them
     useEffect(() => {
 
-        const { controller, isCleanedUp, cleanup } = mountAbortSignal(5);
+        const { controller, isCleanedUp, cleanup } = effectAbortSignal(5);
 
         (async () => {
             try {
@@ -94,6 +95,9 @@ const ItemInstancesView = (props) => {
             catch (err) {
                 if (axios.isCancel(err)) return `Request canceled due to ${isCleanedUp() ? "timeout" : "unmount"}`
                 console.log("Error ItemsView mount GET /itemInstance/getItemInstances", err);
+            }
+            finally {
+                setLoaded(true);
             }
         })()
 
@@ -171,9 +175,24 @@ const ItemInstancesView = (props) => {
 
     }, [filterBy, filterType, currentSearchInternal, itemInstanceGroups])
 
-    const heading = viewingInstancesOf ? 
-        (<h2 className="sub-page-heading">Instances of <span className="item-code-heading">{viewingInstancesOf}</span></h2>) : 
+    const heading = viewingInstancesOf ?
+        (<h2 className="sub-page-heading">Instances of <span className="item-code-heading">{viewingInstancesOf}</span></h2>) :
         (<h2 className="sub-page-heading">Item Instance Management</h2>)
+
+    let noneJsx;
+    if (itemInstanceGroups.length === 0) {
+        noneJsx = <h3 className="text-center pt-3"><em>No Item Instances Yet</em></h3>
+    }
+    else if (filteredGroups.length === 0) {
+        noneJsx = <h3 className="text-center pt-3"><em>No Results Found</em></h3>
+    }
+
+    if (noneJsx && viewingInstancesOf) {
+        noneJsx = <h3 className="text-center pt-3"><em>There are no instances of this Item</em></h3>
+    }
+
+
+    noneJsx = loaded && noneJsx; // Don't display noneJsx unless our initial GET request is done. This is so it doesn't show 'None Yet' heading when in reality we don't know yet
 
     return (
         <div className="item-instance-management-sub-page">
@@ -184,6 +203,7 @@ const ItemInstancesView = (props) => {
                 filterBy={filterBy} setFilterBy={setFilterBy}
                 filterType={filterType} setFilterType={setFilterType}>
             </ItemInstanceFilter>
+            {noneJsx}
             <div className="item-instance-groups-display-container">
                 {filteredGroups.map((instanceGroup) =>
                     <ItemInstanceGroup

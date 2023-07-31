@@ -70,6 +70,9 @@ export const FormSelectInput = (props) => {
 
     const errored = errorText ? true : false;
     
+    const displayingHelperText = errorText || helperText || (minHelperText ? "" : " ");
+    const helperTextJsx = displayingHelperText ? <FormHelperText size={size} variant={variant} error={errored}>{displayingHelperText}</FormHelperText> : undefined
+
     return (
         <FormControl sx={sx} disabled={disabled} error={errored} fullWidth={fullWidth} size={size} variant={variant}>
             <InputLabel variant={variant}>{label}</InputLabel>
@@ -85,7 +88,7 @@ export const FormSelectInput = (props) => {
                 {includeNullOption && <MenuItem><em>{nullOptionText}</em></MenuItem>}
                 {values.map((value, index) => <MenuItem key={value} value={value}>{displays[index]}</MenuItem>)}
             </Select>
-            <FormHelperText variant={variant} error={errored}>{errorText || helperText || (minHelperText ? "" : " ")}</FormHelperText>
+            {helperTextJsx}
         </FormControl>
     )
 }
@@ -116,10 +119,16 @@ export const AdornedFormInput = (props) => {
 
     const InputType = variant === "filled" ? FilledInput : variant === "outlined" ? OutlinedInput : Input
 
+    const displayingHelperText = errorText || helperText || (minHelperText ? "" : " ");
+    const helperTextJsx = displayingHelperText ? <FormHelperText size={size} variant={variant} error={errored}>{displayingHelperText}</FormHelperText> : undefined
+
+    console.log("helper displayt", displayingHelperText);
+
     return (
         <FormControl disabled={disabled} size={size} fullWidth={fullWidth} error={errored} variant={variant}>
             <InputLabel size={size} error={errored} variant={variant}>{label}</InputLabel>
             <InputType
+                autoComplete="off"
                 variant={variant}
                 disabled={disabled}
                 size={size}
@@ -130,7 +139,7 @@ export const AdornedFormInput = (props) => {
                 startAdornment={<InputAdornment position="start">{adornment}</InputAdornment>}
                 {...rest}
             />
-            <FormHelperText variant={variant} error={errored}>{errorText || helperText || (minHelperText ? "" : " ")}</FormHelperText>
+            {helperTextJsx}
         </FormControl>
     )
 }
@@ -154,6 +163,7 @@ export const FormInput = (props) => {
     
     return (
         <TextField
+            autoComplete="off"
             value={value ?? ""}
             variant={variant}
             onChange={onChange ?? getOnChangeFunction(type, value, setState)}
