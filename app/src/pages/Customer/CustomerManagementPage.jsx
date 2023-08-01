@@ -119,9 +119,7 @@ const CustomersView = (props) => {
                 color="success"
                 variant="contained"
                 onClick={() => {
-                    trySelectNode("createNewCustomer", {
-                        programmatic: true,
-                    })
+                    trySelectNode("createNewCustomer")
                 }}>
                 <span>Create New Customer</span>
             </Button>
@@ -257,7 +255,6 @@ export const SimpleCustomerDisplay = (props) => {
                     variant="outlined"
                     onClick={() => {
                         trySelectNode("manageCustomers", {
-                            programmatic: true,
                             overrideProps: {
                                 viewingSpecificCustomer: customerId,
                             }
@@ -272,7 +269,6 @@ export const SimpleCustomerDisplay = (props) => {
                     variant="outlined"
                     onClick={() => {
                         trySelectNode("manageCustomers", {
-                            programmatic: true,
                             overrideProps: {
                                 editingSpecificCustomer: customerId,
                             }

@@ -94,7 +94,7 @@ const CreateItemTypePage = (props) => {
 
             unlockExit();
             addDashboardMessage("itemTypeSuccess", { type: "success", text: `Item Type has been successfully ${editingId ? "updated" : "created"}` })
-            trySelectNode("manageItemTypes", { programmatic: true })
+            trySelectNode("manageItemTypes")
             refreshNavInfo();
         }
         catch (err) {

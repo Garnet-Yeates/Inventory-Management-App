@@ -93,9 +93,15 @@ export default function DashboardPage(props) {
     // When a node selection event is triggered (via clicking, or pressing enter on focused node) this callback will run.
     const trySelectNode = useCallback((nodeId, config = {}) => {
 
-        const { overrideProps, programmatic } = config;
+        // programmatic means "the user did not manually click a TreeItem". This is defaults to true by default. The only place it is false is when the user selects
+        // overrideProps means "instead of using the props for this node as defined in getDashboardTreeItemsFromNavInfo, use these instead"
+        // this effectively means the user will be on a overridden/modified version of the page they're on.
+        // I use this concept of "overrideProps" a lot in this application, and it is used when one page redirects to or composes another
+        // For example, the ItemTypeManagement page 
+        const { overrideProps, programmatic = true } = config;
 
-        // No additional logic if they are clicking the node that represents the current page (return)
+        // No additional logic if they are clicking the node that exactly represents the current page (return)
+        // Note how if we are on an overridden page we *Dont* return here
         if (selected === nodeId && !propsOverridenRef.current && !overrideProps) {
             return;
         }
@@ -139,6 +145,9 @@ export default function DashboardPage(props) {
             selectedSomething = true;
         }
 
+        // If the selection attempt is from a user clicking on a TreeItem manually, we know the node is visible. 
+        // However if we opened it programatically (i.e: we are simulating the user clicking on it, but in reality they clicked another button somewhere, 
+        // such as "Create" in one of the CRUD pages, we want to ensure that the tree items above it are expanded)
         if (programmatic) {
 
             let newExpanded = [...expanded];
@@ -159,26 +168,20 @@ export default function DashboardPage(props) {
 
             setExpanded(newExpanded);
         }
-        else { // If a user manually selected a node
-            if (selectedSomething) {
-                setMobilePanelShown(false);
-            }
-        }
-
     }, [treeItemMap, expanded, selected])
 
     // Only nodes that cause 'currentPage' to change/unmount can be selected in this tree view. See trySelectNode 
-    const onNodeSelect = useCallback((_, nodeId) => trySelectNode(nodeId), [trySelectNode]);
+    const onNodeSelect = useCallback((_, nodeId) => trySelectNode(nodeId, { programmatic: false }), [trySelectNode]);
 
     // For node expansion, there is no change in user triggered logic. However if you look in trySelectNode you can see we use expansion logic there
-    const onNodeToggle = useCallback((_, nodeIds) => setExpanded(nodeIds), [setExpanded])
+    const onNodeToggle = useCallback((_, nodeIds) => setExpanded(nodeIds, { programmatic: false }), [setExpanded])
 
     // Whenever dashboardTreeItems updates to a non empty object, we will programatically select the node stored in the ref
     useEffect(() => {
         if (Object.keys(dashboardTreeItems).length > 0 && selectNextRefreshRef.current) {
             const { nodeId, config } = selectNextRefreshRef.current;
             console.log("[dashboardTreeItems effect]: auto selecting node after refresh. selectNextRefreshRef data:", selectNextRefreshRef.current)
-            trySelectNode(nodeId, { config })
+            trySelectNode(nodeId, { config }) // TODO use array param spread instead for selectNextRefreshRef and triedToSelect 
             selectNextRefreshRef.current = null;
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps    
@@ -211,7 +214,7 @@ export default function DashboardPage(props) {
                     </MobileNavigationBar>
                     <DesktopNavigationPanel {...treeViewProps} />
                     <div className="sub-page-container">
-                        <DashboardMessagesContainer messages={messages} setMessages={setMessages}/>
+                        <DashboardMessagesContainer messages={messages} setMessages={setMessages} />
                         {currentPage && <CurrentPage
                             nodeId={nodeId}
                             key={nodeId}
@@ -245,9 +248,9 @@ export const DashboardMessagesContainer = ({ messages, setMessages }) => {
 }
 
 
-const messageInitial = { y: "-50px", opacity: 0 } 
+const messageInitial = { y: "-50px", opacity: 0 }
 const messageAnimate = { y: 0, opacity: 1, transition: { duration: 0.75 } }
-const messageExit = { opacity: 0, transition: { duration: 1.25 }};
+const messageExit = { opacity: 0, transition: { duration: 1.25 } };
 
 export const DashboardMessage = ({ messageKey, messages, setMessages, type = "info", text, selfClosing = true, closeTimer = 2 }) => {
 

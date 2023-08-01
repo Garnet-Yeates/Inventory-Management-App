@@ -92,7 +92,8 @@ const CreateInvoicePage = (props) => {
     }, [customerChoice])
 
     const submitForm = () => {
-
+        addDashboardMessage("invoiceCreationSuccess", { type: "success", text: `Invoice has been successfully created` })
+        trySelectNode("viewCompletedInvoices")
     }
 
     return (
@@ -249,7 +250,7 @@ const EntryAdditionsContainer = (props) => {
                         })
                         setInvoiceEntries([...invoiceEntries]);
                     }}>
-                    <span>Begin Creating Entries</span>
+                    <span>Begin Writing Entries</span>
                 </Button >
             </>
         )

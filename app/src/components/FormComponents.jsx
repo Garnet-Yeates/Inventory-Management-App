@@ -132,8 +132,6 @@ export const AdornedFormInput = (props) => {
     const displayingHelperText = errorText || helperText || (minHelperText ? "" : " ");
     const helperTextJsx = displayingHelperText ? <FormHelperText size={size} variant={variant} error={errored}>{displayingHelperText}</FormHelperText> : undefined
 
-    console.log("helper displayt", displayingHelperText);
-
     return (
         <FormControl disabled={disabled} size={size} fullWidth={fullWidth} error={errored} variant={variant}>
             <InputLabel size={size} error={errored} variant={variant}>{label}</InputLabel>

@@ -136,9 +136,7 @@ const ItemsView = (props) => {
                 color="success"
                 variant="contained"
                 onClick={() => {
-                    trySelectNode("createNewItemType", {
-                        programmatic: true,
-                    })
+                    trySelectNode("createNewItemType")
                 }}>
                 <span>Create New Item Type</span>
             </Button>
@@ -270,7 +268,6 @@ export const SimpleItemTypeDisplay = (props) => {
                     color="success"
                     onClick={() => {
                         trySelectNode("createNewItemInstance", {
-                            programmatic: true,
                             overrideProps: {
                                 preSetItemCode: itemCode,
                             }
@@ -285,7 +282,6 @@ export const SimpleItemTypeDisplay = (props) => {
                     color="primary"
                     onClick={() => {
                         trySelectNode("manageItemTypes", {
-                            programmatic: true,
                             overrideProps: {
                                 editingSpecificItemType: itemTypeId,
                             }
@@ -300,7 +296,6 @@ export const SimpleItemTypeDisplay = (props) => {
                     color="secondary"
                     onClick={() => {
                         trySelectNode("manageItemInstances", {
-                            programmatic: true,
                             overrideProps: {
                                 viewingInstancesOf: itemCode,
                                 preSetFilterQuery: itemCode,

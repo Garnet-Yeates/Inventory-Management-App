@@ -171,10 +171,10 @@ const CreateItemInstancePage = (props) => {
 
             // Right now preSetItemCode is only used when props are overridden by ItemTypeManagement page, so we will redirect back to there in this case
             if (preSetItemCode) {
-                trySelectNode("manageItemTypes", { programmatic: true })
+                trySelectNode("manageItemTypes")
             }
             else {
-                trySelectNode("manageItemInstances", { programmatic: true })
+                trySelectNode("manageItemInstances")
             }
         }
         catch (err) {

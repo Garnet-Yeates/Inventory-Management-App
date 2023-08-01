@@ -140,7 +140,6 @@ const ItemInstancesView = (props) => {
                 variant="contained"
                 onClick={() => {
                     trySelectNode("createNewItemInstance", {
-                        programmatic: true,
                         overrideProps: !viewingInstancesOf ? undefined : ({
                             preSetItemCode: viewingInstancesOf,
                         })
@@ -174,7 +173,6 @@ const ItemInstancesView = (props) => {
                     color="primary"
                     onClick={() => {
                         trySelectNode("manageItemTypes", {
-                            programmatic: true,
                             overrideProps: { ...backToTypes }
                         })
                     }}>
@@ -185,9 +183,7 @@ const ItemInstancesView = (props) => {
                     size="medium"
                     color="primary"
                     onClick={() => {
-                        trySelectNode("manageItemInstances", {
-                            programmatic: true,
-                        })
+                        trySelectNode("manageItemInstances")
                     }}>
                     <span>Instance Management</span>
                 </Button>
