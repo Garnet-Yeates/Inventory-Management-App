@@ -115,7 +115,7 @@ const CreateCustomerPage = (props) => {
             }
 
             unlockExit();
-            addDashboardMessage("itemTypeSuccess", { type: "success", text: `Customer has been successfully ${editingId ? "updated" : "created"}` })
+            addDashboardMessage("customerCreationSuccess", { type: "success", text: `Customer has been successfully ${editingId ? "updated" : "created"}`, closeTimer: 2 })
             trySelectNode("manageCustomers", { programmatic: true })
             refreshNavInfo();
         }

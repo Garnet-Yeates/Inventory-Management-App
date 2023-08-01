@@ -211,7 +211,7 @@ export default function DashboardPage(props) {
                     </MobileNavigationBar>
                     <DesktopNavigationPanel {...treeViewProps} />
                     <div className="sub-page-container">
-                        <MessageContainer messages={messages} setMessages={setMessages}/>
+                        <DashboardMessagesContainer messages={messages} setMessages={setMessages}/>
                         {currentPage && <CurrentPage
                             nodeId={nodeId}
                             key={nodeId}
@@ -231,13 +231,13 @@ export default function DashboardPage(props) {
     )
 }
 
-export const MessageContainer = ({ messages, setMessages }) => {
+export const DashboardMessagesContainer = ({ messages, setMessages }) => {
 
     return (
         <div className="messages-box">
             <AnimatePresence>
                 {Object.keys(messages).map(key => {
-                    return <MessageView key={key} messageKey={key} messages={messages} setMessages={setMessages} {...messages[key]} />
+                    return <DashboardMessage key={key} messageKey={key} messages={messages} setMessages={setMessages} {...messages[key]} />
                 })}
             </AnimatePresence>
         </div>
@@ -247,9 +247,9 @@ export const MessageContainer = ({ messages, setMessages }) => {
 
 const messageInitial = { y: "-50px", opacity: 0 } 
 const messageAnimate = { y: 0, opacity: 1, transition: { duration: 0.75 } }
-const messageExit = { opacity: 0, transition: { duration: 1.5 }};
+const messageExit = { opacity: 0, transition: { duration: 1.25 }};
 
-export const MessageView = ({ messageKey, messages, setMessages, type = "info", text, selfClosing = true, closeTimer = 2 }) => {
+export const DashboardMessage = ({ messageKey, messages, setMessages, type = "info", text, selfClosing = true, closeTimer = 2 }) => {
 
     const latestTimeoutRef = useRef();
 

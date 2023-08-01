@@ -107,6 +107,7 @@ table.entry-additions-table {
 
         &.total-description {
             font-weight: 500;
+            padding-left: 16px;
             @include rfs(1.5rem, font-size)
         }
 

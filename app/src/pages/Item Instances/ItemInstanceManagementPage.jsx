@@ -5,76 +5,31 @@ import { SERVER_URL } from "../App";
 import "../../sass/ItemInstanceManagement.scss"
 import { formatToUSCurrency } from "../../tools/generalTools";
 import { FormInput, FormSelectInput } from "../../components/FormComponents";
+import { Button } from "@mui/material";
+import CreateItemInstancePage from "./CreateItemInstancePage";
 
 const ItemInstanceManagementPage = (props) => {
 
     // When overriden by this page itself
     const { editingSpecificItemInstance } = props;
 
-    // When overridden from ItemTypeManagementPage
-    const { viewingInstancesOf } = props;
+    if (editingSpecificItemInstance) {
+        return <CreateItemInstancePage editingId={editingSpecificItemInstance} {...props} />
+    }
 
-    // Inherited properties from Dashboard
-    const { selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage } = props;
-    const passDownProps = { selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage }
-
-    return <ItemInstancesView viewingInstancesOf={viewingInstancesOf}
-        {...passDownProps}
-    />
-}
-
-export const ItemInstanceFilter = (props) => {
-
-    // Normal properties
-    const { currentSearch, setCurrentSearch, filterBy, setFilterBy, filterType, setFilterType } = props;
-
-    // If overridden by ItemTypeManagementPage
-    const { viewingInstancesOf } = props;
-
-    const disabled = viewingInstancesOf !== undefined && viewingInstancesOf !== null;
-
-    return (
-        <div className="item-instance-filtering-container">
-            <div className="search-bar">
-                <FormInput
-                    disabled={disabled}
-                    minHelperText
-                    fullWidth
-                    label="Filter Query"
-                    value={currentSearch}
-                    setState={setCurrentSearch}>
-                </FormInput>
-            </div>
-            <div className="filter-by">
-                <FormSelectInput
-                    disabled={disabled}
-                    minHelperText
-                    fullWidth
-                    value={filterBy}
-                    setState={setFilterBy}
-                    values={["Item Name", "Item Code"]}
-                    label="Filter By">
-                </FormSelectInput>
-            </div>
-            <div className="filter-type">
-                <FormSelectInput
-                    disabled={disabled}
-                    minHelperText
-                    fullWidth
-                    value={filterType}
-                    displayToValueMap={{ "Includes Any": "Any", "Includes All": "All", "Exact Match": "Exact" }}
-                    setState={setFilterType}
-                    label="Filter Type">
-                </FormSelectInput>
-            </div>
-        </div>
-    )
+    return <ItemInstancesView {...props} />
 }
 
 const ItemInstancesView = (props) => {
 
     // Inherited props from Dashboard
     const { selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage } = props;
+
+    // If overridden by ItemTypeManagementPage
+    const { viewingInstancesOf, backToTypes } = props;
+
+    // General overrides
+    const { preSetFilterBy, preSetFilterType, preSetFilterQuery } = props;
 
     // Loaded upon mount
     const [itemInstanceGroups, setItemInstanceGroups] = useState([]);
@@ -105,9 +60,6 @@ const ItemInstancesView = (props) => {
 
     }, []);
 
-    // If overridden by ItemTypeManagementPage
-    const { viewingInstancesOf } = props;
-
     // Filtering controls. currentSearch is what the user modifies, currentSearchInternal eventually gets changed but is throttled
     const [currentSearchInternal, setCurrentSearchInternal] = useState("");
     const [currentSearch, setCurrentSearch] = useState("");
@@ -115,11 +67,11 @@ const ItemInstancesView = (props) => {
     const [filterType, setFilterType] = useState("Any");
 
     useEffect(() => {
-        setCurrentSearchInternal(viewingInstancesOf ?? "");
-        setCurrentSearch(viewingInstancesOf ?? "");
-        setFilterBy(viewingInstancesOf ? "Item Code" : "Item Name")
-        setFilterType(viewingInstancesOf ? "Exact" : "Any")
-    }, [viewingInstancesOf])
+        setCurrentSearchInternal(preSetFilterQuery ?? "");
+        setCurrentSearch(preSetFilterQuery ?? "");
+        setFilterBy(preSetFilterBy ?? "Item Name")
+        setFilterType(preSetFilterType ?? "Any")
+    }, [preSetFilterBy, preSetFilterType, preSetFilterQuery])
 
     // When currentSearch changes, 0.5 seconds later we will update currentSearchInternal
     const currentSearchUpdateThrottleRef = useRef();
@@ -179,6 +131,26 @@ const ItemInstancesView = (props) => {
         (<h2 className="sub-page-heading">Instances of <span className="item-code-heading">{viewingInstancesOf}</span></h2>) :
         (<h2 className="sub-page-heading">Item Instance Management</h2>)
 
+    let createJsx = (
+        <div className="management-create-button-container">
+            <Button
+                fullWidth
+                size="large"
+                color="success"
+                variant="contained"
+                onClick={() => {
+                    trySelectNode("createNewItemInstance", {
+                        programmatic: true,
+                        overrideProps: !viewingInstancesOf ? undefined : ({
+                            preSetItemCode: viewingInstancesOf,
+                        })
+                    })
+                }}>
+                <span>{viewingInstancesOf ? `Create New ${viewingInstancesOf}` : `Create New Item Instance`}</span>
+            </Button>
+        </div>
+    )
+
     let noneJsx;
     if (itemInstanceGroups.length === 0) {
         noneJsx = <h3 className="text-center pt-3"><em>No Item Instances Yet</em></h3>
@@ -191,11 +163,35 @@ const ItemInstancesView = (props) => {
         noneJsx = <h3 className="text-center pt-3"><em>There are no instances of this Item</em></h3>
     }
 
-
     noneJsx = loaded && noneJsx; // Don't display noneJsx unless our initial GET request is done. This is so it doesn't show 'None Yet' heading when in reality we don't know yet
 
     return (
         <div className="item-instance-management-sub-page">
+            {backToTypes && <div className="d-flex justify-content-between pb-3"> 
+                <Button
+                    variant="text"
+                    size="medium"
+                    color="primary"
+                    onClick={() => {
+                        trySelectNode("manageItemTypes", {
+                            programmatic: true,
+                            overrideProps: { ...backToTypes }
+                        })
+                    }}>
+                    <span>Back To Types</span>
+                </Button>
+                <Button
+                    variant="text"
+                    size="medium"
+                    color="primary"
+                    onClick={() => {
+                        trySelectNode("manageItemInstances", {
+                            programmatic: true,
+                        })
+                    }}>
+                    <span>Instance Management</span>
+                </Button>
+            </div>}
             {heading}
             <ItemInstanceFilter
                 viewingInstancesOf={viewingInstancesOf}
@@ -203,6 +199,7 @@ const ItemInstancesView = (props) => {
                 filterBy={filterBy} setFilterBy={setFilterBy}
                 filterType={filterType} setFilterType={setFilterType}>
             </ItemInstanceFilter>
+            {createJsx}
             {noneJsx}
             <div className="item-instance-groups-display-container">
                 {filteredGroups.map((instanceGroup) =>
@@ -212,6 +209,54 @@ const ItemInstancesView = (props) => {
                         {...instanceGroup}>
                     </ItemInstanceGroup>
                 )}
+            </div>
+        </div>
+    )
+}
+
+export const ItemInstanceFilter = (props) => {
+
+    // Normal properties
+    const { currentSearch, setCurrentSearch, filterBy, setFilterBy, filterType, setFilterType } = props;
+
+    // If overridden by ItemTypeManagementPage
+    const { viewingInstancesOf } = props;
+
+    const disabled = viewingInstancesOf !== undefined && viewingInstancesOf !== null;
+
+    return (
+        <div className="management-filtering-container">
+            <div className="search-bar">
+                <FormInput
+                    disabled={disabled}
+                    minHelperText
+                    fullWidth
+                    label="Filter Query"
+                    value={currentSearch}
+                    setState={setCurrentSearch}>
+                </FormInput>
+            </div>
+            <div className="filter-by">
+                <FormSelectInput
+                    disabled={disabled}
+                    minHelperText
+                    fullWidth
+                    value={filterBy}
+                    setState={setFilterBy}
+                    values={["Item Name", "Item Code"]}
+                    label="Filter By">
+                </FormSelectInput>
+            </div>
+            <div className="filter-type">
+                <FormSelectInput
+                    disabled={disabled}
+                    minHelperText
+                    fullWidth
+                    value={filterType}
+                    displayToValueMap={{ "Includes Any": "Any", "Includes All": "All", "Exact Match": "Exact" }}
+                    setState={setFilterType}
+                    label="Filter Type">
+                </FormSelectInput>
             </div>
         </div>
     )
@@ -272,9 +317,9 @@ export const SimpleItemInstanceDisplay = (props) => {
             <div className="quantity-with-instance-info">
                 <em className="instance-quantity">x{quantity}&nbsp;&nbsp;</em>
                 <div className="instance-info">
-                    <em className="date-purchased">
+                    <span className="date-purchased">
                         Purchased {datePurchased}
-                    </em>
+                    </span>
                     <span className="date-added">
                         Added {dateAdded}
                     </span>

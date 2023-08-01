@@ -11,31 +11,27 @@ import { FormInput, FormSelectInput } from "../../components/FormComponents";
 
 const ItemTypeManagementPage = (props) => {
 
-    // Inherited props
-    const { selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage } = props;
-
-    // Props that can exist when props for this page are overriden
+    // When overridden by this page itself
     const { viewingSpecificItemType, editingSpecificItemType } = props;
 
-    const passDownProps = {
-        selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage,
-    }
-
     if (viewingSpecificItemType) {
-        return <ViewItemTypePage itemTypeId={viewingSpecificItemType} {...passDownProps} />
+        return <ViewItemTypePage itemTypeId={viewingSpecificItemType} {...props} />
     }
 
     if (editingSpecificItemType) {
-        return <CreateItemTypePage editingId={editingSpecificItemType} {...passDownProps} />
+        return <CreateItemTypePage editingId={editingSpecificItemType} {...props} />
     }
 
-    return <ItemsView {...passDownProps} />
+    return <ItemsView {...props} />
 }
 
 const ItemsView = (props) => {
 
-    // Inherited props
+    // Inherited dashboard control props
     const { selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage } = props;
+
+    // General overrides
+    const { preSetFilterBy, preSetFilterType, preSetFilterQuery } = props;
 
     // Loaded upon mount
     const [itemTypes, setItemTypes] = useState([]);
@@ -70,6 +66,13 @@ const ItemsView = (props) => {
     const [currentSearch, setCurrentSearch] = useState("");
     const [filterBy, setFilterBy] = useState("Item Name");
     const [filterType, setFilterType] = useState("Any");
+
+    useEffect(() => {
+        setCurrentSearchInternal(preSetFilterQuery ?? "");
+        setCurrentSearch(preSetFilterQuery ?? "");
+        setFilterBy(preSetFilterBy ?? "Item Name")
+        setFilterType(preSetFilterType ?? "Any")
+    }, [preSetFilterBy, preSetFilterType, preSetFilterQuery])
 
     // When currentSearch changes, 0.5 seconds later we will update currentSearchInternal
     const currentSearchUpdateThrottleRef = useRef();
@@ -125,6 +128,23 @@ const ItemsView = (props) => {
 
     }, [filterBy, filterType, currentSearchInternal, itemTypes])
 
+    let createJsx = (
+        <div className="management-create-button-container">
+            <Button
+                fullWidth
+                size="large"
+                color="success"
+                variant="contained"
+                onClick={() => {
+                    trySelectNode("createNewItemType", {
+                        programmatic: true,
+                    })
+                }}>
+                <span>Create New Item Type</span>
+            </Button>
+        </div>
+    )
+
     let noneJsx;
     if (itemTypes.length === 0) {
         noneJsx = <h3 className="text-center pt-3"><em>No Item Types Yet</em></h3>
@@ -143,12 +163,16 @@ const ItemsView = (props) => {
                 filterBy={filterBy} setFilterBy={setFilterBy}
                 filterType={filterType} setFilterType={setFilterType}>
             </ItemTypeFilter>
-            {loaded && noneJsx}
+            {createJsx}
+            {noneJsx}
             <div className="item-types-display-container">
                 {filteredTypes.map((itemType) => <SimpleItemTypeDisplay
                     key={itemType.itemCode}
                     itemType={itemType}
                     trySelectNode={trySelectNode}
+                    filterByUsed={filterBy}
+                    filterTypeUsed={filterType}
+                    queryUsed={currentSearchInternal}
                 />)}
             </div>
         </div>
@@ -158,9 +182,9 @@ const ItemsView = (props) => {
 export const ItemTypeFilter = (props) => {
 
     const { currentSearch, setCurrentSearch, filterBy, setFilterBy, filterType, setFilterType } = props;
-
+ 
     return (
-        <div className="item-instance-filtering-container">
+        <div className="management-filtering-container">
             <div className="search-bar">
                 <FormInput
                     minHelperText
@@ -207,6 +231,9 @@ const ViewItemTypePage = (props) => {
 }
 
 export const SimpleItemTypeDisplay = (props) => {
+
+    // The search used to map this ItemTypeDisplay
+    const { filterByUsed, filterTypeUsed, queryUsed } = props;
 
     const {
         itemType: {
@@ -276,6 +303,14 @@ export const SimpleItemTypeDisplay = (props) => {
                             programmatic: true,
                             overrideProps: {
                                 viewingInstancesOf: itemCode,
+                                preSetFilterQuery: itemCode,
+                                preSetFilterBy: "Item Code",
+                                preSetFilterType: "Exact",
+                                backToTypes: {
+                                    preSetFilterQuery: queryUsed,
+                                    preSetFilterBy: filterByUsed,
+                                    preSetFilterType: filterTypeUsed,
+                                }
                             }
                         })
                     }}

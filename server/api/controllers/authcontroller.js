@@ -257,7 +257,6 @@ export async function logout(req, res) {
 
     res.clearCookie("auth_jwt")
     res.clearCookie("auth_csrf")
-    console.log("cookies cleared (logout)")
 
     // We do not need to do anything else if authCheck fails due to db error, auth rejection, session expired
     // Since we are logging out anyways. We only use authCheck to get sessionId so we can delete it manually

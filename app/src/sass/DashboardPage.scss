@@ -27,9 +27,7 @@
     }
 }
 
-.page-change.warning-modal {
-    
-}
+.page-change.warning-modal {}
 
 // Active on all breakpoints
 .responsive-page-container {
@@ -157,7 +155,7 @@ nav.mobile-navigation {
 
     .MuiFormHelperText-root {
         overflow: hidden;
-    }    
+    }
 }
 
 // Active on all breakpoints
@@ -184,13 +182,17 @@ nav.mobile-navigation {
 
         .message-container {
 
-            padding: 8px 10px;
+            @include rfs(1.25rem, font-size);
+            font-weight: 500;
+            padding: 10px 12px;
+            padding-left: 18px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             background-color: var(--bg-col);
             border-radius: 2px;
             box-shadow: 0px 0px 8px -2px var(--shadow-col);
+            color: var(--col, rgb(0, 0, 0, 0.75));
 
             &.warning {
                 --bg-col: rgb(255, 251, 192);
@@ -208,6 +210,7 @@ nav.mobile-navigation {
             }
 
             &.success {
+                --col: rgb(48, 66, 48);
                 --bg-col: rgb(200, 255, 197);
                 --shadow-col: rgba(87, 113, 85, 0.5);
             }
@@ -218,6 +221,37 @@ nav.mobile-navigation {
             }
         }
     }
+}
+
+.management-filtering-container {
+
+    padding: 8px;
+
+    display: flex;
+    flex-direction: row;
+
+    .search-bar {
+        flex-grow: 1;
+        margin-right: 8px;
+    }
+
+    .filter-by {
+        flex-shrink: 0;
+        flex-basis: 150px;
+        margin-right: 8px;
+    }
+
+    .filter-type {
+        flex-shrink: 0;
+        flex-basis: 150px;
+    }
+
+    .filter-button {}
+
+}
+
+.management-create-button-container {
+    padding: 8px;
 }
 
 .page-change-warning-modal {
@@ -272,4 +306,3 @@ nav.mobile-navigation {
         border-left: 1px solid rgba(0, 0, 0, 0.2);
     }
 }
-

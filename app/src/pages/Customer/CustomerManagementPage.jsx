@@ -11,25 +11,18 @@ import { FormInput, FormSelectInput } from "../../components/FormComponents";
 
 const CustomerManagementPage = (props) => {
 
-    // Inherited props
-    const { selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage } = props;
-
-    // Props that can exist when props for this page are overriden
+    // When overridden by this page itself
     const { viewingSpecificCustomer, editingSpecificCustomer } = props;
 
-    const passDownProps = {
-        selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage,
-    }
-
     if (viewingSpecificCustomer) {
-        return <ViewCustomerPage customerId={viewingSpecificCustomer} {...passDownProps} />
+        return <ViewCustomerPage customerId={viewingSpecificCustomer} {...props} />
     }
 
     if (editingSpecificCustomer) {
-        return <CreateCustomerPage editingId={editingSpecificCustomer} {...passDownProps} />
+        return <CreateCustomerPage editingId={editingSpecificCustomer} {...props} />
     }
 
-    return <CustomersView {...passDownProps} />
+    return <CustomersView {...props} />
 }
 
 const CustomersView = (props) => {
@@ -118,6 +111,23 @@ const CustomersView = (props) => {
 
     }, [filterBy, filterType, currentSearchInternal, customers])
 
+    let createJsx = (
+        <div className="management-create-button-container">
+            <Button
+                fullWidth
+                size="large"
+                color="success"
+                variant="contained"
+                onClick={() => {
+                    trySelectNode("createNewCustomer", {
+                        programmatic: true,
+                    })
+                }}>
+                <span>Create New Customer</span>
+            </Button>
+        </div>
+    )
+
     let noneJsx;
     if (customers.length === 0) {
         noneJsx = <h3 className="text-center pt-3"><em>No Customers Yet</em></h3>
@@ -136,6 +146,7 @@ const CustomersView = (props) => {
                 filterBy={filterBy} setFilterBy={setFilterBy}
                 filterType={filterType} setFilterType={setFilterType}>
             </CustomerFilter>
+            {createJsx}
             {noneJsx}
             <div className="customers-display-container">
                 {filteredCustomers.map((customer) => <SimpleCustomerDisplay
@@ -153,7 +164,7 @@ export const CustomerFilter = (props) => {
     const { currentSearch, setCurrentSearch, filterBy, setFilterBy, filterType, setFilterType } = props;
 
     return (
-        <div className="item-instance-filtering-container">
+        <div className="management-filtering-container">
             <div className="search-bar">
                 <FormInput
                     minHelperText
