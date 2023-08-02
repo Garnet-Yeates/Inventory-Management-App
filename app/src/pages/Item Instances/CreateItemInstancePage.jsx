@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AdornedFormInput, FormInput } from "../../components/FormComponents";
 import axios from "axios";
-import { effectAbortSignal, newAbortSignal } from "../../tools/axiosTools";
+import { effectAbortSignal, newAbortSignal, useUnmountSignalCancel } from "../../tools/axiosTools";
 import { SERVER_URL } from "../App";
 import { LoadingButton } from "@mui/lab";
 import { Send } from "@mui/icons-material";
@@ -13,13 +13,9 @@ import { convertDateFormat } from "../../tools/generalTools";
 const CreateItemInstancePage = (props) => {
 
     // Inherited from dashboard
-    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage } = props;
+    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage, currURLQuery } = props;
 
-    // Only inherited when composed by ItemInstanceManagementPage (editing item instances is not actually I thing yet btw...)
-    const { editingId } = props;
-
-    // Override prop, only inherited when composed by ItemTypeManagementPage
-    const { preSetItemCode } = props;
+    const { editingId, preSetItemCode } = currURLQuery;
 
     // For now we change it by typing. Every time it changes it makes a GET though.. Later this will be done through a modal with search abilities
     const [itemCode, setItemCode] = useState("");
@@ -39,23 +35,21 @@ const CreateItemInstancePage = (props) => {
     const [sellPriceError, setSellPriceError] = useState("")
     const [defaultSellPrice, setDefaultSellPrice] = useState("")
 
-    // Abort signals on unmount
-    const submitSignalRef = useRef(); // Submit button
-    const codeUpdateSignalRef = useRef(); // setTimeOut after itemCode changes
-    useEffect(() => {
-        return function cleanup() { 
-            codeUpdateSignalRef.current?.abort();
-            submitSignalRef.current?.abort();
-        }
-     }, []);
+    // For the submit button
+    const submitSignalRef = useRef(); 
+    useUnmountSignalCancel(submitSignalRef);
 
-    // We also run this when preSetItemCode (override prop) changes, because they can click on the node again to re-select it and remove the overriden prop
+    // For the "auto item code querying" when item code field changes
+    const itemCodeUpdateSignalRef = useRef(); 
+    useUnmountSignalCancel(itemCodeUpdateSignalRef);
+
+    // When preSetItemCode query param changes
     useEffect(() => {
         lockExitWith("Unsaved changes will be lost. Are you sure?")
         setItemCode(preSetItemCode ?? "");
     }, [preSetItemCode])
 
-    // Whenever editingId changes (or mount occurs), we lock exit for unsaved data warning, and we also load up the data if we are editing
+    // When editingId query param changes
     useEffect(() => {
 
         lockExitWith("Unsaved changes will be lost. Are you sure?")
@@ -86,44 +80,24 @@ const CreateItemInstancePage = (props) => {
     }, [editingId])
 
     // Whenever itemCode changes (or mount occurs), we try to find the itemType to load its default values into our placeholders 
-    const itemCodeUpdateDelayRef = useRef(); // For now this happens via typing in the field and we must throttle it. Later it will have a search modal
-    // Request sent 250ms after changing them code. If it changes again before timeout occurs, previous timeout is canceled and it will try again in 200ms
-    // Cookie/header race conditions...
+    const itemCodeUpdateDelayRef = useRef(); 
     useEffect(() => {
 
         if (itemCodeUpdateDelayRef.current) {
             clearTimeout(itemCodeUpdateDelayRef.current);
         }
 
-        codeUpdateSignalRef.current?.abort();
-        codeUpdateSignalRef.current = newAbortSignal(10);
+        itemCodeUpdateSignalRef.current?.abort();
+        itemCodeUpdateSignalRef.current = newAbortSignal(10);
 
         setDefaultBuyPrice("");
         setDefaultSellPrice("");
-
-        if (itemCode) {
-            (async () => {
-                try {
-                    const response = await axios.get(`${SERVER_URL}/itemType/getItemType`, { params: { itemCode }, signal: codeUpdateSignalRef.current.signal })
-                    const { data: { itemType } }  = response;
-                    console.log("Received the following from the server", response)
-                    setDefaultBuyPrice(itemType.defaultBuyPrice);
-                    setDefaultSellPrice(itemType.defaultSellPrice);
-                }
-                catch (err) {
-                    if (axios.isCancel(err)) return `Request canceled due to unmount or consecutive call (cancels previous request)`
-                    console.log("Error at GET /itemType/getItemType", err);
-                }
-            })()
-        }
-
-        return;
 
         itemCodeUpdateDelayRef.current = setTimeout(() => {
             if (itemCode) {
                 (async () => {
                     try {
-                        const response = await axios.get(`${SERVER_URL}/itemType/getItemType`, { params: { itemCode }, signal: codeUpdateSignalRef.current.signal })
+                        const response = await axios.get(`${SERVER_URL}/itemType/getItemType`, { params: { itemCode }, signal: itemCodeUpdateSignalRef.current.signal })
                         const { data: { itemType } }  = response;
                         console.log("Received the following from the server", response)
                         setDefaultBuyPrice(itemType.defaultBuyPrice);

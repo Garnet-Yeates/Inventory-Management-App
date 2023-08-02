@@ -28,10 +28,9 @@ const ItemTypeManagementPage = (props) => {
 const ItemsView = (props) => {
 
     // Inherited dashboard control props
-    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage } = props;
+    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage, currURLQuery } = props;
 
-    // General overrides
-    const { preSetFilterBy, preSetFilterType, preSetFilterQuery } = props;
+    const { preSetFilterBy, preSetFilterType, preSetFilterQuery } = currURLQuery;
 
     // Loaded upon mount
     const [itemTypes, setItemTypes] = useState([]);
@@ -267,10 +266,8 @@ export const SimpleItemTypeDisplay = (props) => {
                     onClick={() => {
                         tryNavigate({
                             path: "/itemInstances/create",
-                            state: {
-                                overrideProps: {
-                                    preSetItemCode: itemCode,
-                                }
+                            query: {
+                                preSetItemCode: itemCode,
                             }
                         })
                     }}
@@ -284,10 +281,8 @@ export const SimpleItemTypeDisplay = (props) => {
                     onClick={() => {
                         tryNavigate({
                             path: "/itemTypes",
-                            state: {
-                                overrideProps: {
-                                    preSetItemCode: itemCode,
-                                }
+                            query: {
+                                preSetItemCode: itemCode,
                             }
                         })
                     }}
@@ -301,18 +296,11 @@ export const SimpleItemTypeDisplay = (props) => {
                     onClick={() => {
                         tryNavigate({
                             path: "/itemInstances",
-                            state: {
-                                overrideProps: {
-                                    viewingInstancesOf: itemCode,
-                                    preSetFilterQuery: itemCode,
-                                    preSetFilterBy: "Item Code",
-                                    preSetFilterType: "Exact",
-                                    backToTypes: {
-                                        preSetFilterQuery: queryUsed,
-                                        preSetFilterBy: filterByUsed,
-                                        preSetFilterType: filterTypeUsed,
-                                    }
-                                }
+                            query: {
+                                viewingInstancesOf: itemCode,
+                                preSetFilterQuery: itemCode,
+                                preSetFilterBy: "Item Code",
+                                preSetFilterType: "Exact",
                             }
                         })
                     }}

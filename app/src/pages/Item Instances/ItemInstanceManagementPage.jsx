@@ -10,8 +10,7 @@ import CreateItemInstancePage from "./CreateItemInstancePage";
 
 const ItemInstanceManagementPage = (props) => {
 
-    // When overriden by this page itself
-    const { editingSpecificItemInstance } = props;
+    const { editingSpecificItemInstance } = props.currURLQuery;
 
     if (editingSpecificItemInstance) {
         return <CreateItemInstancePage editingId={editingSpecificItemInstance} {...props} />
@@ -23,13 +22,9 @@ const ItemInstanceManagementPage = (props) => {
 const ItemInstancesView = (props) => {
 
     // Inherited props from Dashboard
-    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage } = props;
+    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage, currURLQuery } = props;
 
-    // If overridden by ItemTypeManagementPage
-    const { viewingInstancesOf, backToTypes } = props;
-
-    // General overrides
-    const { preSetFilterBy, preSetFilterType, preSetFilterQuery } = props;
+    const { viewingInstancesOf, preSetFilterBy, preSetFilterType, preSetFilterQuery } = currURLQuery;
 
     // Loaded upon mount
     const [itemInstanceGroups, setItemInstanceGroups] = useState([]);
@@ -140,8 +135,8 @@ const ItemInstancesView = (props) => {
                 variant="contained"
                 onClick={() => {
                     tryNavigate({
-                        path: "/itemInstances",
-                        overrideProps: !viewingInstancesOf ? undefined : ({
+                        path: "/itemInstances/create",
+                        query: !viewingInstancesOf ? undefined : ({
                             preSetItemCode: viewingInstancesOf,
                         })
                     })
@@ -167,31 +162,6 @@ const ItemInstancesView = (props) => {
 
     return (
         <div className="item-instance-management-sub-page">
-            {backToTypes && <div className="d-flex justify-content-between pb-3">
-                <Button
-                    variant="text"
-                    size="medium"
-                    color="primary"
-                    onClick={() => {
-                        tryNavigate({
-                            path: "/itemTypes",
-                            state: {
-                                overrideProps: { ...backToTypes }
-                            }
-                        })
-                    }}>
-                    <span>Back To Types</span>
-                </Button>
-                <Button
-                    variant="text"
-                    size="medium"
-                    color="primary"
-                    onClick={() => {
-                        tryNavigate({ path: "/itemInstances" })
-                    }}>
-                    <span>Instance Management</span>
-                </Button>
-            </div>}
             {heading}
             <ItemInstanceFilter
                 viewingInstancesOf={viewingInstancesOf}

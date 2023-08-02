@@ -148,7 +148,7 @@ export function mountAuthDetector(Component, redirectInfo, safe = true) {
 
             return cleanup;
 
-        }, [])
+        }, [navigate])
 
         return <Component {...props} loggedIn={loggedIn} />
     }

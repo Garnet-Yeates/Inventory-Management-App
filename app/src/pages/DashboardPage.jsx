@@ -68,7 +68,6 @@ export default function DashboardPage(props) {
     let { state = {}, search = "" } = useLocation();
     state ??= {}
 
-    const { overrideProps: overriddenProps } = state;
     const currURLQuery = queryString.parse(search);
 
     console.log("urlQuery", currURLQuery);
@@ -76,23 +75,21 @@ export default function DashboardPage(props) {
     const [dashboardTreeItems, treeItemMap] = useMemo(() => {
         console.log("navInfo changed, calling getDashboardTreeItemsFromNavInfo to update memo")
         return getDashboardTreeItemsFromNavInfo(navInfo, navigate, refreshNavInfo)
-    }, [navInfo])
+    }, [navInfo, navigate])
 
     // Try to select subPage whenever it changes or whenever navInfo updates
     useEffect(() => {
         const node = treeItemMap[currentPath];
-        console.log("E", currentPath, node)
         if (node) {
             ensureParentsExpanded(node, expanded, setExpanded);
             setSelected(currentPath)
 
             if (node.page) {
                 let { type: Page, props } = node.page;
-                props = overriddenProps ? overriddenProps : props;
                 setCurrentPage(<Page {...props} nodeId={nodeId} />) // Add nodeId as a prop here. Technically could do it when we declare the page JSX props in getDashboardTreeItemsFromNavInfo but it would create redundancies in that method 
             }
         }
-    }, [currentPath, dashboardTreeItems, overriddenProps])
+    }, [currentPath, dashboardTreeItems])
 
     useEffect(() => {
         refreshNavInfo()
@@ -122,7 +119,7 @@ export default function DashboardPage(props) {
     // When a node selection event is triggered (via clicking, or pressing enter on focused node) this callback will run.
     const tryNavigate = useCallback((config) => {
 
-        const { path, query, replace, state, state: { overrideProps } = {}, userTriggered = false } = config;
+        const { path, query, replace, userTriggered = false } = config;
 
         console.log("tryNavigate to:", path, "query:", query);
 
@@ -133,8 +130,9 @@ export default function DashboardPage(props) {
 
         const qString = query ? ("?" + queryString.stringify(query)) : "";
 
+        console.log(`path: ${path}, currPath ${currentPath} | search ${search}, qString ${qString}`)
         // No additional logic if they are clicking the node that exactly represents the current page (return)
-        if (path === currentPath && !overrideProps && !overriddenProps) {
+        if (path === currentPath && search === qString) {
             console.log("blocked")
             return;
         }
@@ -147,7 +145,7 @@ export default function DashboardPage(props) {
         }
 
         if (node.page) {
-            navigate(path + qString, { replace, state })    
+            navigate(path + qString, { replace })    
         }
         else {
             node.onSelected && node.onSelected();
@@ -155,7 +153,7 @@ export default function DashboardPage(props) {
 
         userTriggered && setMobilePanelShown(false)
 
-    }, [treeItemMap, expanded, selected])
+    }, [treeItemMap, expanded, selected, search, currentPath, navigate])
 
     // Only nodes that cause 'currentPage' to change/unmount can be selected in this tree view. See tryNavigate 
     const onNodeSelect = useCallback((_, nodeId) => tryNavigate({ path: nodeId, userTriggered: true }), [tryNavigate]);
@@ -199,6 +197,7 @@ export default function DashboardPage(props) {
                             lockExitWith={lockExitWith}
                             unlockExit={unlockExit}
                             addDashboardMessage={addDashboardMessage}
+                            currURLQuery={currURLQuery}
                             {...pagePropsRest} // <- Whatever props are defined for the page in getDashboardTreeItemsFromNavInfo
                         >
                         </CurrentPage>}

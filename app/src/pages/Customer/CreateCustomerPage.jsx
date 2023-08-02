@@ -14,10 +14,9 @@ import { deleteUndefined, getKey, stateAbbreviations } from "../../tools/general
 const CreateCustomerPage = (props) => {
 
     // Inherited props
-    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage } = props;
+    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage, currURLQuery } = props;
 
-    // Only inherited when composed by ItemTypeManagementPage
-    const { editingId } = props;
+    const { editingId } = currURLQuery;
 
     const [customerFirstName, setCustomerFirstName] = useState("")
     const [customerFirstNameError, setCustomerFirstNameError] = useState("");

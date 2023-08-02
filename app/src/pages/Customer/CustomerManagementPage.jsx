@@ -12,7 +12,7 @@ import { FormInput, FormSelectInput } from "../../components/FormComponents";
 const CustomerManagementPage = (props) => {
 
     // When overridden by this page itself
-    const { viewingSpecificCustomer, editingSpecificCustomer } = props;
+    const { viewingSpecificCustomer, editingSpecificCustomer } = props.currURLQuery;
 
     if (viewingSpecificCustomer) {
         return <ViewCustomerPage customerId={viewingSpecificCustomer} {...props} />
@@ -256,10 +256,8 @@ export const SimpleCustomerDisplay = (props) => {
                     onClick={() => {
                         tryNavigate({
                             path: "/customers",
-                            state: {
-                                overrideProps: {
-                                    viewingSpecificCustomer: customerId,
-                                }
+                            query: {
+                                viewingSpecificCustomer: customerId,
                             }
                         })
                     }}
@@ -273,10 +271,8 @@ export const SimpleCustomerDisplay = (props) => {
                     onClick={() => {
                         tryNavigate({
                             path: "/customers",
-                            state: {
-                                overrideProps: {
-                                    editingSpecificCustomer: customerId,
-                                }
+                            query: {
+                                editingSpecificCustomer: customerId,
                             }
                         })
                     }}
