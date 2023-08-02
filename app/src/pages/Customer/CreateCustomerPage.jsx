@@ -115,7 +115,7 @@ const CreateCustomerPage = (props) => {
 
             unlockExit();
             addDashboardMessage("customerCreationSuccess", { type: "success", text: `Customer has been successfully ${editingId ? "updated" : "created"}` })
-            tryNavigate({ path: "/customers" })
+            tryNavigate({ path: "/customers", replace: true })
             refreshNavInfo();
         }
         catch (err) {

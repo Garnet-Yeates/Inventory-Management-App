@@ -11,15 +11,14 @@ import { FormInput, FormSelectInput } from "../../components/FormComponents";
 
 const ItemTypeManagementPage = (props) => {
 
-    // When overridden by this page itself
-    const { viewingSpecificItemType, editingSpecificItemType } = props;
+    const { viewingSpecificItemType, editingSpecificItemType } = props.currURLQuery;
 
     if (viewingSpecificItemType) {
-        return <ViewItemTypePage itemTypeId={viewingSpecificItemType} {...props} />
+        return <ViewItemTypePage {...props} currURLQuery={{ itemTypeId: Number(viewingSpecificItemType) }} />
     }
 
     if (editingSpecificItemType) {
-        return <CreateItemTypePage editingId={editingSpecificItemType} {...props} />
+        return <CreateItemTypePage {...props} currURLQuery={{ editingId: Number(editingSpecificItemType) }} />
     }
 
     return <ItemsView {...props} />
@@ -83,8 +82,16 @@ const ItemsView = (props) => {
 
         currentSearchUpdateThrottleRef.current = setTimeout(() => {
             setCurrentSearchInternal(currentSearch);
+            tryNavigate({
+                path: "/itemTypes",
+                replace: true,
+                query: {
+                    preSetFilterBy: filterBy,
+                    preSetFilterType: filterType,
+                    preSetFilterQuery: currentSearch,
+                }
+            })
         }, 500)
-
     }, [currentSearch])
 
     // This memo only updates when state variables update, so when it updates it is always accompanied by a re-render
@@ -216,10 +223,9 @@ export const ItemTypeFilter = (props) => {
 const ViewItemTypePage = (props) => {
 
     // Inherited props
-    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage } = props;
+    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage, currURLQuery } = props;
 
-    // Specific props (overridden)
-    const { itemTypeId } = props;
+    const { itemTypeId } = currURLQuery;
 
     return <div>What a view</div>
 
@@ -282,7 +288,7 @@ export const SimpleItemTypeDisplay = (props) => {
                         tryNavigate({
                             path: "/itemTypes",
                             query: {
-                                preSetItemCode: itemCode,
+                                editingSpecificItemType: itemTypeId,
                             }
                         })
                     }}

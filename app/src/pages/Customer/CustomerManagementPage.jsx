@@ -11,15 +11,14 @@ import { FormInput, FormSelectInput } from "../../components/FormComponents";
 
 const CustomerManagementPage = (props) => {
 
-    // When overridden by this page itself
     const { viewingSpecificCustomer, editingSpecificCustomer } = props.currURLQuery;
 
     if (viewingSpecificCustomer) {
-        return <ViewCustomerPage customerId={viewingSpecificCustomer} {...props} />
+        return <ViewCustomerPage {...props} currURLQuery={{ customerId: viewingSpecificCustomer }}  />
     }
 
     if (editingSpecificCustomer) {
-        return <CreateCustomerPage editingId={editingSpecificCustomer} {...props} />
+        return <CreateCustomerPage {...props} currURLQuery={{ editingId: editingSpecificCustomer }} />
     }
 
     return <CustomersView {...props} />

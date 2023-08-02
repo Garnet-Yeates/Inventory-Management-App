@@ -145,10 +145,10 @@ const CreateItemInstancePage = (props) => {
 
             // Right now preSetItemCode is only used when props are overridden by ItemTypeManagement page, so we will redirect back to there in this case
             if (preSetItemCode) {
-                tryNavigate({ path: "/itemTypes" })
+                tryNavigate({ path: "/itemTypes", replace: true })
             }
             else {
-                tryNavigate({ path: "/itemInstances" })
+                tryNavigate({ path: "/itemInstances", replace: true })
             }
         }
         catch (err) {

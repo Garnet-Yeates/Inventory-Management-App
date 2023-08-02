@@ -44,9 +44,11 @@ const ensureParentsExpanded = (node, expanded, setExpanded) => {
 export default function DashboardPage(props) {
 
     const loc = useLocation();
-    console.log("LOC", loc);
 
     console.log("------------------- RENDER BEGIN --------------")
+
+    console.log("LOC", loc);
+
 
     // We use the 'controlled tree' capability of Mui TreeView
     const [selected, setSelected] = useState("");
@@ -63,19 +65,24 @@ export default function DashboardPage(props) {
     const [navInfo, refreshNavInfo] = useGETNavInfo();
 
     const { currentPath } = props;
-    console.log("CURR PATH", currentPath)
 
     let { state = {}, search = "" } = useLocation();
     state ??= {}
 
     const currURLQuery = queryString.parse(search);
-
-    console.log("urlQuery", currURLQuery);
+    console.log("CURR URL QUERY", currURLQuery)
 
     const [dashboardTreeItems, treeItemMap] = useMemo(() => {
         console.log("navInfo changed, calling getDashboardTreeItemsFromNavInfo to update memo")
         return getDashboardTreeItemsFromNavInfo(navInfo, navigate, refreshNavInfo)
     }, [navInfo, navigate])
+
+    // Whenever window location changes we unlockExit(). This is so that if the user uses the history arrow keys on chrome
+    // to forcefully change the page (skipping the data loss modal), the ref for the modal doesn't stay
+    useEffect(() => {
+        unlockExit();
+        refreshNavInfo()
+    }, [loc])
 
     // Try to select subPage whenever it changes or whenever navInfo updates
     useEffect(() => {
@@ -91,9 +98,6 @@ export default function DashboardPage(props) {
         }
     }, [currentPath, dashboardTreeItems])
 
-    useEffect(() => {
-        refreshNavInfo()
-    }, [currentPath])
 
     // This is a ref because we want our 'currentPage' to set it/unset it without causing re-render
     const blockExitRef = useRef("");
@@ -130,7 +134,6 @@ export default function DashboardPage(props) {
 
         const qString = query ? ("?" + queryString.stringify(query)) : "";
 
-        console.log(`path: ${path}, currPath ${currentPath} | search ${search}, qString ${qString}`)
         // No additional logic if they are clicking the node that exactly represents the current page (return)
         if (path === currentPath && search === qString) {
             console.log("blocked")

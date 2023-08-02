@@ -93,7 +93,7 @@ const CreateInvoicePage = (props) => {
 
     const submitForm = () => {
         addDashboardMessage("invoiceCreationSuccess", { type: "success", text: `Invoice has been successfully created` })
-        tryNavigate({ path: "/invoices" })
+        tryNavigate({ path: "/invoices", replace: true })
     }
 
     return (

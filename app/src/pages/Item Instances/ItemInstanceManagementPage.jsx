@@ -13,7 +13,7 @@ const ItemInstanceManagementPage = (props) => {
     const { editingSpecificItemInstance } = props.currURLQuery;
 
     if (editingSpecificItemInstance) {
-        return <CreateItemInstancePage editingId={editingSpecificItemInstance} {...props} />
+        return <CreateItemInstancePage {...props} currURLQuery={{editingId: editingSpecificItemInstance }}/>
     }
 
     return <ItemInstancesView {...props} />
@@ -189,7 +189,6 @@ export const ItemInstanceFilter = (props) => {
     // Normal properties
     const { currentSearch, setCurrentSearch, filterBy, setFilterBy, filterType, setFilterType } = props;
 
-    // If overridden by ItemTypeManagementPage
     const { viewingInstancesOf } = props;
 
     const disabled = viewingInstancesOf !== undefined && viewingInstancesOf !== null;
@@ -236,7 +235,6 @@ export const ItemInstanceGroup = (props) => {
 
     const { itemTypeId, itemCode, itemName, totalQuantity, instances } = props;
 
-    // If overridden by ItemTypeManagementPage
     const { viewingInstancesOf } = props;
 
     const [expanded, setExpanded] = useState(viewingInstancesOf);
