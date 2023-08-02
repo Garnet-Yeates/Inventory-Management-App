@@ -69,9 +69,9 @@ export default function DashboardPage(props) {
     state ??= {}
 
     const { overrideProps: overriddenProps } = state;
-    const urlQuery = queryString.parse(search);
+    const currURLQuery = queryString.parse(search);
 
-    console.log("urlQuery", urlQuery);
+    console.log("urlQuery", currURLQuery);
 
     const [dashboardTreeItems, treeItemMap] = useMemo(() => {
         console.log("navInfo changed, calling getDashboardTreeItemsFromNavInfo to update memo")
@@ -122,14 +122,16 @@ export default function DashboardPage(props) {
     // When a node selection event is triggered (via clicking, or pressing enter on focused node) this callback will run.
     const tryNavigate = useCallback((config) => {
 
-        const { path, queryObj, replace, state, state: { overrideProps } = {}, userTriggered = false } = config;
+        const { path, query, replace, state, state: { overrideProps } = {}, userTriggered = false } = config;
 
-        console.log("tryNavigate to", path);
+        console.log("tryNavigate to:", path, "query:", query);
 
         const node = treeItemMap[path];
         if (!node) {
             console.log("tryNavigate failed. Can only navigate to dashboard paths, defined as keys in treeItemMap")
         }
+
+        const qString = query ? ("?" + queryString.stringify(query)) : "";
 
         // No additional logic if they are clicking the node that exactly represents the current page (return)
         if (path === currentPath && !overrideProps && !overriddenProps) {
@@ -145,9 +147,7 @@ export default function DashboardPage(props) {
         }
 
         if (node.page) {
-            const query = queryString.stringify(queryObj);
-            console.log("path + query", path + query);
-            navigate(path + query, { replace, state })    
+            navigate(path + qString, { replace, state })    
         }
         else {
             node.onSelected && node.onSelected();
