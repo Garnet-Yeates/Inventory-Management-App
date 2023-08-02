@@ -28,7 +28,7 @@ const CustomerManagementPage = (props) => {
 const CustomersView = (props) => {
 
     // Inherited props
-    const { selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage } = props;
+    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage } = props;
 
     // Loaded upon mount
     const [customers, setCustomers] = useState([]);
@@ -119,7 +119,7 @@ const CustomersView = (props) => {
                 color="success"
                 variant="contained"
                 onClick={() => {
-                    trySelectNode("createNewCustomer")
+                    tryNavigate({ path: "/customers/create" })
                 }}>
                 <span>Create New Customer</span>
             </Button>
@@ -150,7 +150,7 @@ const CustomersView = (props) => {
                 {filteredCustomers.map((customer) => <SimpleCustomerDisplay
                     key={customer.customerId}
                     customer={customer}
-                    trySelectNode={trySelectNode}
+                    tryNavigate={tryNavigate}
                 />)}
             </div>
         </div>
@@ -199,7 +199,7 @@ export const CustomerFilter = (props) => {
 const ViewCustomerPage = (props) => {
 
     // Inherited props
-    const { selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage } = props;
+    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage } = props;
 
     // Specific props
     const { customerId } = props;
@@ -221,7 +221,7 @@ export const SimpleCustomerDisplay = (props) => {
             contacts,
             dateAdded,
         },
-        trySelectNode,
+        tryNavigate,
     } = props;
 
     const customerFullName = getCustomerFullName(customer);
@@ -254,9 +254,12 @@ export const SimpleCustomerDisplay = (props) => {
                     color="secondary"
                     variant="outlined"
                     onClick={() => {
-                        trySelectNode("manageCustomers", {
-                            overrideProps: {
-                                viewingSpecificCustomer: customerId,
+                        tryNavigate({
+                            path: "/customers",
+                            state: {
+                                overrideProps: {
+                                    viewingSpecificCustomer: customerId,
+                                }
                             }
                         })
                     }}
@@ -268,9 +271,12 @@ export const SimpleCustomerDisplay = (props) => {
                     color="primary"
                     variant="outlined"
                     onClick={() => {
-                        trySelectNode("manageCustomers", {
-                            overrideProps: {
-                                editingSpecificCustomer: customerId,
+                        tryNavigate({
+                            path: "/customers",
+                            state: {
+                                overrideProps: {
+                                    editingSpecificCustomer: customerId,
+                                }
                             }
                         })
                     }}

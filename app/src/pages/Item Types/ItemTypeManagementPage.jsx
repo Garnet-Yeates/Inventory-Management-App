@@ -28,7 +28,7 @@ const ItemTypeManagementPage = (props) => {
 const ItemsView = (props) => {
 
     // Inherited dashboard control props
-    const { selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage } = props;
+    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage } = props;
 
     // General overrides
     const { preSetFilterBy, preSetFilterType, preSetFilterQuery } = props;
@@ -135,9 +135,7 @@ const ItemsView = (props) => {
                 size="large"
                 color="success"
                 variant="contained"
-                onClick={() => {
-                    trySelectNode("createNewItemType")
-                }}>
+                onClick={() => tryNavigate({ path: "/itemTypes/create" })}>
                 <span>Create New Item Type</span>
             </Button>
         </div>
@@ -167,7 +165,7 @@ const ItemsView = (props) => {
                 {filteredTypes.map((itemType) => <SimpleItemTypeDisplay
                     key={itemType.itemCode}
                     itemType={itemType}
-                    trySelectNode={trySelectNode}
+                    tryNavigate={tryNavigate}
                     filterByUsed={filterBy}
                     filterTypeUsed={filterType}
                     queryUsed={currentSearchInternal}
@@ -180,7 +178,7 @@ const ItemsView = (props) => {
 export const ItemTypeFilter = (props) => {
 
     const { currentSearch, setCurrentSearch, filterBy, setFilterBy, filterType, setFilterType } = props;
- 
+
     return (
         <div className="management-filtering-container">
             <div className="search-bar">
@@ -219,7 +217,7 @@ export const ItemTypeFilter = (props) => {
 const ViewItemTypePage = (props) => {
 
     // Inherited props
-    const { selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage } = props;
+    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage } = props;
 
     // Specific props (overridden)
     const { itemTypeId } = props;
@@ -243,7 +241,7 @@ export const SimpleItemTypeDisplay = (props) => {
             defaultBuyPrice,
             defaultSellPrice,
         },
-        trySelectNode,
+        tryNavigate,
     } = props;
 
     return (
@@ -267,9 +265,12 @@ export const SimpleItemTypeDisplay = (props) => {
                     size="small"
                     color="success"
                     onClick={() => {
-                        trySelectNode("createNewItemInstance", {
-                            overrideProps: {
-                                preSetItemCode: itemCode,
+                        tryNavigate({
+                            path: "/itemInstances/create",
+                            state: {
+                                overrideProps: {
+                                    preSetItemCode: itemCode,
+                                }
                             }
                         })
                     }}
@@ -281,9 +282,12 @@ export const SimpleItemTypeDisplay = (props) => {
                     size="small"
                     color="primary"
                     onClick={() => {
-                        trySelectNode("manageItemTypes", {
-                            overrideProps: {
-                                editingSpecificItemType: itemTypeId,
+                        tryNavigate({
+                            path: "/itemTypes",
+                            state: {
+                                overrideProps: {
+                                    preSetItemCode: itemCode,
+                                }
                             }
                         })
                     }}
@@ -295,16 +299,19 @@ export const SimpleItemTypeDisplay = (props) => {
                     size="small"
                     color="secondary"
                     onClick={() => {
-                        trySelectNode("manageItemInstances", {
-                            overrideProps: {
-                                viewingInstancesOf: itemCode,
-                                preSetFilterQuery: itemCode,
-                                preSetFilterBy: "Item Code",
-                                preSetFilterType: "Exact",
-                                backToTypes: {
-                                    preSetFilterQuery: queryUsed,
-                                    preSetFilterBy: filterByUsed,
-                                    preSetFilterType: filterTypeUsed,
+                        tryNavigate({
+                            path: "/itemInstances",
+                            state: {
+                                overrideProps: {
+                                    viewingInstancesOf: itemCode,
+                                    preSetFilterQuery: itemCode,
+                                    preSetFilterBy: "Item Code",
+                                    preSetFilterType: "Exact",
+                                    backToTypes: {
+                                        preSetFilterQuery: queryUsed,
+                                        preSetFilterBy: filterByUsed,
+                                        preSetFilterType: filterTypeUsed,
+                                    }
                                 }
                             }
                         })
@@ -314,7 +321,7 @@ export const SimpleItemTypeDisplay = (props) => {
                     <span>View Instances</span>
                 </Button>
             </div>
-        </div>
+        </div >
     )
 }
 

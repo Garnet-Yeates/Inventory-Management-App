@@ -23,7 +23,7 @@ const ItemInstanceManagementPage = (props) => {
 const ItemInstancesView = (props) => {
 
     // Inherited props from Dashboard
-    const { selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage } = props;
+    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage } = props;
 
     // If overridden by ItemTypeManagementPage
     const { viewingInstancesOf, backToTypes } = props;
@@ -139,7 +139,8 @@ const ItemInstancesView = (props) => {
                 color="success"
                 variant="contained"
                 onClick={() => {
-                    trySelectNode("createNewItemInstance", {
+                    tryNavigate({
+                        path: "/itemInstances",
                         overrideProps: !viewingInstancesOf ? undefined : ({
                             preSetItemCode: viewingInstancesOf,
                         })
@@ -166,14 +167,17 @@ const ItemInstancesView = (props) => {
 
     return (
         <div className="item-instance-management-sub-page">
-            {backToTypes && <div className="d-flex justify-content-between pb-3"> 
+            {backToTypes && <div className="d-flex justify-content-between pb-3">
                 <Button
                     variant="text"
                     size="medium"
                     color="primary"
                     onClick={() => {
-                        trySelectNode("manageItemTypes", {
-                            overrideProps: { ...backToTypes }
+                        tryNavigate({
+                            path: "/itemTypes",
+                            state: {
+                                overrideProps: { ...backToTypes }
+                            }
                         })
                     }}>
                     <span>Back To Types</span>
@@ -183,7 +187,7 @@ const ItemInstancesView = (props) => {
                     size="medium"
                     color="primary"
                     onClick={() => {
-                        trySelectNode("manageItemInstances")
+                        tryNavigate({ path: "/itemInstances" })
                     }}>
                     <span>Instance Management</span>
                 </Button>
@@ -305,7 +309,7 @@ export const SimpleItemInstanceDisplay = (props) => {
             buyPrice,
             sellPrice
         },
-        trySelectNode,
+        tryNavigate,
     } = props;
 
     return (

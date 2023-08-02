@@ -16,7 +16,7 @@ import { motion } from "framer-motion";
 const CreateInvoicePage = (props) => {
 
     // Inherited props from dashboard
-    const { selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage } = props;
+    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage } = props;
 
     const [serviceName, setServiceName] = useState("");
     const [serviceNameError, setServiceNameError] = useState("");
@@ -93,7 +93,7 @@ const CreateInvoicePage = (props) => {
 
     const submitForm = () => {
         addDashboardMessage("invoiceCreationSuccess", { type: "success", text: `Invoice has been successfully created` })
-        trySelectNode("viewCompletedInvoices")
+        tryNavigate({ path: "/invoices" })
     }
 
     return (

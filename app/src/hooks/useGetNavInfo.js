@@ -23,6 +23,8 @@ const useGETNavInfo = () => {
 
     const refreshNavInfo = useCallback(async (additionalInfo) => {
 
+        console.log("refreshNavInfo inner")
+
         refreshNavInfoController.current?.abort();
 
         const controller = newAbortSignal(10);

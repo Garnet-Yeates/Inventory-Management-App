@@ -14,7 +14,7 @@ import { deleteUndefined, getKey, stateAbbreviations } from "../../tools/general
 const CreateCustomerPage = (props) => {
 
     // Inherited props
-    const { selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage } = props;
+    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage } = props;
 
     // Only inherited when composed by ItemTypeManagementPage
     const { editingId } = props;
@@ -116,7 +116,7 @@ const CreateCustomerPage = (props) => {
 
             unlockExit();
             addDashboardMessage("customerCreationSuccess", { type: "success", text: `Customer has been successfully ${editingId ? "updated" : "created"}` })
-            trySelectNode("manageCustomers")
+            tryNavigate({ path: "/customers" })
             refreshNavInfo();
         }
         catch (err) {

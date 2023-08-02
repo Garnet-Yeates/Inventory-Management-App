@@ -12,7 +12,7 @@ import "../../sass/CreateItemTypeSubPage.scss"
 const CreateItemTypePage = (props) => {
 
     // Inherited props from dashboard
-    const { selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage } = props;
+    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage } = props;
 
     // Override prop, only inherited when composed by ItemTypeManagementPage
     const { editingId } = props;
@@ -94,7 +94,7 @@ const CreateItemTypePage = (props) => {
 
             unlockExit();
             addDashboardMessage("itemTypeSuccess", { type: "success", text: `Item Type has been successfully ${editingId ? "updated" : "created"}` })
-            trySelectNode("manageItemTypes")
+            tryNavigate({ path: "/itemTypes" })
             refreshNavInfo();
         }
         catch (err) {

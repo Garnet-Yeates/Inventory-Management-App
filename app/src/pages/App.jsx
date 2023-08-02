@@ -46,6 +46,26 @@ const theme = createTheme({
 });
 
 
+const dashboardRoutes = [
+    "/dashboard",
+
+    "/itemTypes",
+    "/itemTypes/create",
+
+    "/itemInstances",
+    "/itemInstances/create",
+
+    "/customers",
+    "/customers/create",
+    
+    "/stockChanges",
+    "/stockChanges/create",
+    "/stockChanges/incomplete",
+
+    "/invoices",
+    "/invoices/create",
+]
+
 function App() {
     return (
         <div id='app-wrapper'>
@@ -56,7 +76,7 @@ function App() {
                         <Routes>
                             <Route path='/' element={<HomePage />} />
                             <Route path='/register' element={<RegisterPage />} />
-                            <Route path='/dashboard' element={<DashboardPage />} />
+                            {dashboardRoutes.map(dashRoute => <Route path={dashRoute} element={<DashboardPage currentPath={dashRoute}/>}/>)}
                             <Route path='/authTest' element={<AuthTestPage />} />
                             <Route path='/login' element={<LoginPage />} />
                             <Route path='*' element={<NotFoundPage />} />

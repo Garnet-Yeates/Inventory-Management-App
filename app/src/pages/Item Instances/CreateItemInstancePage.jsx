@@ -13,7 +13,7 @@ import { convertDateFormat } from "../../tools/generalTools";
 const CreateItemInstancePage = (props) => {
 
     // Inherited from dashboard
-    const { selectNodeNextRefresh, refreshNavInfo, trySelectNode, lockExitWith, unlockExit, addDashboardMessage } = props;
+    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage } = props;
 
     // Only inherited when composed by ItemInstanceManagementPage (editing item instances is not actually I thing yet btw...)
     const { editingId } = props;
@@ -171,10 +171,10 @@ const CreateItemInstancePage = (props) => {
 
             // Right now preSetItemCode is only used when props are overridden by ItemTypeManagement page, so we will redirect back to there in this case
             if (preSetItemCode) {
-                trySelectNode("manageItemTypes")
+                tryNavigate({ path: "/itemTypes" })
             }
             else {
-                trySelectNode("manageItemInstances")
+                tryNavigate({ path: "/itemInstances" })
             }
         }
         catch (err) {
