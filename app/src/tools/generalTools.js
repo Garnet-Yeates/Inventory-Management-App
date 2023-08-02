@@ -6,6 +6,8 @@ export function deleteUndefined(obj) {
     return obj;
 }
 
+export const stripTrailingSlash = (str) => str.endsWith('/') ? str.slice(0, -1) : str;
+
 export function formatToUSCurrency(number) {
     number = Number(number);
     if (Number.isNaN(number)) {

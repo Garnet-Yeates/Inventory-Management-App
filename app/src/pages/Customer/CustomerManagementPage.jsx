@@ -27,7 +27,7 @@ const CustomerManagementPage = (props) => {
 const CustomersView = (props) => {
 
     // Inherited props
-    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage } = props;
+    const { selectNodeNextRefresh, refreshTreeInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage } = props;
 
     // Loaded upon mount
     const [customers, setCustomers] = useState([]);
@@ -198,7 +198,7 @@ export const CustomerFilter = (props) => {
 const ViewCustomerPage = (props) => {
 
     // Inherited props
-    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage } = props;
+    const { selectNodeNextRefresh, refreshTreeInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage } = props;
 
     // Specific props
     const { customerId } = props;

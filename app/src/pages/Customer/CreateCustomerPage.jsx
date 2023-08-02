@@ -14,7 +14,7 @@ import { deleteUndefined, getKey, stateAbbreviations } from "../../tools/general
 const CreateCustomerPage = (props) => {
 
     // Inherited props
-    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage, currURLQuery } = props;
+    const { selectNodeNextRefresh, refreshTreeInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage, currURLQuery } = props;
 
     const { editingId } = currURLQuery;
 
@@ -116,7 +116,7 @@ const CreateCustomerPage = (props) => {
             unlockExit();
             addDashboardMessage("customerCreationSuccess", { type: "success", text: `Customer has been successfully ${editingId ? "updated" : "created"}` })
             tryNavigate({ path: "/customers", replace: true })
-            refreshNavInfo();
+            refreshTreeInfo();
         }
         catch (err) {
             console.log("Error creating or updating customer", err);

@@ -16,7 +16,7 @@ import { motion } from "framer-motion";
 const CreateInvoicePage = (props) => {
 
     // Inherited props from dashboard
-    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage } = props;
+    const { selectNodeNextRefresh, refreshTreeInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage } = props;
 
     const [serviceName, setServiceName] = useState("");
     const [serviceNameError, setServiceNameError] = useState("");

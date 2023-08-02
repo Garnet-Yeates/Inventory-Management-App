@@ -27,7 +27,7 @@ const ItemTypeManagementPage = (props) => {
 const ItemsView = (props) => {
 
     // Inherited dashboard control props
-    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage, currURLQuery } = props;
+    const { selectNodeNextRefresh, refreshTreeInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage, currURLQuery } = props;
 
     const { preSetFilterBy, preSetFilterType, preSetFilterQuery } = currURLQuery;
 
@@ -85,11 +85,11 @@ const ItemsView = (props) => {
             tryNavigate({
                 path: "/itemTypes",
                 replace: true,
-                query: {
+                query: currentSearch ? {
                     preSetFilterBy: filterBy,
                     preSetFilterType: filterType,
                     preSetFilterQuery: currentSearch,
-                }
+                } : undefined
             })
         }, 500)
     }, [currentSearch])
@@ -223,7 +223,7 @@ export const ItemTypeFilter = (props) => {
 const ViewItemTypePage = (props) => {
 
     // Inherited props
-    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage, currURLQuery } = props;
+    const { selectNodeNextRefresh, refreshTreeInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage, currURLQuery } = props;
 
     const { itemTypeId } = currURLQuery;
 

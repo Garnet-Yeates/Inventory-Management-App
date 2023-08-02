@@ -8,27 +8,27 @@ import { SERVER_URL } from '../pages/App'
  * My function description.
  * @returns {[Object, () => void]} An array containing an object as the first element and a function as the second element.
  */
-const useGETNavInfo = () => {
+const useGETTreeInfo = () => {
 
-    const [navInfo, setNavInfo] = useState({})
+    const [treeInfo, setTreeInfo] = useState({})
 
-    const refreshNavInfoController = useRef(null);
+    const refreshTreeInfoController = useRef(null);
 
     // This effect does nothing except return a cleanup (on unmount essentially) function that will abort the current controller
     useEffect(() => {
         return () => {
-            refreshNavInfoController.current?.abort();
+            refreshTreeInfoController.current?.abort();
         }
     }, [])
 
-    const refreshNavInfo = useCallback(async (additionalInfo) => {
+    const refreshTreeInfo = useCallback(async (additionalInfo) => {
 
-        console.log("refreshNavInfo inner")
+        console.log("refreshTreeInfo inner")
 
-        refreshNavInfoController.current?.abort();
+        refreshTreeInfoController.current?.abort();
 
         const controller = newAbortSignal(10);
-        refreshNavInfoController.current = controller;
+        refreshTreeInfoController.current = controller;
 
         try {
             let { data } = await axios.get(`${SERVER_URL}/dashboard/navInfo`, { signal: controller.signal })            
@@ -73,17 +73,17 @@ const useGETNavInfo = () => {
             let itemTypesResponse = await axios.get(`${SERVER_URL}/itemType/getItemTypes`, { signal: controller.signal })
             data.itemTypes = itemTypesResponse.data.itemTypes.length;
 
-            console.log("refreshNavInfo: Calling setNavInfo which will re-render dashboard")
-            setNavInfo(data);
+            console.log("refreshTreeInfo: Calling setTreeInfo which will re-render dashboard")
+            setTreeInfo(data);
         }
         catch (err) {
             if (axios.isCancel(err)) return console.log("Request canceled due to timeout or unmount", err);
-            console.log("Error at GET /dashboard/navInfo", err);
+            console.log("Error at GET /dashboard/treeInfo", err);
         }
     }, [])
 
-    return ([navInfo, refreshNavInfo]);
+    return ([treeInfo, refreshTreeInfo]);
 }
 
-export default useGETNavInfo;
+export default useGETTreeInfo;
 

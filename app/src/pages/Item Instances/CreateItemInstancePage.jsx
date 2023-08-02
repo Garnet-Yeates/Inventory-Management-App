@@ -13,7 +13,7 @@ import { convertDateFormat } from "../../tools/generalTools";
 const CreateItemInstancePage = (props) => {
 
     // Inherited from dashboard
-    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage, currURLQuery } = props;
+    const { selectNodeNextRefresh, refreshTreeInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage, currURLQuery } = props;
 
     const { editingId, preSetItemCode } = currURLQuery;
 

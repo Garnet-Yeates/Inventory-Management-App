@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import "../sass/DashboardPage.scss"
-import useGETNavInfo from "../hooks/useGetNavInfo.js";
+import useGETTreeInfo from "../hooks/useGetTreeInfo.js";
 import ViewInvoicePage from '../pages/Invoices/ViewInvoicePage'
 import InvoiceManagementPage from '../pages/Invoices/InvoiceManagementPage'
 import CreateInvoicePage from '../pages/Invoices/CreateInvoicePage'
 import CustomerManagementPage from '../pages/Customer/CustomerManagementPage'
 import CreateCustomerPage from '../pages/Customer/CreateCustomerPage'
 import { AccountCircle as AccountCircleIcon, AddBox, Category, Description as DescriptionIcon, ListAlt as ListAltIcon, Logout as LogoutIcon, Person as PersonIcon, PersonAdd as PersonAddIcon, Warehouse as WarehouseIcon, ManageAccounts, Receipt as ReceiptIcon, PostAdd as PostAddIcon, PendingActions as PendingActionsIcon, HomeRepairService, NoteAlt as NoteAltIcon, Edit as EditIcon, NoteAdd as NoteAddIcon, Refresh as RefreshIcon, Dashboard as DashboardIcon, Menu as MenuIcon, Close as CloseIcon } from "@mui/icons-material";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import CreateItemTypePage from "./Item Types/CreateItemTypePage";
 import ItemTypeManagementPage from "./Item Types/ItemTypeManagementPage";
 import CreateItemInstancePage from "./Item Instances/CreateItemInstancePage";
@@ -19,108 +19,75 @@ import { AnimatePresence, motion } from "framer-motion";
 import usePrevious from "../hooks/usePrevious";
 import SecurityIcon from '@mui/icons-material/Security';
 import queryString from "query-string";
-
-const ensureParentsExpanded = (node, expanded, setExpanded) => {
-
-    let newExpanded = [...expanded];
-
-    // Create simple map for constant lookup operation time for seeing if a specific node is expanded
-    let isExpanded = {};
-    for (let nodeId of newExpanded) {
-        isExpanded[nodeId] = true;
-    }
-
-    // When a node is selected we ensure that its parents are expanded
-    // This is because there are cases where we will programatically select nodes and we want the user to see this happen
-    for (let parentId of node.parentIds) {
-        if (!isExpanded[parentId]) {
-            newExpanded.push(parentId);
-        }
-    }
-
-    setExpanded(newExpanded);
-}
+import { stripTrailingSlash } from "../tools/generalTools";
 
 export default function DashboardPage(props) {
 
-    const loc = useLocation();
-
     console.log("------------------- RENDER BEGIN --------------")
-
-    console.log("LOC", loc);
-
 
     // We use the 'controlled tree' capability of Mui TreeView
     const [selected, setSelected] = useState("");
     const [expanded, setExpanded] = useState([]);
 
-    // Current page to be rendered inside the responsive-page-container. 
-    // Tons of information (state changers, callbacks) generated here is added to the props of this page when it is rendered
+    // Current page to be rendered inside the responsive-page-container. We pass down a bunch of additional props to currentPage to do dashboard operations
     const [currentPage, setCurrentPage] = useState();
 
-    // Has nothing to do with navInfo, this is just how we redirect to other pages with react-router-dom
-    const navigate = useNavigate();
+    // TreeInfo received via GET request that we will use to build our dashboardTreeItems
+    const [treeInfo, refreshTreeInfo] = useGETTreeInfo();
 
-    // NavInfo received via GET request that we will use to build our dashboardTreeItems
-    const [navInfo, refreshNavInfo] = useGETNavInfo();
+    // React-router-dom stuff
+    const {
+        navigate,
+        currURLPath,
+        prevURLPath,
+        currURLQuery,
+        currURLQueryString,
+        prevURLQueryString,
+        routingParams
+    } = useDashboardRouting();
 
-    const { currentPath } = props;
+    // Data loss warning modal stuff
+    const {
+        blockExitRef, // If set, attempting to navigate via clicking on a TreeItem will fail, setting 'triedToSelect' and bringing up a warning modal
+        lockExitWith, // Child pages can use this to lock exiting
+        unlockExit, // Child pages can use this to unlock exiting
+        triedToSelect, // This stores information about their failed selection attempt
+        setTriedToSelect // We use this in our tryNavigate function
+    } = useDataLossWarning({ currURLPath, prevURLPath, currURLQueryString, prevURLQueryString })
 
-    let { state = {}, search = "" } = useLocation();
-    state ??= {}
+    // Cache dashboardTreeItems
+    const [dashboardTreeItems, treeItemMap] = useMemo(() => getDashboardTreeItemsFromTreeInfo(treeInfo, navigate, refreshTreeInfo), [treeInfo, navigate])
 
-    const currURLQuery = queryString.parse(search);
-    console.log("CURR URL QUERY", currURLQuery)
-
-    const [dashboardTreeItems, treeItemMap] = useMemo(() => {
-        console.log("navInfo changed, calling getDashboardTreeItemsFromNavInfo to update memo")
-        return getDashboardTreeItemsFromNavInfo(navInfo, navigate, refreshNavInfo)
-    }, [navInfo, navigate])
-
-    // Whenever window location changes we unlockExit(). This is so that if the user uses the history arrow keys on chrome
-    // to forcefully change the page (skipping the data loss modal), the ref for the modal doesn't stay
+    // Refresh tree info (i.e: re-build dashboardTreeItems) on mount
     useEffect(() => {
-        unlockExit();
-        refreshNavInfo()
-    }, [loc])
+        refreshTreeInfo()
+    }, [])
 
-    // Try to select subPage whenever it changes or whenever navInfo updates
+    // Try to select subPage whenever it changes or whenever treeInfo updates
     useEffect(() => {
-        const node = treeItemMap[currentPath];
+        const node = treeItemMap[currURLPath];
         if (node) {
             ensureParentsExpanded(node, expanded, setExpanded);
-            setSelected(currentPath)
+            setSelected(currURLPath)
 
             if (node.page) {
                 let { type: Page, props } = node.page;
-                setCurrentPage(<Page {...props} nodeId={nodeId} />) // Add nodeId as a prop here. Technically could do it when we declare the page JSX props in getDashboardTreeItemsFromNavInfo but it would create redundancies in that method 
+                setCurrentPage(<Page {...props} nodeId={nodeId} />) // Add nodeId as a prop here. Technically could do it when we declare the page JSX props in getDashboardTreeItemsFromTreeInfo but it would create redundancies in that method 
             }
         }
-    }, [currentPath, dashboardTreeItems])
+    }, [currURLPath, dashboardTreeItems])
 
-
-    // This is a ref because we want our 'currentPage' to set it/unset it without causing re-render
-    const blockExitRef = useRef("");
-
-    // Pages will call this upon mount if they want the data loss warning modal to pop up when the user wants to switch pages
-    const lockExitWith = useCallback((message) => blockExitRef.current = message, []);
-
-    // Pages will use this when their data is saved/the page has completed its task to prevent the data loss warning modal from appearing 
-    const unlockExit = useCallback(() => blockExitRef.current = null, []);
-
-    // If set, the data loss warning modal will render. Stores config of their failed selection attempt. If they click continue it will re-do their selection
-    const [triedToSelect, setTriedToSelect] = useState(); // 
-
-    // Dashboard messages
+    // Dashboard message system, for example "Customer Successfully Created"
     const [messages, setMessages] = useState({})
     const addDashboardMessage = useCallback((messageKey, message) => {
         messages[messageKey] = message;
         setMessages({ ...messages });
     }, [messages, setMessages])
 
+    // Mobile version of navigation
     const [mobilePanelShown, setMobilePanelShown] = useState(false);
 
-    // When a node selection event is triggered (via clicking, or pressing enter on focused node) this callback will run.
+    // When a node selection event is triggered (via clicking, or pressing enter on focused node, programmatically) this callback will run.
     const tryNavigate = useCallback((config) => {
 
         const { path, query, replace, userTriggered = false } = config;
@@ -135,20 +102,20 @@ export default function DashboardPage(props) {
         const qString = query ? ("?" + queryString.stringify(query)) : "";
 
         // No additional logic if they are clicking the node that exactly represents the current page (return)
-        if (path === currentPath && search === qString) {
+        if (path === currURLPath && currURLQueryString === qString) {
             console.log("blocked")
             return;
         }
 
         // If this block runs it causes the data loss warning modal to render. Clicking proceed will remove the
-        // blockExitRef and then it will call tryNavigate, preserving their initial nodeId selection and selection config
+        // blockExitRef.current and then it will call tryNavigate, preserving their initial nodeId selection and selection config
         if (blockExitRef.current && (node.page || node.pageLossOnSelect)) {
             setTriedToSelect(config);
-            return; 
+            return;
         }
 
         if (node.page) {
-            navigate(path + qString, { replace })    
+            navigate(path + qString, { replace })
         }
         else {
             node.onSelected && node.onSelected();
@@ -156,12 +123,12 @@ export default function DashboardPage(props) {
 
         userTriggered && setMobilePanelShown(false)
 
-    }, [treeItemMap, expanded, selected, search, currentPath, navigate])
+    }, [treeItemMap, expanded, selected, currURLQueryString, currURLPath, navigate])
 
     // Only nodes that cause 'currentPage' to change/unmount can be selected in this tree view. See tryNavigate 
     const onNodeSelect = useCallback((_, nodeId) => tryNavigate({ path: nodeId, userTriggered: true }), [tryNavigate]);
 
-    // For node expansion, there is no change in user triggered logic. However if you look in tryNavigate you can see we use expansion logic there
+    // For node expansion, there is no change in user triggered logic.
     const onNodeToggle = useCallback((_, nodeIds) => setExpanded(nodeIds), [setExpanded])
 
     useEffect(() => {
@@ -195,13 +162,13 @@ export default function DashboardPage(props) {
                         {currentPage && <CurrentPage
                             nodeId={nodeId}
                             key={nodeId}
-                            refreshNavInfo={refreshNavInfo}
+                            refreshTreeInfo={refreshTreeInfo}
                             tryNavigate={tryNavigate}
                             lockExitWith={lockExitWith}
                             unlockExit={unlockExit}
                             addDashboardMessage={addDashboardMessage}
                             currURLQuery={currURLQuery}
-                            {...pagePropsRest} // <- Whatever props are defined for the page in getDashboardTreeItemsFromNavInfo
+                            {...pagePropsRest} // <- Whatever props are defined for the page in getDashboardTreeItemsFromTreeInfo
                         >
                         </CurrentPage>}
                     </div>
@@ -383,21 +350,21 @@ const orangeBg = "#ffefe4"
 const redFg = "#f74242"
 const redBg = "#ffe4e4"
 
-// TODO remove refreshnavinfo tree node item/dependency later, unless i actually wanna use it
+// TODO remove refreshtreeinfo tree node item/dependency later, unless i actually wanna use it
 
 /**
  * When supplying 'onSelected' on one of the nodes, keep dependencies in mind (i.e if we change some other value besides
  * setCurrentPage in the onSelected, we need to make sure it is listed in the dependency array of the useMemo that calls
  * this function. An example of this is the logout node that has the 'navigate' dependency)
- * @param {*} navInfo 
+ * @param {*} treeInfo 
  * @param {*} setCurrentPage 
  * @param {() => any} navigate 
- * @param {*} refreshNavInfo 
+ * @param {*} refreshTreeInfo 
  * @returns 
  */
-const getDashboardTreeItemsFromNavInfo = (navInfo, navigate, refreshNavInfo) => {
+const getDashboardTreeItemsFromTreeInfo = (treeInfo, navigate, refreshTreeInfo) => {
 
-    if (!navInfo || Object.keys(navInfo).length === 0) {
+    if (!treeInfo || Object.keys(treeInfo).length === 0) {
         return [[], {}];
     }
 
@@ -434,7 +401,7 @@ const getDashboardTreeItemsFromNavInfo = (navInfo, navigate, refreshNavInfo) => 
                 },
                 {
                     ...Node("refresh", "Refresh Nav Info", RefreshIcon),
-                    onSelected: () => refreshNavInfo(),
+                    onSelected: () => refreshTreeInfo(),
                 },
             ],
         },
@@ -442,7 +409,7 @@ const getDashboardTreeItemsFromNavInfo = (navInfo, navigate, refreshNavInfo) => 
             ...Node("inventoryGroup", "Inventory", WarehouseIcon, ""),
             nodeChildren: [
                 {
-                    ...Node("itemTypesGroup", "Item Types", Category, navInfo.itemTypes, orangeFg, orangeBg),
+                    ...Node("itemTypesGroup", "Item Types", Category, treeInfo.itemTypes, orangeFg, orangeBg),
                     nodeChildren: [
                         {
                             ...Node("/itemTypes/create", "Define New Item Type", AddBox, "", greenFg, greenBg),
@@ -487,7 +454,7 @@ const getDashboardTreeItemsFromNavInfo = (navInfo, navigate, refreshNavInfo) => 
             ],
         },
         {
-            ...Node("customersGroup", "Customers", PersonIcon, navInfo.customers),
+            ...Node("customersGroup", "Customers", PersonIcon, treeInfo.customers),
             nodeChildren: [
                 {
                     ...Node("/customers/create", "Create New Customer", PersonAddIcon, "", greenFg, greenBg),
@@ -542,4 +509,61 @@ const calculateParent = (currNode, parentArr) => {
 const calculateParentMultiple = (nodes, parentArr = []) => {
     for (let node of nodes ?? [])
         calculateParent(node, parentArr);
+}
+
+
+// DASHBOARD HOOKS TO MAKE IT LESS CLUTTERED
+
+const ensureParentsExpanded = (node, expanded, setExpanded) => {
+
+    let newExpanded = [...expanded];
+
+    // Create simple map for constant lookup operation time for seeing if a specific node is expanded
+    let isExpanded = {};
+    for (let nodeId of newExpanded) {
+        isExpanded[nodeId] = true;
+    }
+
+    // When a node is selected we ensure that its parents are expanded
+    // This is because there are cases where we will programatically select nodes and we want the user to see this happen
+    for (let parentId of node.parentIds) {
+        if (!isExpanded[parentId]) {
+            newExpanded.push(parentId);
+        }
+    }
+
+    setExpanded(newExpanded);
+}
+
+const useDashboardRouting = () => {
+
+    const navigate = useNavigate();
+
+    const windowLocation = useLocation();
+
+    const currURLPath = stripTrailingSlash(windowLocation.pathname);
+    const prevURLPath = usePrevious(currURLPath);
+
+    const currURLQueryString = windowLocation.search;
+    const prevURLQueryString = usePrevious(currURLQueryString);
+    const currURLQuery = queryString.parse(currURLQueryString);
+
+    const routingParams = useParams();
+
+    return { navigate, currURLPath, prevURLPath, currURLQueryString, prevURLQueryString, currURLQuery, routingParams };
+}
+
+export const useDataLossWarning = ({ prevURLPath, currURLPath, prevURLQueryString, currURLQueryString }) => {
+
+    const blockExitRef = useRef("");
+    const lockExitWith = useCallback((message) => { console.log("exit blocked"); blockExitRef.current = message }, []);
+    const unlockExit = useCallback(() => blockExitRef.current = null, []);
+    const [triedToSelect, setTriedToSelect] = useState(); // If set, the data loss warning modal will render. Stores config of their failed selection attempt so they can forcefully re-do it by pressing continue
+
+    // Used to be an effect, but effects are called after children render, meaning we would unlockExit after children lock it. unlockExit is a ref so we don't have rendering side effects from changing it here
+    if (prevURLPath !== currURLPath || prevURLQueryString !== currURLQueryString) {
+        unlockExit(); // Unlock exit if urlPath or queryString have changed. This is so that if the user uses the history arrow keys on their browser to forcefully change the page (skipping the data loss modal), the ref for the modal doesn't stick around
+    }
+
+    return { blockExitRef, lockExitWith, unlockExit, triedToSelect, setTriedToSelect }
 }

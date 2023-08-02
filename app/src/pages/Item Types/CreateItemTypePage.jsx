@@ -12,7 +12,7 @@ import "../../sass/CreateItemTypeSubPage.scss"
 const CreateItemTypePage = (props) => {
 
     // Inherited props from dashboard
-    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage, currURLQuery } = props;
+    const { selectNodeNextRefresh, refreshTreeInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage, currURLQuery } = props;
 
     const { editingId } = currURLQuery;
 
@@ -94,7 +94,7 @@ const CreateItemTypePage = (props) => {
             unlockExit();
             addDashboardMessage("itemTypeSuccess", { type: "success", text: `Item Type has been successfully ${editingId ? "updated" : "created"}` })
             tryNavigate({ path: "/itemTypes", replace: true })
-            refreshNavInfo();
+            refreshTreeInfo();
         }
         catch (err) {
             console.log("Error creating or updating item type", err);

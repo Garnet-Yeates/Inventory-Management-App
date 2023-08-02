@@ -64,6 +64,7 @@ const dashboardRoutes = [
 
     "/invoices",
     "/invoices/create",
+    "/invoices/inProgress/:id",
 ]
 
 function App() {
@@ -76,7 +77,7 @@ function App() {
                         <Routes>
                             <Route path='/' element={<HomePage />} />
                             <Route path='/register' element={<RegisterPage />} />
-                            {dashboardRoutes.map(dashRoute => <Route path={dashRoute} element={<DashboardPage currentPath={dashRoute}/>}/>)}
+                            {dashboardRoutes.map(dashRoute => <Route path={dashRoute} element={<DashboardPage/>}/>)}
                             <Route path='/authTest' element={<AuthTestPage />} />
                             <Route path='/login' element={<LoginPage />} />
                             <Route path='*' element={<NotFoundPage />} />

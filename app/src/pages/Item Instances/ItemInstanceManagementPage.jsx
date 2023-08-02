@@ -22,7 +22,7 @@ const ItemInstanceManagementPage = (props) => {
 const ItemInstancesView = (props) => {
 
     // Inherited props from Dashboard
-    const { selectNodeNextRefresh, refreshNavInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage, currURLQuery } = props;
+    const { selectNodeNextRefresh, refreshTreeInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage, currURLQuery } = props;
 
     const { viewingInstancesOf, preSetFilterBy, preSetFilterType, preSetFilterQuery } = currURLQuery;
 
