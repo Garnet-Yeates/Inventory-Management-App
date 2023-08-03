@@ -96,8 +96,17 @@ export default function DashboardPage(props) {
     // Mobile version of navigation
     const [mobilePanelShown, setMobilePanelShown] = useState(false);
 
+    // This will only ever be true during the render directly after we call navigate within tryNavigate (i.e during [1st re-render] described below)
+    // during this render, subsequent calls to tryNavigate will do nothing. This fixes issues with management pages, described in commits from 8/3/2023
+    const [navigating, setNavigating] = useState(false);
+    useEffect(() => navigating && setNavigating(false), [navigating]);
+
     // When a node selection event is triggered (via clicking, or pressing enter on focused node, programmatically) this callback will run.
     const tryNavigate = useCallback((config) => {
+
+        if (navigating) {
+            return;
+        }
 
         const { path, query, replace, userTriggered = false } = config;
 
@@ -131,14 +140,6 @@ export default function DashboardPage(props) {
             // - The call to navigate above causes a re-render where currURLPath is now different
             // - (1st re-render) (currURLPath changed): Effect sees that currURLPath changed and calls setCurrentPage, causing another render
             // - (2nd re-render) (currentPage changed): New page is mounted
-
-            // "If a new page is going to be mounted... don't waste the next render rendering a current page (since we know curr page will be un mounted in 2 renders) "
-            // Not wasting this render ALSO fixes an issue when switching from a ManagementPage's composed subpage (such as edit) to any other page in the app
-            // This issue is described in detail in one of the "IMPORTANT" commits
-            if (path !== currURLPath) {
-                setCurrentPage(null) // If I dont like the 'blinking' effect that this causes, then here I can set a state called [aboutToDismountCurr]
-            }                        // (set it back to false on [1st re-render], prolly in the same effect that is called there). Then the management pages
-                                     // can read that theyre
         }
         else {
             node.onSelected && node.onSelected();
