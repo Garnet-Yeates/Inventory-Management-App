@@ -36,24 +36,23 @@ const CreateItemInstancePage = (props) => {
     const [defaultSellPrice, setDefaultSellPrice] = useState("")
 
     // For the submit button
-    const submitSignalRef = useRef(); 
+    const submitSignalRef = useRef();
     useUnmountSignalCancel(submitSignalRef);
 
     // For the "auto item code querying" when item code field changes
-    const itemCodeUpdateSignalRef = useRef(); 
+    const itemCodeUpdateSignalRef = useRef();
     useUnmountSignalCancel(itemCodeUpdateSignalRef);
+
+    const markDirty = () => lockExitWith("Unsaved changes will be lost. Are you sure?")
 
     // When preSetItemCode query param changes
     useEffect(() => {
-        lockExitWith("Unsaved changes will be lost. Are you sure?")
         setItemCode(preSetItemCode ?? "");
     }, [preSetItemCode])
 
     // When editingId query param changes
     useEffect(() => {
-
-        lockExitWith("Unsaved changes will be lost. Are you sure?")
-
+        unlockExit();
         if (editingId) {
 
             const { controller, isCleanedUp, cleanup } = effectAbortSignal(5);
@@ -80,7 +79,7 @@ const CreateItemInstancePage = (props) => {
     }, [editingId])
 
     // Whenever itemCode changes (or mount occurs), we try to find the itemType to load its default values into our placeholders 
-    const itemCodeUpdateDelayRef = useRef(); 
+    const itemCodeUpdateDelayRef = useRef();
     useEffect(() => {
 
         if (itemCodeUpdateDelayRef.current) {
@@ -98,7 +97,7 @@ const CreateItemInstancePage = (props) => {
                 (async () => {
                     try {
                         const response = await axios.get(`${SERVER_URL}/itemType/getItemType`, { params: { itemCode }, signal: itemCodeUpdateSignalRef.current.signal })
-                        const { data: { itemType } }  = response;
+                        const { data: { itemType } } = response;
                         console.log("Received the following from the server", response)
                         setDefaultBuyPrice(itemType.defaultBuyPrice);
                         setDefaultSellPrice(itemType.defaultSellPrice);
@@ -146,6 +145,7 @@ const CreateItemInstancePage = (props) => {
             // Right now preSetItemCode is only used when props are overridden by ItemTypeManagement page, so we will redirect back to there in this case
             if (preSetItemCode) {
                 tryNavigate({ path: "/itemTypes", replace: true })
+                console.log("FOOFOO 2")
             }
             else {
                 tryNavigate({ path: "/itemInstances", replace: true })
@@ -187,6 +187,7 @@ const CreateItemInstancePage = (props) => {
                         <div className="form-control">
                             <FormInput
                                 fullWidth
+                                markDirty={markDirty}
                                 disabled={preSetItemCode ? true : false}
                                 label="Item Code"
                                 value={itemCode}
@@ -199,6 +200,7 @@ const CreateItemInstancePage = (props) => {
                         <div className="form-control">
                             <FormInput
                                 fullWidth
+                                markDirty={markDirty}
                                 type="integer"
                                 label="Quantity"
                                 value={quantity}
@@ -208,9 +210,10 @@ const CreateItemInstancePage = (props) => {
                         </div>
                         <div className="form-control">
                             <DatePicker
+                                fullWidth
+                                markDirty={markDirty}
                                 value={datePurchased}
                                 onChange={(newValue) => setDatePurchased(newValue)}
-                                fullWidth
                                 label="Date Purchased"
                                 slotProps={{ textField: { variant: 'outlined', fullWidth: true, error: datePurchasedError ? true : false, helperText: datePurchasedError || " " } }}>
                             </DatePicker>
@@ -220,6 +223,7 @@ const CreateItemInstancePage = (props) => {
                         <div className="form-control">
                             <AdornedFormInput
                                 fullWidth
+                                markDirty={markDirty}
                                 type="number"
                                 adornment="$"
                                 label="Buy Price"
@@ -232,6 +236,7 @@ const CreateItemInstancePage = (props) => {
                         <div className="form-control">
                             <AdornedFormInput
                                 fullWidth
+                                markDirty={markDirty}
                                 type="number"
                                 adornment="$"
                                 label="Sell Price"

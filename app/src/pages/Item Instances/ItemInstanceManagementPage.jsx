@@ -13,7 +13,7 @@ const ItemInstanceManagementPage = (props) => {
     const { editingId } = props.currURLQuery;
 
     if (editingId) {
-        return <CreateItemInstancePage {...props} currURLQuery={{editingId: Number(editingId) }}/>
+        return <CreateItemInstancePage {...props} currURLQuery={{ editingId: Number(editingId) }} />
     }
 
     return <ItemInstancesView {...props} />
@@ -249,7 +249,7 @@ export const ItemInstanceGroup = (props) => {
         <div className="grouped-item-instance-display-container" onClick={onExpandClick}>
             <div className="name-code-group">
                 <span className="quantity-with-name">
-                    <em className="total-quantity">x{totalQuantity}&nbsp;&nbsp;</em>
+                    <span className="total-quantity">x{totalQuantity}&nbsp;&nbsp;</span>
                     <span className="item-name">{itemName}</span>
                 </span>
                 <span className="item-code">
@@ -257,9 +257,11 @@ export const ItemInstanceGroup = (props) => {
                 </span>
             </div>
             <div className={"expandable-container" + (expanded ? " expanded" : "")}>
-                <div className="item-instances-display-container">
-                    {instances.map((itemInstance) => (<SimpleItemInstanceDisplay key={itemInstance.itemInstanceId} itemInstance={itemInstance} />))}
-                </div>
+                <table className="item-instances-display-container">
+                    <tbody>
+                        {instances.map((itemInstance) => (<SimpleItemInstanceDisplay key={itemInstance.itemInstanceId} itemInstance={itemInstance} />))}
+                    </tbody>
+                </table>
             </div>
         </div>
     )
@@ -281,22 +283,20 @@ export const SimpleItemInstanceDisplay = (props) => {
     } = props;
 
     return (
-        <div className="item-instance-display-container">
-            <div className="quantity-with-instance-info">
-                <em className="instance-quantity">x{quantity}&nbsp;&nbsp;</em>
-                <div className="instance-info">
-                    <span className="date-purchased">
-                        Purchased {datePurchased}
-                    </span>
-                    <span className="date-added">
-                        Added {dateAdded}
-                    </span>
-                    <span className="buy-sell">
-                        Buy Price: {formatToUSCurrency(buyPrice)} | Sell Price: {formatToUSCurrency(sellPrice)}
-                    </span>
-                </div>
-            </div>
-        </div>
+        <tr className="item-instance-display-container">
+            <td className="instance-quantity">x{quantity}</td>
+            <td className="instance-info">
+                <span className="date-purchased">
+                    Purchased {datePurchased}
+                </span>
+                <span className="date-added">
+                    Added {dateAdded}
+                </span>
+                <span className="buy-sell">
+                    Buy Price: {formatToUSCurrency(buyPrice)} | Sell Price: {formatToUSCurrency(sellPrice)}
+                </span>
+            </td>
+        </tr>
     )
 }
 

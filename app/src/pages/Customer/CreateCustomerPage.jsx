@@ -31,9 +31,11 @@ const CreateCustomerPage = (props) => {
 
     const [contacts, setContacts] = useState([])
 
+    const markDirty = () => lockExitWith("Unsaved changes will be lost. Are you sure?")
+
     useEffect(() => {
 
-        lockExitWith("Unsaved changes will be lost. Are you sure?")
+        unlockExit();
 
         if (editingId) {
 
@@ -177,6 +179,7 @@ const CreateCustomerPage = (props) => {
                         <div className="form-control">
                             <FormInput
                                 fullWidth
+                                markDirty={markDirty}
                                 label="First Name"
                                 value={customerFirstName}
                                 setState={setCustomerFirstName}
@@ -188,6 +191,7 @@ const CreateCustomerPage = (props) => {
                         <div className="form-control">
                             <FormInput
                                 fullWidth
+                                markDirty={markDirty}
                                 label="Middle Name"
                                 value={customerMiddleName}
                                 setState={setCustomerMiddleName}
@@ -199,6 +203,7 @@ const CreateCustomerPage = (props) => {
                         <div className="form-control">
                             <FormInput
                                 fullWidth
+                                markDirty={markDirty}
                                 label="Last Name"
                                 value={customerLastName}
                                 setState={setCustomerLastName}
@@ -218,6 +223,7 @@ const CreateCustomerPage = (props) => {
                             addresses={addresses}
                             setAddresses={setAddresses}
                             self={address}
+                            markDirty={markDirty}
                             {...address}>
                         </AddressCreationPanel>
                     )}
@@ -228,6 +234,7 @@ const CreateCustomerPage = (props) => {
                         size="large"
                         variant="contained"
                         onClick={() => {
+                            markDirty()
                             addresses.push({
                                 myKey: getKey(),
                                 errors: {},
@@ -254,6 +261,7 @@ const CreateCustomerPage = (props) => {
                             contacts={contacts}
                             setContacts={setContacts}
                             self={contact}
+                            markDirty={markDirty}
                             {...contact}>
                         </ContactCreationPanel>
                     )}
@@ -264,6 +272,7 @@ const CreateCustomerPage = (props) => {
                         size="large"
                         variant="contained"
                         onClick={() => {
+                            markDirty()
                             contacts.push({
                                 myKey: getKey(),
                                 contactType: "",
@@ -297,7 +306,7 @@ const CreateCustomerPage = (props) => {
 const AddressCreationPanel = (props) => {
 
     // Identity/location props and setters
-    const { self, myKey, myIndex, addresses, setAddresses } = props;
+    const { self, myKey, myIndex, addresses, setAddresses, markDirty } = props;
 
     // State props and error handling for creating or editing
     const { address, town, zip, state, errors } = props;
@@ -323,6 +332,7 @@ const AddressCreationPanel = (props) => {
         else {
             buttonJsx = (
                 <IconButton size="medium" onClick={() => {
+                    markDirty()
                     self.flaggedForDeletion = true;
                     setAddresses([...addresses]);
                 }}>
@@ -354,6 +364,7 @@ const AddressCreationPanel = (props) => {
                 <div className="col-12">
                     <div className="form-control">
                         <FormInput
+                            markDirty={markDirty}
                             size="small"
                             minHelperText
                             fullWidth
@@ -370,6 +381,7 @@ const AddressCreationPanel = (props) => {
                 <div className="col-lg-6">
                     <div className="form-control">
                         <FormInput
+                            markDirty={markDirty}
                             minHelperText
                             fullWidth
                             size="small"
@@ -386,6 +398,7 @@ const AddressCreationPanel = (props) => {
                 <div className="col-6 col-lg-3">
                     <div className="form-control">
                         <FormSelectInput
+                            markDirty={markDirty}
                             size="small"
                             minHelperText
                             fullWidth
@@ -403,6 +416,7 @@ const AddressCreationPanel = (props) => {
                 <div className="col-6 col-lg-3">
                     <div className="form-control">
                         <FormInput
+                            markDirty={markDirty}
                             size="small"
                             minHelperText
                             fullWidth
@@ -424,7 +438,7 @@ const AddressCreationPanel = (props) => {
 const ContactCreationPanel = (props) => {
 
     // Identity/location props and setters
-    const { self, myKey, myIndex, contacts, setContacts } = props;
+    const { self, myKey, myIndex, contacts, setContacts, markDirty } = props;
 
     // State props and error handling for creating or editing
     const { contactType, contactValue, errors } = props;
@@ -450,6 +464,7 @@ const ContactCreationPanel = (props) => {
         else {
             buttonJsx = (
                 <IconButton size="medium" onClick={() => {
+                    markDirty()
                     self.flaggedForDeletion = true;
                     setContacts([...contacts]);
                 }}>
@@ -481,6 +496,7 @@ const ContactCreationPanel = (props) => {
                 <div className="col-lg-6">
                     <div className="form-control">
                         <FormSelectInput
+                            markDirty={markDirty}
                             size="small"
                             minHelperText
                             fullWidth
@@ -497,6 +513,7 @@ const ContactCreationPanel = (props) => {
                 <div className="col-lg-6">
                     <div className="form-control">
                         <FormInput
+                            markDirty={markDirty}
                             minHelperText
                             fullWidth
                             size="small"

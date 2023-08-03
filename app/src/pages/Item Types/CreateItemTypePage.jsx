@@ -33,12 +33,14 @@ const CreateItemTypePage = (props) => {
 
     const submitSignalRef = useRef();
 
+    const markDirty = () => lockExitWith("Unsaved changes will be lost. Are you sure?")
+
     // This effect does nothing except return a cleanup (on unmount essentially) function that will abort the current controller
     useEffect(() => () => submitSignalRef.current?.abort(), []);
 
     useEffect(() => {
 
-        lockExitWith("Unsaved changes will be lost. Are you sure?")
+        unlockExit();
 
         if (editingId) {
 
@@ -94,6 +96,7 @@ const CreateItemTypePage = (props) => {
             unlockExit();
             addDashboardMessage("itemTypeSuccess", { type: "success", text: `Item Type has been successfully ${editingId ? "updated" : "created"}` })
             tryNavigate({ path: "/itemTypes", replace: true })
+            console.log("FOOFOO 6")
             refreshTreeInfo();
         }
         catch (err) {
@@ -132,6 +135,7 @@ const CreateItemTypePage = (props) => {
                         <div className="form-control">
                             <FormInput
                                 fullWidth
+                                markDirty={markDirty}
                                 label="Item Name"
                                 value={itemName}
                                 setState={setItemName}
@@ -141,6 +145,7 @@ const CreateItemTypePage = (props) => {
                         <div className="form-control">
                             <FormInput
                                 fullWidth
+                                markDirty={markDirty}
                                 label="Item Code"
                                 value={itemCode}
                                 setState={setItemCode}
@@ -152,6 +157,7 @@ const CreateItemTypePage = (props) => {
                         <div className="form-control">
                             <AdornedFormInput
                                 fullWidth
+                                markDirty={markDirty}
                                 type="number"
                                 adornment="$"
                                 label="Default Buy Price"
@@ -163,6 +169,7 @@ const CreateItemTypePage = (props) => {
                         <div className="form-control">
                             <AdornedFormInput
                                 fullWidth
+                                markDirty={markDirty}
                                 type="number"
                                 adornment="$"
                                 label="Default Sell Price"
@@ -176,6 +183,7 @@ const CreateItemTypePage = (props) => {
                         <div className="form-control">
                             <FormInput
                                 fullWidth
+                                markDirty={markDirty}
                                 multiline
                                 rows={4}
                                 label="Item Description"

@@ -34,6 +34,7 @@ export const FormSelectInput = (props) => {
         variant = "outlined",
         className,
         fullWidth,
+        markDirty,
         disabled,
         label,
         helperText, errorText, minHelperText,
@@ -83,6 +84,10 @@ export const FormSelectInput = (props) => {
         value = null;
     }
 
+    const handleChange = () => {
+
+    }
+
     return (
         <FormControl sx={sx} disabled={disabled} error={errored} fullWidth={fullWidth} size={size} variant={variant}>
             <InputLabel variant={variant}>{label}</InputLabel>
@@ -90,7 +95,13 @@ export const FormSelectInput = (props) => {
                 className={className}
                 size={size}
                 value={value || nullOptionValue}
-                onChange={onChange ? onChange : (e) => setState(e.target.value)}
+                onChange={(e) => { 
+                    markDirty && markDirty();
+                    if (onChange) {
+                        return onChange(e);
+                    }
+                    setState(e.target.value)
+                }}
                 label={label}
                 disabled={disabled}
                 variant={variant}
@@ -111,6 +122,7 @@ export const AdornedFormInput = (props) => {
         size = "medium", 
         fullWidth, 
         adornment, 
+        markDirty,
         type, 
         helperText, errorText, minHelperText, 
         disabled, 
@@ -132,6 +144,8 @@ export const AdornedFormInput = (props) => {
     const displayingHelperText = errorText || helperText || (minHelperText ? "" : " ");
     const helperTextJsx = displayingHelperText ? <FormHelperText size={size} variant={variant} error={errored}>{displayingHelperText}</FormHelperText> : undefined
 
+    const handleChange = onChange ?? getOnChangeFunction(type, value, setState);
+
     return (
         <FormControl disabled={disabled} size={size} fullWidth={fullWidth} error={errored} variant={variant}>
             <InputLabel size={size} error={errored} variant={variant}>{label}</InputLabel>
@@ -142,7 +156,10 @@ export const AdornedFormInput = (props) => {
                 size={size}
                 error={errored}
                 value={value ?? ""}
-                onChange={onChange ?? getOnChangeFunction(type, value, setState)}
+                onChange={(e) => { 
+                    markDirty && markDirty();
+                    handleChange(e);
+                }}                
                 label={label}
                 startAdornment={<InputAdornment position="start">{adornment}</InputAdornment>}
                 {...rest}
@@ -157,6 +174,7 @@ export const FormInput = (props) => {
     const { 
         type, 
         variant = "outlined",
+        markDirty,
         errorText, helperText, minHelperText, 
         value, onChange, setState,
         ...rest 
@@ -168,13 +186,18 @@ export const FormInput = (props) => {
     else if (setState && onChange) {
         throw new Error("Can not use setState an onChange. Use one or the other.")
     }
+
+    const handleChange = onChange ?? getOnChangeFunction(type, value, setState)
     
     return (
         <TextField
             autoComplete="off"
             value={value ?? ""}
             variant={variant}
-            onChange={onChange ?? getOnChangeFunction(type, value, setState)}
+            onChange={(e) => { 
+                markDirty && markDirty();
+                handleChange(e);
+            }}               
             error={errorText ? true : false}
             helperText={errorText || helperText || (minHelperText ? "" : " ")}
             {...rest}

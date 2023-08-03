@@ -86,8 +86,6 @@ export default function DashboardPage(props) {
         }
     }, [currURLPath, dashboardTreeItems])
 
-
-
     // Dashboard message system, for example "Customer Successfully Created"
     const [messages, setMessages] = useState({})
     const addDashboardMessage = useCallback((messageKey, message) => {
@@ -127,6 +125,38 @@ export default function DashboardPage(props) {
 
         if (node.page) {
             navigate(path + qString, { replace })
+
+            // It takes 2 renders to actually change the page btw: 
+            // - The call to navigate above causes a re-render where currURLPath is now different
+            // - (1st re-render) (currURLPath changed): Effect sees that currURLPath changed and calls setCurrentPage, causing another render
+            // - (2nd re-render) (currentPage changed): New page is mounted
+
+            // We want to make it so that if we know we're mounting a new page, then we actually un-mount
+            // the current page so it we don't render it on (1st re-render)
+
+            // This fixes an issue when switching from an 'Edit' management page to any other page (besides the same management page)
+           
+            // The issue is because the management pages 'List View' subpage has an effect that calls tryNavigate. This effect runs
+            // on mount and whenever the internal search changes (it basically navigates back to the management page itself, changing qString so that the URL changes to display current search)
+            // The problem is, on (1st re-render) described above, currURLPath/queryString have changed, but the management page is still
+            // mounted (it won't unmount/be replaced with new page until 2nd re-render). So on this render, ManagementPage sees that queryString
+            // changed and no longer is the queryString for showing the editing subpage, so it mounts the default 'List View' sub page.
+            // uh oh, now we are calling the effect within 'List View' that calls tryNavigate back to the same management page itself, so it undoes us trying to change
+            // to another page.
+
+            // Caused by a combination of features that I really want this app to have. Seems like a jury rig solution but also might be the
+            // best solution. There are other ways to fix it (i.e, making it so having no qString on a management page does nothing, so that when qString switches to
+            // undefined it doesnt render the "List View" on [1st re-render]). However I think this solution is the best and will probably help if there
+            // are other side effects like this elsewhere. 
+
+            // I feel like it also just makes sense to not waste a render on the current page when we know for a fact it will be unmounted next render
+
+            // "If a new page is going to be mounted... don't waste the next render rendering a current page (since we know curr page will be un mounted in 2 renders) "
+            // Not wasting this render ALSO fixes an issue when switching from a ManagementPage's composed subpage (such as edit) to any other page in the app
+            // This issue is described in detail in one of the "IMPORTANT" commits
+            if (path !== currURLPath) {
+                setCurrentPage(null)
+            }
         }
         else {
             node.onSelected && node.onSelected();
@@ -137,7 +167,7 @@ export default function DashboardPage(props) {
     }, [treeItemMap, expanded, selected, currURLQueryString, currURLPath, navigate])
 
     // Only nodes that cause 'currentPage' to change/unmount can be selected in this tree view. See tryNavigate 
-    const onNodeSelect = useCallback((_, nodeId) => tryNavigate({ path: nodeId, userTriggered: true }), [tryNavigate]);
+    const onNodeSelect = useCallback((_, nodeId) => { console.log("WHAAA"); tryNavigate({ path: nodeId, userTriggered: true }) }, [tryNavigate]);
 
     // For node expansion, there is no change in user triggered logic.
     const onNodeToggle = useCallback((_, nodeIds) => setExpanded(nodeIds), [setExpanded])
@@ -290,6 +320,7 @@ const PageChangeWarning = ({ triedToSelect, setTriedToSelect, blockExitRef, tryN
     const onProceed = () => {
         blockExitRef.current = ""
         setTriedToSelect(null)
+        console.log("FOOFOO 1")
         tryNavigate(triedToSelect)
     }
 
@@ -323,9 +354,7 @@ const PageChangeWarning = ({ triedToSelect, setTriedToSelect, blockExitRef, tryN
                                 <span>Proceed</span>
                             </Button>
                         </div>
-
                     </div>
-
                 </div>
             </div>
 
