@@ -11,14 +11,14 @@ import { FormInput, FormSelectInput } from "../../components/FormComponents";
 
 const ItemTypeManagementPage = (props) => {
 
-    const { viewingSpecificItemType, editingSpecificItemType } = props.currURLQuery;
+    const { viewingId, editingId } = props.currURLQuery;
 
-    if (viewingSpecificItemType) {
-        return <ViewItemTypePage {...props} currURLQuery={{ itemTypeId: Number(viewingSpecificItemType) }} />
+    if (viewingId) {
+        return <ViewItemTypePage {...props} currURLQuery={{ itemTypeId: Number(viewingId) }} />
     }
 
-    if (editingSpecificItemType) {
-        return <CreateItemTypePage {...props} currURLQuery={{ editingId: Number(editingSpecificItemType) }} />
+    if (editingId) {
+        return <CreateItemTypePage {...props} currURLQuery={{ editingId: Number(editingId) }} />
     }
 
     return <ItemsView {...props} />
@@ -288,7 +288,7 @@ export const SimpleItemTypeDisplay = (props) => {
                         tryNavigate({
                             path: "/itemTypes",
                             query: {
-                                editingSpecificItemType: itemTypeId,
+                                editingId: itemTypeId,
                             }
                         })
                     }}

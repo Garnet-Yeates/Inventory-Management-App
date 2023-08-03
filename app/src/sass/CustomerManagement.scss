@@ -30,7 +30,7 @@
             display: flex;
             flex-direction: row;
             justify-content: space-between;
-            align-items: start;
+            align-items: flex-start;
 
             .customer-name {
                 @include rfs(1.375rem, font-size);

@@ -10,10 +10,10 @@ import CreateItemInstancePage from "./CreateItemInstancePage";
 
 const ItemInstanceManagementPage = (props) => {
 
-    const { editingSpecificItemInstance } = props.currURLQuery;
+    const { editingId } = props.currURLQuery;
 
-    if (editingSpecificItemInstance) {
-        return <CreateItemInstancePage {...props} currURLQuery={{editingId: editingSpecificItemInstance }}/>
+    if (editingId) {
+        return <CreateItemInstancePage {...props} currURLQuery={{editingId: Number(editingId) }}/>
     }
 
     return <ItemInstancesView {...props} />

@@ -11,14 +11,14 @@ import { FormInput, FormSelectInput } from "../../components/FormComponents";
 
 const CustomerManagementPage = (props) => {
 
-    const { viewingSpecificCustomer, editingSpecificCustomer } = props.currURLQuery;
+    const { viewingId, editingId } = props.currURLQuery;
 
-    if (viewingSpecificCustomer) {
-        return <ViewCustomerPage {...props} currURLQuery={{ customerId: viewingSpecificCustomer }}  />
+    if (viewingId) {
+        return <ViewCustomerPage {...props} currURLQuery={{ customerId: Number(viewingId) }}  />
     }
 
-    if (editingSpecificCustomer) {
-        return <CreateCustomerPage {...props} currURLQuery={{ editingId: editingSpecificCustomer }} />
+    if (editingId) {
+        return <CreateCustomerPage {...props} currURLQuery={{ editingId: Number(editingId) }} />
     }
 
     return <CustomersView {...props} />
@@ -256,7 +256,7 @@ export const SimpleCustomerDisplay = (props) => {
                         tryNavigate({
                             path: "/customers",
                             query: {
-                                viewingSpecificCustomer: customerId,
+                                viewingId: customerId,
                             }
                         })
                     }}
@@ -271,7 +271,7 @@ export const SimpleCustomerDisplay = (props) => {
                         tryNavigate({
                             path: "/customers",
                             query: {
-                                editingSpecificCustomer: customerId,
+                                editingId: customerId,
                             }
                         })
                     }}

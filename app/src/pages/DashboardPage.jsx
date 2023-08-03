@@ -20,6 +20,7 @@ import usePrevious from "../hooks/usePrevious";
 import SecurityIcon from '@mui/icons-material/Security';
 import queryString from "query-string";
 import { stripTrailingSlash } from "../tools/generalTools";
+import { useFocus } from "../hooks/useFocus";
 
 export default function DashboardPage(props) {
 
@@ -55,6 +56,14 @@ export default function DashboardPage(props) {
         setTriedToSelect // We use this in our tryNavigate function
     } = useDataLossWarning({ currURLPath, prevURLPath, currURLQueryString, prevURLQueryString })
 
+    // Try to focus the 'focus-break' div every time, effectively breaking focus from the selected TreeItem
+    // this makes it so when the user is pressing the [<-] [->] buttons on their browser, it doesn't look like two
+    // TreeItems are selected
+    const [focusBreakRef, breakFocus] = useFocus();
+    useEffect(() => {
+        breakFocus();
+    }, [currURLPath, currURLQueryString])
+
     // Cache dashboardTreeItems
     const [dashboardTreeItems, treeItemMap] = useMemo(() => getDashboardTreeItemsFromTreeInfo(treeInfo, navigate, refreshTreeInfo), [treeInfo, navigate])
 
@@ -76,6 +85,8 @@ export default function DashboardPage(props) {
             }
         }
     }, [currURLPath, dashboardTreeItems])
+
+
 
     // Dashboard message system, for example "Customer Successfully Created"
     const [messages, setMessages] = useState({})
@@ -141,6 +152,7 @@ export default function DashboardPage(props) {
 
     return (
         <div className="dashboard-page-container">
+            <input className="focus-breaker" ref={focusBreakRef} />
             <div className="dashboard-page">
                 <div className="responsive-page-container">
                     <AnimatePresence>
@@ -512,7 +524,7 @@ const calculateParentMultiple = (nodes, parentArr = []) => {
 }
 
 
-// DASHBOARD HOOKS TO MAKE IT LESS CLUTTERED
+// DASHBOARD HELPERS TO MAKE IT LESS CLUTTERED
 
 const ensureParentsExpanded = (node, expanded, setExpanded) => {
 

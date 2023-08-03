@@ -93,6 +93,17 @@ ul {
     align-items: center;
 }
 
+.focus-breaker {
+    position: absolute;
+    width: 0px;
+    height: 0px;
+    max-width: 0px;
+    max-height: 0px;
+    border: none;
+    outline: none;
+    padding: 0px;
+}
+
 .fixed-info-overlay {
 
     position: fixed;
@@ -119,7 +130,7 @@ ul {
 
             background-color: white;
             user-select: none;
-            
+
             box-shadow: 0 0 8px 0 rgb(0 0 0 / 30%);
             border-radius: 8px;
             padding: 24px 32px;

@@ -77,7 +77,7 @@ function App() {
                         <Routes>
                             <Route path='/' element={<HomePage />} />
                             <Route path='/register' element={<RegisterPage />} />
-                            {dashboardRoutes.map(dashRoute => <Route path={dashRoute} element={<DashboardPage/>}/>)}
+                            {dashboardRoutes.map(dashRoute => <Route path={dashRoute} key={dashRoute} element={<DashboardPage/>}/>)}
                             <Route path='/authTest' element={<AuthTestPage />} />
                             <Route path='/login' element={<LoginPage />} />
                             <Route path='*' element={<NotFoundPage />} />
