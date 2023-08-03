@@ -136,8 +136,9 @@ export default function DashboardPage(props) {
             // Not wasting this render ALSO fixes an issue when switching from a ManagementPage's composed subpage (such as edit) to any other page in the app
             // This issue is described in detail in one of the "IMPORTANT" commits
             if (path !== currURLPath) {
-                setCurrentPage(null)
-            }
+                setCurrentPage(null) // If I dont like the 'blinking' effect that this causes, then here I can set a state called [aboutToDismountCurr]
+            }                        // (set it back to false on [1st re-render], prolly in the same effect that is called there). Then the management pages
+                                     // can read that theyre
         }
         else {
             node.onSelected && node.onSelected();
@@ -148,7 +149,7 @@ export default function DashboardPage(props) {
     }, [treeItemMap, expanded, selected, currURLQueryString, currURLPath, navigate])
 
     // Only nodes that cause 'currentPage' to change/unmount can be selected in this tree view. See tryNavigate 
-    const onNodeSelect = useCallback((_, nodeId) =>  tryNavigate({ path: nodeId, userTriggered: true }), [tryNavigate]);
+    const onNodeSelect = useCallback((_, nodeId) => tryNavigate({ path: nodeId, userTriggered: true }), [tryNavigate]);
 
     // For node expansion, there is no change in user triggered logic.
     const onNodeToggle = useCallback((_, nodeIds) => setExpanded(nodeIds), [setExpanded])

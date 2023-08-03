@@ -80,6 +80,7 @@ const ItemsView = (props) => {
             clearTimeout(currentSearchUpdateThrottleRef.current);
         }
 
+
         currentSearchUpdateThrottleRef.current = setTimeout(() => {
             setCurrentSearchInternal(currentSearch);
             tryNavigate({
