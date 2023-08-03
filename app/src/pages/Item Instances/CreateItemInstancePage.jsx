@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AdornedFormInput, FormInput } from "../../components/FormComponents";
 import axios from "axios";
-import { effectAbortSignal, newAbortSignal, useUnmountSignalCancel } from "../../tools/axiosTools";
+import { effectAbortSignal, newAbortSignal, useUnmountSignalCancel, useUnmountTimeoutCancel } from "../../tools/axiosTools";
 import { SERVER_URL } from "../App";
 import { LoadingButton } from "@mui/lab";
 import { Send } from "@mui/icons-material";
@@ -80,6 +80,7 @@ const CreateItemInstancePage = (props) => {
 
     // Whenever itemCode changes (or mount occurs), we try to find the itemType to load its default values into our placeholders 
     const itemCodeUpdateDelayRef = useRef();
+    useUnmountTimeoutCancel(itemCodeUpdateDelayRef);
     useEffect(() => {
 
         if (itemCodeUpdateDelayRef.current) {

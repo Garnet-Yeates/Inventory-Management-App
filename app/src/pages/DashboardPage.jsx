@@ -62,7 +62,7 @@ export default function DashboardPage(props) {
     const [focusBreakRef, breakFocus] = useFocus();
     useEffect(() => {
         breakFocus();
-    }, [currURLPath, currURLQueryString])
+    }, [currURLPath])
 
     // Cache dashboardTreeItems
     const [dashboardTreeItems, treeItemMap] = useMemo(() => getDashboardTreeItemsFromTreeInfo(treeInfo, navigate, refreshTreeInfo), [treeInfo, navigate])
@@ -96,17 +96,8 @@ export default function DashboardPage(props) {
     // Mobile version of navigation
     const [mobilePanelShown, setMobilePanelShown] = useState(false);
 
-    // This will only ever be true during the render directly after we call navigate within tryNavigate (i.e during [1st re-render] described below)
-    // during this render, subsequent calls to tryNavigate will do nothing. This fixes issues with management pages, described in commits from 8/3/2023
-    const [navigating, setNavigating] = useState(false);
-    useEffect(() => navigating && setNavigating(false), [navigating]);
-
     // When a node selection event is triggered (via clicking, or pressing enter on focused node, programmatically) this callback will run.
     const tryNavigate = useCallback((config) => {
-
-        if (navigating) {
-            return;
-        }
 
         const { path, query, replace, userTriggered = false } = config;
 
@@ -133,13 +124,12 @@ export default function DashboardPage(props) {
         }
 
         if (node.page) {
-
             navigate(path + qString, { replace })
 
-            // It takes 2 renders to actually change the page btw: 
-            // - The call to navigate above causes a re-render where currURLPath is now different
-            // - (1st re-render) (currURLPath changed): Effect sees that currURLPath changed and calls setCurrentPage, causing another render
-            // - (2nd re-render) (currentPage changed): New page is mounted
+            // Don't waste the next render re-rendering currentPage as we know it will be unmounted (replaced) 1 render after that one
+            if (currURLPath !== path) {
+                setCurrentPage(null);
+            }
         }
         else {
             node.onSelected && node.onSelected();
@@ -187,6 +177,7 @@ export default function DashboardPage(props) {
                         {currentPage && <CurrentPage
                             nodeId={nodeId}
                             key={nodeId}
+                            currURLPath={currURLPath}
                             refreshTreeInfo={refreshTreeInfo}
                             tryNavigate={tryNavigate}
                             lockExitWith={lockExitWith}

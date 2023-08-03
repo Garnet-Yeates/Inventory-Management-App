@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { effectAbortSignal } from "../../tools/axiosTools";
+import { effectAbortSignal, useUnmountTimeoutCancel } from "../../tools/axiosTools";
 import { SERVER_URL } from "../App";
 import "../../sass/ItemTypeManagement.scss"
 import { Button } from "@mui/material";
@@ -27,7 +27,7 @@ const ItemTypeManagementPage = (props) => {
 const ItemsView = (props) => {
 
     // Inherited dashboard control props
-    const { selectNodeNextRefresh, refreshTreeInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage, currURLQuery } = props;
+    const { selectNodeNextRefresh, refreshTreeInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage, currURLQuery, currURLPath } = props;
 
     const { preSetFilterBy, preSetFilterType, preSetFilterQuery } = currURLQuery;
 
@@ -74,12 +74,12 @@ const ItemsView = (props) => {
 
     // When currentSearch changes, 0.5 seconds later we will update currentSearchInternal
     const currentSearchUpdateThrottleRef = useRef();
+    useUnmountTimeoutCancel(currentSearchUpdateThrottleRef);
     useEffect(() => {
 
         if (currentSearchUpdateThrottleRef.current) {
             clearTimeout(currentSearchUpdateThrottleRef.current);
         }
-
 
         currentSearchUpdateThrottleRef.current = setTimeout(() => {
             setCurrentSearchInternal(currentSearch);

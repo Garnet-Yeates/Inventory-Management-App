@@ -13,6 +13,12 @@ export function useUnmountSignalCancel(signalRef) {
     }, [])
 }
 
+export function useUnmountTimeoutCancel(timeoutRef) {
+    useEffect(() => function onUnmount() {
+        clearTimeout(timeoutRef.current)
+   }, [])
+}
+
 export function newAbortSignal(timeoutS = 0) {
     const abortController = new AbortController();
     setTimeout(() => abortController.abort(), timeoutS * 1000);
