@@ -124,7 +124,7 @@ export default function DashboardPage(props) {
         }
 
         if (node.page) {
-            
+
             navigate(path + qString, { replace })
 
             // It takes 2 renders to actually change the page btw: 
@@ -148,7 +148,7 @@ export default function DashboardPage(props) {
     }, [treeItemMap, expanded, selected, currURLQueryString, currURLPath, navigate])
 
     // Only nodes that cause 'currentPage' to change/unmount can be selected in this tree view. See tryNavigate 
-    const onNodeSelect = useCallback((_, nodeId) => { console.log("WHAAA"); tryNavigate({ path: nodeId, userTriggered: true }) }, [tryNavigate]);
+    const onNodeSelect = useCallback((_, nodeId) =>  tryNavigate({ path: nodeId, userTriggered: true }), [tryNavigate]);
 
     // For node expansion, there is no change in user triggered logic.
     const onNodeToggle = useCallback((_, nodeIds) => setExpanded(nodeIds), [setExpanded])
@@ -301,7 +301,6 @@ const PageChangeWarning = ({ triedToSelect, setTriedToSelect, blockExitRef, tryN
     const onProceed = () => {
         blockExitRef.current = ""
         setTriedToSelect(null)
-        console.log("FOOFOO 1")
         tryNavigate(triedToSelect)
     }
 

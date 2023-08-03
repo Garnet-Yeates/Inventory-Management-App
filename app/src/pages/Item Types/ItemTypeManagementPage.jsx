@@ -82,7 +82,6 @@ const ItemsView = (props) => {
 
         currentSearchUpdateThrottleRef.current = setTimeout(() => {
             setCurrentSearchInternal(currentSearch);
-            console.log("FOOFOO 12")
             tryNavigate({
                 path: "/itemTypes",
                 replace: true,
@@ -286,7 +285,6 @@ export const SimpleItemTypeDisplay = (props) => {
                     size="small"
                     color="primary"
                     onClick={() => {
-                        console.log("FOOFOO 5")
                         tryNavigate({
                             path: "/itemTypes",
                             query: {
