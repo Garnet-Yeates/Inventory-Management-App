@@ -38,6 +38,7 @@ configureRoutes(app);
 
 // Connect to database
 const con = mysql.createConnection({
+    port: process.env.DATABASE_PORT || 3306,
     host: "localhost",
     user: process.env.DATABASE_USERNAME,
     password: process.env.DATABASE_PASSWORD,

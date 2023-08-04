@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { effectAbortSignal } from "../../tools/axiosTools";
+import { effectAbortSignal, useUnmountTimeoutCancel } from "../../tools/axiosTools";
 import { SERVER_URL } from "../App";
 import "../../sass/ItemInstanceManagement.scss"
 import { formatToUSCurrency } from "../../tools/generalTools";
@@ -24,7 +24,7 @@ const ItemInstancesView = (props) => {
     // Inherited props from Dashboard
     const { selectNodeNextRefresh, refreshTreeInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage, currURLQuery } = props;
 
-    const { viewingInstancesOf, preSetFilterBy, preSetFilterType, preSetFilterQuery } = currURLQuery;
+    const { viewingInstancesOf, filterBy, filterType, filterQuery } = currURLQuery;
 
     // Loaded upon mount
     const [itemInstanceGroups, setItemInstanceGroups] = useState([]);
@@ -55,21 +55,24 @@ const ItemInstancesView = (props) => {
 
     }, []);
 
-    // Filtering controls. currentSearch is what the user modifies, currentSearchInternal eventually gets changed but is throttled
+    // Filtering controls. currentSearch is what the user modifies
+    // currentSearchInternal eventually gets changed via navigation, but is throttled
     const [currentSearchInternal, setCurrentSearchInternal] = useState("");
     const [currentSearch, setCurrentSearch] = useState("");
-    const [filterBy, setFilterBy] = useState("Item Name");
-    const [filterType, setFilterType] = useState("Any");
+    const [filteringBy, setFilteringBy] = useState("Name");
+    const [filteringType, setFilteringType] = useState("Any");
 
+    // Whenever relevant currURLQuery params change 
     useEffect(() => {
-        setCurrentSearchInternal(preSetFilterQuery ?? "");
-        setCurrentSearch(preSetFilterQuery ?? "");
-        setFilterBy(preSetFilterBy ?? "Item Name")
-        setFilterType(preSetFilterType ?? "Any")
-    }, [preSetFilterBy, preSetFilterType, preSetFilterQuery])
+        setCurrentSearchInternal(filterQuery ?? "");
+        setCurrentSearch(filterQuery ?? "");
+        setFilteringBy(filterBy ?? "Name")
+        setFilteringType(filterType ?? "Any")
+    }, [filterBy, filterType, filterQuery])
 
     // When currentSearch changes, 0.5 seconds later we will update currentSearchInternal
     const currentSearchUpdateThrottleRef = useRef();
+    useUnmountTimeoutCancel(currentSearchUpdateThrottleRef);
     useEffect(() => {
 
         if (currentSearchUpdateThrottleRef.current) {
@@ -77,9 +80,16 @@ const ItemInstancesView = (props) => {
         }
 
         currentSearchUpdateThrottleRef.current = setTimeout(() => {
-            setCurrentSearchInternal(currentSearch);
+            tryNavigate({
+                path: "/itemInstances",
+                replace: true,
+                query: currentSearch ? {
+                    filterBy: filteringBy,
+                    filterType: filteringType,
+                    filterQuery: currentSearch,
+                } : undefined
+            })
         }, 500)
-
     }, [currentSearch])
 
     // This memo only updates when state variables update, so when it updates it is always accompanied by a re-render
@@ -92,18 +102,18 @@ const ItemInstancesView = (props) => {
         return itemInstanceGroups.filter(group => {
 
             let applyingFilterTo;
-            switch (filterBy) {
-                case "Item Code":
+            switch (filteringBy) {
+                case "Code":
                     applyingFilterTo = group.itemCode.toLowerCase();
                     break;
-                case "Item Name":
+                case "Name":
                 default:
                     applyingFilterTo = group.itemName.toLowerCase();
                     break;
             }
 
             const keywords = currentSearchInternal.split(" ").map(word => word.toLowerCase());
-            switch (filterType) {
+            switch (filteringType) {
                 case "Exact":
                     return applyingFilterTo === currentSearchInternal;
                 case "All":
@@ -120,7 +130,7 @@ const ItemInstancesView = (props) => {
             }
         })
 
-    }, [filterBy, filterType, currentSearchInternal, itemInstanceGroups])
+    }, [filteringBy, filteringType, currentSearchInternal, itemInstanceGroups])
 
     const heading = viewingInstancesOf ?
         (<h2 className="sub-page-heading">Instances of <span className="item-code-heading">{viewingInstancesOf}</span></h2>) :
@@ -166,8 +176,8 @@ const ItemInstancesView = (props) => {
             <ItemInstanceFilter
                 viewingInstancesOf={viewingInstancesOf}
                 currentSearch={currentSearch} setCurrentSearch={setCurrentSearch}
-                filterBy={filterBy} setFilterBy={setFilterBy}
-                filterType={filterType} setFilterType={setFilterType}>
+                filteringBy={filteringBy} setFilteringBy={setFilteringBy}
+                filteringType={filteringType} setFilteringType={setFilteringType}>
             </ItemInstanceFilter>
             {createJsx}
             {noneJsx}
@@ -187,7 +197,7 @@ const ItemInstancesView = (props) => {
 export const ItemInstanceFilter = (props) => {
 
     // Normal properties
-    const { currentSearch, setCurrentSearch, filterBy, setFilterBy, filterType, setFilterType } = props;
+    const { currentSearch, setCurrentSearch, filteringBy, setFilteringBy, filteringType, setFilteringType } = props;
 
     const { viewingInstancesOf } = props;
 
@@ -210,9 +220,9 @@ export const ItemInstanceFilter = (props) => {
                     disabled={disabled}
                     minHelperText
                     fullWidth
-                    value={filterBy}
-                    setState={setFilterBy}
-                    values={["Item Name", "Item Code"]}
+                    value={filteringBy}
+                    setState={setFilteringBy}
+                    values={["Name", "Code"]}
                     label="Filter By">
                 </FormSelectInput>
             </div>
@@ -221,9 +231,9 @@ export const ItemInstanceFilter = (props) => {
                     disabled={disabled}
                     minHelperText
                     fullWidth
-                    value={filterType}
-                    displayToValueMap={{ "Includes Any": "Any", "Includes All": "All", "Exact Match": "Exact" }}
-                    setState={setFilterType}
+                    value={filteringType}
+                    values={["Any", "All", "Exact"]}
+                    setState={setFilteringType}
                     label="Filter Type">
                 </FormSelectInput>
             </div>

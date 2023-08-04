@@ -56,8 +56,8 @@ const CustomersView = (props) => {
     // Filtering controls. currentSearch is what the user modifies, currentSearchInternal eventually gets changed but is throttled
     const [currentSearchInternal, setCurrentSearchInternal] = useState("");
     const [currentSearch, setCurrentSearch] = useState("");
-    const [filterBy, setFilterBy] = useState("Customer Name");
-    const [filterType, setFilterType] = useState("Any");
+    const [filteringBy, setFilteringBy] = useState("Name");
+    const [filteringType, setFilteringType] = useState("Any");
 
     // When currentSearch changes, 0.5 seconds later we will update currentSearchInternal
     const currentSearchUpdateThrottleRef = useRef();
@@ -83,15 +83,15 @@ const CustomersView = (props) => {
         return customers.filter(customer => {
 
             let applyingFilterTo;
-            switch (filterBy) {
-                case "Customer Name":
+            switch (filteringBy) {
+                case "Name":
                 default:
                     applyingFilterTo = getCustomerFullName(customer);
                     break;
             }
 
             const keywords = currentSearchInternal.split(" ").map(word => word.toLowerCase());
-            switch (filterType) {
+            switch (filteringType) {
                 case "Exact":
                     return applyingFilterTo === currentSearchInternal;
                 case "All":
@@ -108,7 +108,7 @@ const CustomersView = (props) => {
             }
         })
 
-    }, [filterBy, filterType, currentSearchInternal, customers])
+    }, [filteringBy, filteringType, currentSearchInternal, customers])
 
     let createJsx = (
         <div className="management-create-button-container">
@@ -140,8 +140,8 @@ const CustomersView = (props) => {
             <h2 className="sub-page-heading">Customer Management</h2>
             <CustomerFilter
                 currentSearch={currentSearch} setCurrentSearch={setCurrentSearch}
-                filterBy={filterBy} setFilterBy={setFilterBy}
-                filterType={filterType} setFilterType={setFilterType}>
+                filteringBy={filteringBy} setFilteringBy={setFilteringBy}
+                filteringType={filteringType} setFilteringType={setFilteringType}>
             </CustomerFilter>
             {createJsx}
             {noneJsx}
@@ -158,7 +158,7 @@ const CustomersView = (props) => {
 
 export const CustomerFilter = (props) => {
 
-    const { currentSearch, setCurrentSearch, filterBy, setFilterBy, filterType, setFilterType } = props;
+    const { currentSearch, setCurrentSearch, filteringBy, setFilteringBy, filteringType, setFilteringType } = props;
 
     return (
         <div className="management-filtering-container">
@@ -175,9 +175,9 @@ export const CustomerFilter = (props) => {
                 <FormSelectInput
                     minHelperText
                     fullWidth
-                    value={filterBy}
-                    setState={setFilterBy}
-                    values={["Customer Name"]}
+                    value={filteringBy}
+                    setState={setFilteringBy}
+                    values={["Name"]}
                     label="Filter By">
                 </FormSelectInput>
             </div>
@@ -185,9 +185,9 @@ export const CustomerFilter = (props) => {
                 <FormSelectInput
                     minHelperText
                     fullWidth
-                    value={filterType}
-                    displayToValueMap={{ "Includes Any": "Any", "Includes All": "All", "Exact Match": "Exact" }}
-                    setState={setFilterType}
+                    value={filteringType}
+                    values={["Any", "All", "Exact"]}
+                    setState={setFilteringType}
                     label="Filter Type">
                 </FormSelectInput>
             </div>

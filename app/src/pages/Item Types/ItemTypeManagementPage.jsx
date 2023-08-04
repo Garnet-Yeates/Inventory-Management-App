@@ -29,7 +29,7 @@ const ItemsView = (props) => {
     // Inherited dashboard control props
     const { selectNodeNextRefresh, refreshTreeInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage, currURLQuery, currURLPath } = props;
 
-    const { preSetFilterBy, preSetFilterType, preSetFilterQuery } = currURLQuery;
+    const { filterBy, filterType, filterQuery } = currURLQuery;
 
     // Loaded upon mount
     const [itemTypes, setItemTypes] = useState([]);
@@ -59,18 +59,20 @@ const ItemsView = (props) => {
 
     }, []);
 
-    // Filtering controls. currentSearch is what the user modifies, currentSearchInternal eventually gets changed but is throttled
+    // Filtering controls. currentSearch is what the user modifies
+    // currentSearchInternal eventually gets changed via navigation, but is throttled
     const [currentSearchInternal, setCurrentSearchInternal] = useState("");
     const [currentSearch, setCurrentSearch] = useState("");
-    const [filterBy, setFilterBy] = useState("Item Name");
-    const [filterType, setFilterType] = useState("Any");
+    const [filteringBy, setFilteringBy] = useState("Name");
+    const [filteringType, setFilteringType] = useState("Any");
 
+    // Whenever relevant currURLQuery params change 
     useEffect(() => {
-        setCurrentSearchInternal(preSetFilterQuery ?? "");
-        setCurrentSearch(preSetFilterQuery ?? "");
-        setFilterBy(preSetFilterBy ?? "Item Name")
-        setFilterType(preSetFilterType ?? "Any")
-    }, [preSetFilterBy, preSetFilterType, preSetFilterQuery])
+        setCurrentSearchInternal(filterQuery ?? "");
+        setCurrentSearch(filterQuery ?? "");
+        setFilteringBy(filterBy ?? "Name")
+        setFilteringType(filterType ?? "Any")
+    }, [filterBy, filterType, filterQuery])
 
     // When currentSearch changes, 0.5 seconds later we will update currentSearchInternal
     const currentSearchUpdateThrottleRef = useRef();
@@ -82,14 +84,13 @@ const ItemsView = (props) => {
         }
 
         currentSearchUpdateThrottleRef.current = setTimeout(() => {
-            setCurrentSearchInternal(currentSearch);
             tryNavigate({
                 path: "/itemTypes",
                 replace: true,
                 query: currentSearch ? {
-                    preSetFilterBy: filterBy,
-                    preSetFilterType: filterType,
-                    preSetFilterQuery: currentSearch,
+                    filterBy: filteringBy,
+                    filterType: filteringType,
+                    filterQuery: currentSearch,
                 } : undefined
             })
         }, 500)
@@ -105,18 +106,18 @@ const ItemsView = (props) => {
         return itemTypes.filter(type => {
 
             let applyingFilterTo;
-            switch (filterBy) {
-                case "Item Code":
+            switch (filteringBy) {
+                case "Code":
                     applyingFilterTo = type.itemCode.toLowerCase();
                     break;
-                case "Item Name":
+                case "Name":
                 default:
                     applyingFilterTo = type.itemName.toLowerCase();
                     break;
             }
 
             const keywords = currentSearchInternal.split(" ").map(word => word.toLowerCase());
-            switch (filterType) {
+            switch (filteringType) {
                 case "Exact":
                     return applyingFilterTo === currentSearchInternal;
                 case "All":
@@ -133,7 +134,7 @@ const ItemsView = (props) => {
             }
         })
 
-    }, [filterBy, filterType, currentSearchInternal, itemTypes])
+    }, [filteringBy, filteringType, currentSearchInternal, itemTypes])
 
     let createJsx = (
         <div className="management-create-button-container">
@@ -163,8 +164,8 @@ const ItemsView = (props) => {
             <h2 className="sub-page-heading">Item Type Management</h2>
             <ItemTypeFilter
                 currentSearch={currentSearch} setCurrentSearch={setCurrentSearch}
-                filterBy={filterBy} setFilterBy={setFilterBy}
-                filterType={filterType} setFilterType={setFilterType}>
+                filteringBy={filteringBy} setFilteringBy={setFilteringBy}
+                filteringType={filteringType} setFilteringType={setFilteringType}>
             </ItemTypeFilter>
             {createJsx}
             {noneJsx}
@@ -173,8 +174,8 @@ const ItemsView = (props) => {
                     key={itemType.itemCode}
                     itemType={itemType}
                     tryNavigate={tryNavigate}
-                    filterByUsed={filterBy}
-                    filterTypeUsed={filterType}
+                    filterByUsed={filteringBy}
+                    filterTypeUsed={filteringType}
                     queryUsed={currentSearchInternal}
                 />)}
             </div>
@@ -184,7 +185,7 @@ const ItemsView = (props) => {
 
 export const ItemTypeFilter = (props) => {
 
-    const { currentSearch, setCurrentSearch, filterBy, setFilterBy, filterType, setFilterType } = props;
+    const { currentSearch, setCurrentSearch, filteringBy, setFilteringBy, filteringType, setFilteringType } = props;
 
     return (
         <div className="management-filtering-container">
@@ -201,9 +202,9 @@ export const ItemTypeFilter = (props) => {
                 <FormSelectInput
                     minHelperText
                     fullWidth
-                    value={filterBy}
-                    setState={setFilterBy}
-                    values={["Item Name", "Item Code"]}
+                    value={filteringBy}
+                    setState={setFilteringBy}
+                    values={["Name", "Code"]}
                     label="Filter By">
                 </FormSelectInput>
             </div>
@@ -211,9 +212,9 @@ export const ItemTypeFilter = (props) => {
                 <FormSelectInput
                     minHelperText
                     fullWidth
-                    value={filterType}
-                    displayToValueMap={{ "Includes Any": "Any", "Includes All": "All", "Exact Match": "Exact" }}
-                    setState={setFilterType}
+                    value={filteringType}
+                    values={["Any", "All", "Exact"]}
+                    setState={setFilteringType}
                     label="Filter Type">
                 </FormSelectInput>
             </div>
@@ -305,9 +306,9 @@ export const SimpleItemTypeDisplay = (props) => {
                             path: "/itemInstances",
                             query: {
                                 viewingInstancesOf: itemCode,
-                                preSetFilterQuery: itemCode,
-                                preSetFilterBy: "Item Code",
-                                preSetFilterType: "Exact",
+                                filterQuery: itemCode,
+                                filterBy: "Code",
+                                filterType: "Exact",
                             }
                         })
                     }}

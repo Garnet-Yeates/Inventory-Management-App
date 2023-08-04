@@ -22,7 +22,7 @@ import queryString from "query-string";
 import { stripTrailingSlash } from "../tools/generalTools";
 import { useFocus } from "../hooks/useFocus";
 
-export default function DashboardPage(props) {
+export default function DashboardPage() {
 
     console.log("------------------- RENDER BEGIN --------------")
 
@@ -74,15 +74,19 @@ export default function DashboardPage(props) {
 
     // Try to select subPage whenever it changes or whenever treeInfo updates
     useEffect(() => {
+
         const node = treeItemMap[currURLPath];
+
         if (node) {
             ensureParentsExpanded(node, expanded, setExpanded);
             setSelected(currURLPath)
 
-            if (node.page) {
-                let { type: Page, props } = node.page;
-                setCurrentPage(<Page {...props} nodeId={nodeId} />) // Add nodeId as a prop here. Technically could do it when we declare the page JSX props in getDashboardTreeItemsFromTreeInfo but it would create redundancies in that method 
+            if (!node.page) {
+                throw new Error("Nodes whose ID matches a URLPath (e.g /itemTypes) must have a page to render")
             }
+
+            let { type: Page, props } = node.page;
+            setCurrentPage(<Page {...props} nodeId={nodeId} />) // Add nodeId as a prop here. Technically could do it when we declare the page JSX props in getDashboardTreeItemsFromTreeInfo but it would create redundancies in that method 
         }
     }, [currURLPath, dashboardTreeItems])
 
@@ -105,14 +109,14 @@ export default function DashboardPage(props) {
 
         const node = treeItemMap[path];
         if (!node) {
-            console.log("tryNavigate failed. Can only navigate to dashboard paths, defined as keys in treeItemMap")
+            return console.log("tryNavigate failed (node not found)")
         }
 
         const qString = query ? ("?" + queryString.stringify(query)) : "";
 
         // No additional logic if they are clicking the node that exactly represents the current page (return)
         if (path === currURLPath && currURLQueryString === qString) {
-            console.log("blocked")
+            console.log("tryNavigate blocked since nothing would happen")
             return;
         }
 
@@ -124,10 +128,23 @@ export default function DashboardPage(props) {
         }
 
         if (node.page) {
+            // After navigate gets called, render (1) happens where currURLPath is changed. 
+            // (1) In this render, an effect sees that [currURLPath] dependency changed and changes currPage, causing render (2)
+            // (2) currPage is now changed and the old page is unmounted and the new one is mounted
             navigate(path + qString, { replace })
 
-            // Don't waste the next render re-rendering currentPage as we know it will be unmounted (replaced) 1 render after that one
-            if (currURLPath !== path) {
+            const currPageWillUnmount = currURLPath !== path;
+
+            // Don't waste render (1) re-rendering currPage if we know that it will be replaced with new page on render (2)
+            // This speeds things up a bit, and also prevents weird behavior on render (1) where currURLPath has changed,
+            // but the currPage has not yet changed. This issue makes it so queryString props change for currPage on
+            // render (1) even though it is going to unmount on render (2).
+            // An example of this could be switching from /itemTypes?editingId=x to /anyOtherPage. On render 1,
+            // ItemTypeManagementPage sees that editingId changed to nothing so it quickly flickers from editing to view all
+            // causing a weird visual. There are also navigation side effects on 'View All Pages' (i.e navigating to update URL queryString to match curr filter)
+            // - This solution works perfectly, as long as we have a one to one relationship mapping between URLPath and pages
+            // - Otherwise there is the 'preload' solution - i.e we try to mount the new page before render 1 manually instead of temp setting to null. will also remove the 'blink' effect you see of there being no current page in render (1)
+            if (currPageWillUnmount) {
                 setCurrentPage(null);
             }
         }
@@ -144,10 +161,6 @@ export default function DashboardPage(props) {
 
     // For node expansion, there is no change in user triggered logic.
     const onNodeToggle = useCallback((_, nodeIds) => setExpanded(nodeIds), [setExpanded])
-
-    useEffect(() => {
-        console.log("------------------- LAST EFFECT RAN --------------")
-    })
 
     const { type: CurrentPage, props: { nodeId, ...pagePropsRest } = {} } = currentPage ?? {}
 
@@ -206,7 +219,6 @@ export const DashboardMessagesContainer = ({ messages, setMessages }) => {
         </div>
     )
 }
-
 
 const messageInitial = { y: "-50px", opacity: 0 }
 const messageAnimate = { y: 0, opacity: 1, transition: { duration: 0.75 } }
@@ -348,7 +360,6 @@ const OverviewPage = () => {
     )
 }
 
-
 const greenFg = "#148f28"
 const greenBg = "#dff1e2"
 
@@ -382,85 +393,131 @@ const getDashboardTreeItemsFromTreeInfo = (treeInfo, navigate, refreshTreeInfo) 
         return [[], {}];
     }
 
-    // Every node should have a unique, deterministic id based on what the node does
-    function Node(nodeId, labelText, labelIcon, labelInfo, color, bgColor) {
-        return {
-            nodeId,
-            labelText,
-            labelIcon,
-            labelInfo,
-            color,
-            bgColor,
-        }
-    }
-
     // Map response.data to RichTreeItem props
     const nodes = [
         {
-            ...Node("/dashboard", "Overview", DashboardIcon, "", purpleFg, purpleBg),
+            nodeId: "/dashboard",
+            labelText: "Overview",
+            labelIcon: DashboardIcon,
+            labelInfo: "",
+            color: purpleFg,
+            bgColor: purpleBg,
             page: <OverviewPage />
         },
         {
-            ...Node("authTest", "Authentication Testing", SecurityIcon),
+            nodeId: "authTest",
+            labelText: "Authentication Testing",
+            labelIcon: SecurityIcon,
             pageLossOnSelect: true,
             onSelected: () => navigate("/authTest"),
         },
         {
-            ...Node("/account", "My Account", AccountCircleIcon),
+            nodeId: "/account",
+            labelText: "My Account",
+            labelIcon: AccountCircleIcon,
             nodeChildren: [
                 {
-                    ...Node("logout", "Log Out", LogoutIcon),
+                    nodeId: "logout",
+                    labelText: "Log Out",
+                    labelIcon: LogoutIcon,
                     pageLossOnSelect: true,
                     onSelected: () => logout(navigate),
                 },
                 {
-                    ...Node("refresh", "Refresh Nav Info", RefreshIcon),
+                    nodeId: "refresh",
+                    labelText: "Refresh Nav Info",
+                    labelIcon: RefreshIcon,
                     onSelected: () => refreshTreeInfo(),
                 },
             ],
         },
         {
-            ...Node("inventoryGroup", "Inventory", WarehouseIcon, ""),
+            nodeId: "inventoryGroup",
+            labelText: "Inventory",
+            labelIcon: WarehouseIcon,
+            color: orangeFg,
+            bgColor: orangeBg,
             nodeChildren: [
                 {
-                    ...Node("itemTypesGroup", "Item Types", Category, treeInfo.itemTypes, orangeFg, orangeBg),
+                    nodeId: "itemTypesGroup",
+                    labelText: "Item Types",
+                    labelIcon: Category,
+                    labelInfo: treeInfo.itemTypes,
+                    color: orangeFg,
+                    bgColor: orangeBg,
                     nodeChildren: [
                         {
-                            ...Node("/itemTypes/create", "Define New Item Type", AddBox, "", greenFg, greenBg),
+                            nodeId: "/itemTypes/create",
+                            labelText: "Define New Item Type",
+                            labelIcon: AddBox,
+                            color: greenFg,
+                            bgColor: greenBg,
                             page: <CreateItemTypePage />,
                         },
                         {
-                            ...Node("/itemTypes", "Manage Item Types", ListAltIcon, "", purpleFg, purpleBg),
+                            nodeId: "/itemTypes",
+                            labelText: "Manage Item Types",
+                            labelIcon: ListAltIcon,
+                            color: purpleFg,
+                            bgColor: purpleBg,
                             page: <ItemTypeManagementPage />,
                         },
                     ],
                 },
                 {
-                    ...Node("itemInstancesGroup", "Item Instances", HomeRepairService, "", orangeFg, orangeBg),
+                    nodeId: "itemInstancesGroup",
+                    labelText: "Item Instances",
+                    labelIcon: HomeRepairService,
+                    color: orangeFg,
+                    bgColor: orangeBg,
                     nodeChildren: [
                         {
-                            ...Node("/itemInstances/create", "Create New", AddBox, "", greenFg, greenBg),
+                            nodeId: "/itemInstances/create",
+                            labelText: "Create New",
+                            labelIcon: AddBox,
+                            color: greenFg,
+                            bgColor: greenBg,
                             page: <CreateItemInstancePage />,
                         },
                         {
-                            ...Node("/itemInstances", "Manage Item Instances", ListAltIcon, "", purpleFg, purpleBg),
+                            nodeId: "/itemInstances",
+                            labelText: "Manage Item Instances",
+                            labelIcon: ListAltIcon,
+                            color: purpleFg,
+                            bgColor: purpleBg,
                             page: <ItemInstanceManagementPage />,
                         },
                     ],
                 },
                 {
-                    ...Node("stockChangesGroup", "Stock Changes", DescriptionIcon, "", orangeFg, orangeBg),
+                    nodeId: "stockChangesGroup",
+                    labelText: "Stock Changes",
+                    labelIcon: DescriptionIcon,
+                    color: orangeFg,
+                    bgColor: orangeBg,
                     nodeChildren: [
                         {
-                            ...Node("/stockChanges/create", "Create New", NoteAddIcon, "", greenFg, greenBg),
+                            nodeId: "/stockChanges/create",
+                            labelText: "Create New",
+                            labelIcon: NoteAddIcon,
+                            color: greenFg,
+                            bgColor: greenBg,
                             page: <CreateItemInstancePage />,
                         },
                         {
-                            ...Node("/stockChanges/incomplete", "In Progress", PendingActionsIcon, "", blueFg, blueBg),
+                            nodeId: "/stockChanges/incomplete",
+                            labelText: "In Progress",
+                            labelIcon: PendingActionsIcon,
+                            color: blueFg,
+                            bgColor: blueBg,
                             page: <ItemInstanceManagementPage />,
                         },
                         {
-                            ...Node("/stockChanges", "View All", ListAltIcon, "", purpleFg, purpleBg),
+                            nodeId: "/stockChanges",
+                            labelText: "View All",
+                            labelIcon: ListAltIcon,
+                            color: purpleFg,
+                            bgColor: purpleBg,
                             page: <ItemInstanceManagementPage />,
                         },
                     ],
@@ -468,29 +525,67 @@ const getDashboardTreeItemsFromTreeInfo = (treeInfo, navigate, refreshTreeInfo) 
             ],
         },
         {
-            ...Node("customersGroup", "Customers", PersonIcon, treeInfo.customers),
+            nodeId: "customersGroup",
+            labelText: "Customers",
+            labelIcon: PersonIcon,
+            labelInfo: treeInfo.customers,
+            color: purpleFg,
+            bgColor: purpleBg,
             nodeChildren: [
                 {
-                    ...Node("/customers/create", "Create New Customer", PersonAddIcon, "", greenFg, greenBg),
+                    nodeId: "/customers/create",
+                    labelText: "Create New Customer",
+                    labelIcon: PersonAddIcon,
+                    color: greenFg,
+                    bgColor: greenBg,
                     page: <CreateCustomerPage />,
                 },
                 {
-                    ...Node("/customers", "Manage Customers", ManageAccounts, "", purpleFg, purpleBg),
+                    nodeId: "/customers",
+                    labelText: "Manage Customers",
+                    labelIcon: ManageAccounts,
+                    color: purpleFg,
+                    bgColor: purpleBg,
                     page: <CustomerManagementPage />,
                 },
             ],
         },
         {
-            ...Node("invoicesGroup", "Invoices", ReceiptIcon, ""),
+            nodeId: "invoicesGroup",
+            labelText: "Invoices",
+            labelIcon: ReceiptIcon,
+            color: purpleFg,
+            bgColor: purpleBg,
             nodeChildren: [
                 {
-                    ...Node("/invoices/create", "Create New Invoice", PostAddIcon, "", greenFg, greenBg),
+                    nodeId: "/invoices/create",
+                    labelText: "Create New Invoice",
+                    labelIcon: PostAddIcon,
+                    color: greenFg,
+                    bgColor: greenBg,
                     page: <CreateInvoicePage />,
                 },
                 {
-                    ...Node("/invoices", "View Completed Invoices", ListAltIcon, "", purpleFg, purpleBg),
+                    nodeId: "/invoices",
+                    labelText: "View Completed Invoices",
+                    labelIcon: ListAltIcon,
+                    color: purpleFg,
+                    bgColor: purpleBg,
                     page: <InvoiceManagementPage />,
                 },
+                {
+                    nodeId: "inProgressInvoicesGroup",
+                    labelText: "In Progress",
+                    labelIcon: PendingActionsIcon,
+                    color: blueFg,
+                    bgColor: blueBg,
+                    nodeChildren: treeInfo.inProgressInvoices.map(({ customerName, invoiceId }) => ({
+                        nodeId: `/invoices/inProgress/${invoiceId}`,
+                        labelText: customerName,
+                        labelIcon: ReceiptIcon,
+                        page: <ViewInvoicePage invoiceId={invoiceId} />,
+                    })),
+                }
             ],
         },
     ];
@@ -524,7 +619,6 @@ const calculateParentMultiple = (nodes, parentArr = []) => {
     for (let node of nodes ?? [])
         calculateParent(node, parentArr);
 }
-
 
 // DASHBOARD HELPERS TO MAKE IT LESS CLUTTERED
 

@@ -1,0 +1,45 @@
+CLUSTERED INDEX:
+- Determines how the data is actully structured in the table
+- Very fast lookup.
+- Very fast update so long, as the index itself isn't getting updated (it never will if it's the PK, but FYI clustered index doesn't have to be the PK)
+- Very fast insert with auto increment key set as clustered (just adds at end)
+- Without auto increment key being used as the index, insert will NOT be as fast as it can be
+- If you order your data by this index when you query it, no sorting is required
+
+UNCLUSTERED INDEX:
+- Creates a separate table, sorted by whatever column you use as the index.
+- 2 columns (unless you include more), 1st column is what we're sorting by in the OG table and 2nd is a pointer to the OG row 
+- Inserting into this index is slower because the table is not naturally ordered by this column so we don't get the benefit of auto increment
+- Fast lookup
+- Update will be slower if you update the index itself
+- Costs memory
+- It is a tiny bit slower to lookup because first it searches the index for that column then has to navigate the pointer to actual row
+- However at the cost of more memory, you can make the lookup faster by 'including' rows in the index automatically, negating the need for pointer
+
+SESSIONS:
+
+- Sessions should use the default CLUSTERED INDEX on sessionUUID because it has very fast lookup. Sessions will be
+- looked up on EVERY REQUEST a user makes so we definitely want it like this. 
+
+- Unfortunately we can't use auto-increment with sessionUUID so inserting will be a bit slower
+- This is also why I need to change the paradigm of sessions. Instead of deleting their currSession 5s after their request
+  and inserting a new one, we should focus on lookup more to take advantage of our lookup speed, and delete them less often
+  to avoid the slower inserting/deletion due to not using auto-increment
+
+- We should make it so sessions last 10 minutes (using expiresIn column), then use the 'refresh token' paradigm
+- If the users session is expired upon request, check if they have refresh token. If they do, give them a new session
+- 'refresh token' session lasts 1 hour. But every time it is used, we update the expiresIn column of said refresh token
+
+- Stealing the refreshSessionUUID is useless without also having the loginSessionUUID because a the session will not be
+- refreshed if the specified loginSessionUUID is not found (it must exist and be expired) 
+- This is nice because every 10 minutes sessions are going to change, so it will be hard to get hands on both tokens
+- Both tokens are HTTPOnly so if you're not using a SUS browser you're lit anyways
+
+- This paradigm makes it so that instead of doing a loginSession read/insert/delete on EVERY request, we instead are
+- only READING on every request (VERY fast read, remember), and doing an insert at a rate no faster than
+- once every 10 minutes.
+- Deletes will happen once every server restart. It will look for expired ones to delete
+
+- refeshSession table will mostly only be read/updated so it will also be fast
+- expired ones will be deleted every restart
+- only inserted when the user logs in. Other than that it is read/updated
