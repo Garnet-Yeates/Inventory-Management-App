@@ -14,7 +14,7 @@ const CustomerManagementPage = (props) => {
     const { viewingId, editingId } = props.currURLQuery;
 
     if (viewingId) {
-        return <ViewCustomerPage {...props} currURLQuery={{ customerId: Number(viewingId) }}  />
+        return <ViewCustomerPage {...props} currURLQuery={{ customerId: Number(viewingId) }} />
     }
 
     if (editingId) {
@@ -60,17 +60,10 @@ const CustomersView = (props) => {
     const [filteringType, setFilteringType] = useState("Any");
 
     // When currentSearch changes, 0.5 seconds later we will update currentSearchInternal
-    const currentSearchUpdateThrottleRef = useRef();
+    // subsequent timeouts cancel the previous one
     useEffect(() => {
-
-        if (currentSearchUpdateThrottleRef.current) {
-            clearTimeout(currentSearchUpdateThrottleRef.current);
-        }
-
-        currentSearchUpdateThrottleRef.current = setTimeout(() => {
-            setCurrentSearchInternal(currentSearch);
-        }, 500)
-
+        const id = setTimeout(() => setCurrentSearchInternal(currentSearch), 500);
+        return () => clearTimeout(id);
     }, [currentSearch])
 
     // This memo only updates when state variables update, so when it updates it is always accompanied by a re-render

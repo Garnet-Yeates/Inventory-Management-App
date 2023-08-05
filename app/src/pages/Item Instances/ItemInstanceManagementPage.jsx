@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { effectAbortSignal, useUnmountTimeoutCancel } from "../../tools/axiosTools";
+import { effectAbortSignal } from "../../tools/axiosTools";
 import { SERVER_URL } from "../App";
 import "../../sass/ItemInstanceManagement.scss"
 import { formatToUSCurrency } from "../../tools/generalTools";
@@ -22,7 +22,9 @@ const ItemInstanceManagementPage = (props) => {
 const ItemInstancesView = (props) => {
 
     // Inherited props from Dashboard
-    const { selectNodeNextRefresh, refreshTreeInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage, currURLQuery } = props;
+    const { selectNodeNextRefresh, refreshTreeInfo, tryNavigate, lockExitWith, unlockExit, addDashboardMessage } = props;
+
+    const { currURLPath, currURLQuery } = props;
 
     const { viewingInstancesOf, filterBy, filterType, filterQuery } = currURLQuery;
 
@@ -71,25 +73,20 @@ const ItemInstancesView = (props) => {
     }, [filterBy, filterType, filterQuery])
 
     // When currentSearch changes, 0.5 seconds later we will update currentSearchInternal
-    const currentSearchUpdateThrottleRef = useRef();
-    useUnmountTimeoutCancel(currentSearchUpdateThrottleRef);
     useEffect(() => {
-
-        if (currentSearchUpdateThrottleRef.current) {
-            clearTimeout(currentSearchUpdateThrottleRef.current);
-        }
-
-        currentSearchUpdateThrottleRef.current = setTimeout(() => {
+        const timeoutId = setTimeout(() => {
             tryNavigate({
-                path: "/itemInstances",
+                path: currURLPath,
                 replace: true,
-                query: currentSearch ? {
-                    filterBy: filteringBy,
-                    filterType: filteringType,
-                    filterQuery: currentSearch,
-                } : undefined
+                query: {
+                    ...currURLQuery,
+                    filterQuery: currentSearch || undefined,
+                    filterBy: currentSearch ? filteringBy : undefined,
+                    filterType: currentSearch ? filteringType : undefined,
+                }
             })
         }, 500)
+        return () => clearTimeout(timeoutId);
     }, [currentSearch])
 
     // This memo only updates when state variables update, so when it updates it is always accompanied by a re-render

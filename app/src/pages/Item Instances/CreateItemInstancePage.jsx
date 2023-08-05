@@ -39,10 +39,6 @@ const CreateItemInstancePage = (props) => {
     const submitSignalRef = useRef();
     useUnmountSignalCancel(submitSignalRef);
 
-    // For the "auto item code querying" when item code field changes
-    const itemCodeUpdateSignalRef = useRef();
-    useUnmountSignalCancel(itemCodeUpdateSignalRef);
-
     const markDirty = () => lockExitWith("Unsaved changes will be lost. Are you sure?")
 
     // When preSetItemCode query param changes
@@ -78,38 +74,33 @@ const CreateItemInstancePage = (props) => {
         }
     }, [editingId])
 
-    // Whenever itemCode changes (or mount occurs), we try to find the itemType to load its default values into our placeholders 
-    const itemCodeUpdateDelayRef = useRef();
-    useUnmountTimeoutCancel(itemCodeUpdateDelayRef);
     useEffect(() => {
 
-        if (itemCodeUpdateDelayRef.current) {
-            clearTimeout(itemCodeUpdateDelayRef.current);
-        }
-
-        itemCodeUpdateSignalRef.current?.abort();
-        itemCodeUpdateSignalRef.current = newAbortSignal(10);
+        const controller = newAbortSignal(10);
 
         setDefaultBuyPrice("");
         setDefaultSellPrice("");
 
-        itemCodeUpdateDelayRef.current = setTimeout(() => {
-            if (itemCode) {
-                (async () => {
-                    try {
-                        const response = await axios.get(`${SERVER_URL}/itemType/getItemType`, { params: { itemCode }, signal: itemCodeUpdateSignalRef.current.signal })
-                        const { data: { itemType } } = response;
-                        console.log("Received the following from the server", response)
-                        setDefaultBuyPrice(itemType.defaultBuyPrice);
-                        setDefaultSellPrice(itemType.defaultSellPrice);
-                    }
-                    catch (err) {
-                        if (axios.isCancel(err)) return `Request canceled due to unmount or consecutive call (cancels previous request)`
-                        console.log("Error at GET /itemType/getItemType", err);
-                    }
-                })()
+        if (itemCode) {
+            const timeoutId = setTimeout(async () => {
+                try {
+                    const response = await axios.get(`${SERVER_URL}/itemType/getItemType`, { params: { itemCode }, signal: controller.signal })
+                    const { data: { itemType } } = response;
+                    console.log("Received the following from the server", response)
+                    setDefaultBuyPrice(itemType.defaultBuyPrice);
+                    setDefaultSellPrice(itemType.defaultSellPrice);
+                }
+                catch (err) {
+                    if (axios.isCancel(err)) return `Request canceled due to unmount or consecutive call (cancels previous request)`
+                    console.log("Error at GET /itemType/getItemType", err);
+                }
+            }, 250)
+
+            return function cleanup() {
+                clearTimeout(timeoutId);
+                controller.abort();
             }
-        }, 250)
+        }
     }, [itemCode])
 
     const [loading, setLoading] = useState(false);
